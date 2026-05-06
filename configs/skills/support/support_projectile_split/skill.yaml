@@ -1,0 +1,191 @@
+id: "support_projectile_split"
+sort_order: 22
+name_key: "gem.support_projectile_split.name"
+description_key: "gem.support_projectile_split.description"
+category: "projectile_area_specialist"
+gem_type: "gem_type_5"
+gem_kind: "support"
+sudoku_digit: 5
+source_values:
+  source: "tlidb"
+  tlidb_id: "Projectile_Split"
+  display_level: 20
+  raw_lines: ["辅助抛射投射物技能。", "释放被辅助技能时，+50% 几率使该次技能 +2 分裂数量", "被辅助技能额外 8.2% 伤害 (Lv1:41/5) (Lv21:61/5) (Lv41:71/5)", "释放被辅助技能时，+50% 几率使该次技能 +2 分裂数量", "被辅助技能额外 8.2% 伤害 (Lv1:41/5) (Lv21:61/5) (Lv41:71/5)"]
+  parsed_values:
+    split_projectile_chance_percent: 50
+    split_projectile_count_add: 2
+    damage_final_percent: 8.2
+  anchors:
+    split_projectile_chance_percent:
+      20: 50
+    split_projectile_count_add:
+      20: 2
+    damage_final_percent:
+      20: 8.2
+level_table:
+  levels:
+    1:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 8.2
+    2:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 8.4
+    3:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 8.6
+    4:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 8.8
+    5:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 9
+    6:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 9.2
+    7:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 9.4
+    8:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 9.6
+    9:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 9.8
+    10:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 10
+    11:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 10.2
+    12:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 10.4
+    13:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 10.6
+    14:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 10.8
+    15:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 11
+    16:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 11.2
+    17:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 11.4
+    18:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 11.6
+    19:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 11.8
+    20:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12
+    21:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.2
+    22:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.3
+    23:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.4
+    24:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.5
+    25:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.6
+    26:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.7
+    27:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.8
+    28:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 12.9
+    29:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13
+    30:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.1
+    31:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.2
+    32:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.3
+    33:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.4
+    34:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.5
+    35:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.6
+    36:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.7
+    37:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.8
+    38:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 13.9
+    39:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 14
+    40:
+      split_projectile_chance_percent: 50
+      split_projectile_count_add: 2
+      damage_final_percent: 14.1
+tags: ["gem", "support_gem", "loot_gem", "gem_type_5", "support_projectile"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["projectile"]
+effect_stats: ["split_projectile_chance_percent", "split_projectile_count_add", "damage_final_percent"]

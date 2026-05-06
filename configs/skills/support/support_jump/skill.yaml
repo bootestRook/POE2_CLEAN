@@ -1,0 +1,148 @@
+id: "support_jump"
+sort_order: 24
+name_key: "gem.support_jump.name"
+description_key: "gem.support_jump.description"
+category: "projectile_area_specialist"
+gem_type: "gem_type_5"
+gem_kind: "support"
+sudoku_digit: 5
+source_values:
+  source: "tlidb"
+  tlidb_id: "Jump"
+  display_level: 20
+  raw_lines: ["辅助直射投射物技能或连锁技能。", "被辅助技能 +2 弹射次数", "被辅助技能额外 +4% 伤害 (Lv1:4) (Lv21:8) (Lv41:12)", "被辅助技能 +2 弹射次数", "被辅助技能额外 +4% 伤害 (Lv1:4) (Lv21:8) (Lv41:12)"]
+  parsed_values:
+    bounce_count_add: 2
+    damage_final_percent: 4
+  anchors:
+    bounce_count_add:
+      20: 2
+    damage_final_percent:
+      20: 4
+level_table:
+  levels:
+    1:
+      bounce_count_add: 2
+      damage_final_percent: 4
+    2:
+      bounce_count_add: 2
+      damage_final_percent: 4.2
+    3:
+      bounce_count_add: 2
+      damage_final_percent: 4.4
+    4:
+      bounce_count_add: 2
+      damage_final_percent: 4.6
+    5:
+      bounce_count_add: 2
+      damage_final_percent: 4.8
+    6:
+      bounce_count_add: 2
+      damage_final_percent: 5
+    7:
+      bounce_count_add: 2
+      damage_final_percent: 5.2
+    8:
+      bounce_count_add: 2
+      damage_final_percent: 5.4
+    9:
+      bounce_count_add: 2
+      damage_final_percent: 5.6
+    10:
+      bounce_count_add: 2
+      damage_final_percent: 5.8
+    11:
+      bounce_count_add: 2
+      damage_final_percent: 6
+    12:
+      bounce_count_add: 2
+      damage_final_percent: 6.2
+    13:
+      bounce_count_add: 2
+      damage_final_percent: 6.4
+    14:
+      bounce_count_add: 2
+      damage_final_percent: 6.6
+    15:
+      bounce_count_add: 2
+      damage_final_percent: 6.8
+    16:
+      bounce_count_add: 2
+      damage_final_percent: 7
+    17:
+      bounce_count_add: 2
+      damage_final_percent: 7.2
+    18:
+      bounce_count_add: 2
+      damage_final_percent: 7.4
+    19:
+      bounce_count_add: 2
+      damage_final_percent: 7.6
+    20:
+      bounce_count_add: 2
+      damage_final_percent: 7.8
+    21:
+      bounce_count_add: 2
+      damage_final_percent: 8
+    22:
+      bounce_count_add: 2
+      damage_final_percent: 8.2
+    23:
+      bounce_count_add: 2
+      damage_final_percent: 8.4
+    24:
+      bounce_count_add: 2
+      damage_final_percent: 8.6
+    25:
+      bounce_count_add: 2
+      damage_final_percent: 8.8
+    26:
+      bounce_count_add: 2
+      damage_final_percent: 9
+    27:
+      bounce_count_add: 2
+      damage_final_percent: 9.2
+    28:
+      bounce_count_add: 2
+      damage_final_percent: 9.4
+    29:
+      bounce_count_add: 2
+      damage_final_percent: 9.6
+    30:
+      bounce_count_add: 2
+      damage_final_percent: 9.8
+    31:
+      bounce_count_add: 2
+      damage_final_percent: 10
+    32:
+      bounce_count_add: 2
+      damage_final_percent: 10.2
+    33:
+      bounce_count_add: 2
+      damage_final_percent: 10.4
+    34:
+      bounce_count_add: 2
+      damage_final_percent: 10.6
+    35:
+      bounce_count_add: 2
+      damage_final_percent: 10.8
+    36:
+      bounce_count_add: 2
+      damage_final_percent: 11
+    37:
+      bounce_count_add: 2
+      damage_final_percent: 11.2
+    38:
+      bounce_count_add: 2
+      damage_final_percent: 11.4
+    39:
+      bounce_count_add: 2
+      damage_final_percent: 11.6
+    40:
+      bounce_count_add: 2
+      damage_final_percent: 11.8
+tags: ["gem", "support_gem", "loot_gem", "gem_type_5", "support_projectile"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["projectile", "chain"]
+effect_stats: ["bounce_count_add", "damage_final_percent"]

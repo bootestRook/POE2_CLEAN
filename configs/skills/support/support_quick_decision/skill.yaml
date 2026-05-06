@@ -1,0 +1,145 @@
+id: "support_quick_decision"
+sort_order: 1
+name_key: "gem.support_quick_decision.name"
+description_key: "gem.support_quick_decision.description"
+category: "general_skill_modifier"
+gem_type: "gem_type_3"
+gem_kind: "support"
+sudoku_digit: 3
+source_values:
+  source: "tlidb"
+  tlidb_id: "Quick_Decision"
+  display_level: 20
+  raw_lines: ["辅助攻击或法术技能。", "无法辅助位移技能。", "被辅助技能额外 +15% 攻击和施法速度 (Lv1:15) (Lv21:25) (Lv41:35)", "被辅助技能额外 +15% 攻击和施法速度 (Lv1:15) (Lv21:25) (Lv41:35)"]
+  parsed_values:
+    attack_speed_add_percent: 15
+  anchors:
+    attack_speed_add_percent:
+      20: 15
+level_table:
+  levels:
+    1:
+      attack_speed_add_percent: 15
+      cast_speed_add_percent: 15
+    2:
+      attack_speed_add_percent: 15.5
+      cast_speed_add_percent: 15.5
+    3:
+      attack_speed_add_percent: 16
+      cast_speed_add_percent: 16
+    4:
+      attack_speed_add_percent: 16.5
+      cast_speed_add_percent: 16.5
+    5:
+      attack_speed_add_percent: 17
+      cast_speed_add_percent: 17
+    6:
+      attack_speed_add_percent: 17.5
+      cast_speed_add_percent: 17.5
+    7:
+      attack_speed_add_percent: 18
+      cast_speed_add_percent: 18
+    8:
+      attack_speed_add_percent: 18.5
+      cast_speed_add_percent: 18.5
+    9:
+      attack_speed_add_percent: 19
+      cast_speed_add_percent: 19
+    10:
+      attack_speed_add_percent: 19.5
+      cast_speed_add_percent: 19.5
+    11:
+      attack_speed_add_percent: 20
+      cast_speed_add_percent: 20
+    12:
+      attack_speed_add_percent: 20.5
+      cast_speed_add_percent: 20.5
+    13:
+      attack_speed_add_percent: 21
+      cast_speed_add_percent: 21
+    14:
+      attack_speed_add_percent: 21.5
+      cast_speed_add_percent: 21.5
+    15:
+      attack_speed_add_percent: 22
+      cast_speed_add_percent: 22
+    16:
+      attack_speed_add_percent: 22.5
+      cast_speed_add_percent: 22.5
+    17:
+      attack_speed_add_percent: 23
+      cast_speed_add_percent: 23
+    18:
+      attack_speed_add_percent: 23.5
+      cast_speed_add_percent: 23.5
+    19:
+      attack_speed_add_percent: 24
+      cast_speed_add_percent: 24
+    20:
+      attack_speed_add_percent: 24.5
+      cast_speed_add_percent: 24.5
+    21:
+      attack_speed_add_percent: 25
+      cast_speed_add_percent: 25
+    22:
+      attack_speed_add_percent: 25.5
+      cast_speed_add_percent: 25.5
+    23:
+      attack_speed_add_percent: 26
+      cast_speed_add_percent: 26
+    24:
+      attack_speed_add_percent: 26.5
+      cast_speed_add_percent: 26.5
+    25:
+      attack_speed_add_percent: 27
+      cast_speed_add_percent: 27
+    26:
+      attack_speed_add_percent: 27.5
+      cast_speed_add_percent: 27.5
+    27:
+      attack_speed_add_percent: 28
+      cast_speed_add_percent: 28
+    28:
+      attack_speed_add_percent: 28.5
+      cast_speed_add_percent: 28.5
+    29:
+      attack_speed_add_percent: 29
+      cast_speed_add_percent: 29
+    30:
+      attack_speed_add_percent: 29.5
+      cast_speed_add_percent: 29.5
+    31:
+      attack_speed_add_percent: 30
+      cast_speed_add_percent: 30
+    32:
+      attack_speed_add_percent: 30.5
+      cast_speed_add_percent: 30.5
+    33:
+      attack_speed_add_percent: 31
+      cast_speed_add_percent: 31
+    34:
+      attack_speed_add_percent: 31.5
+      cast_speed_add_percent: 31.5
+    35:
+      attack_speed_add_percent: 32
+      cast_speed_add_percent: 32
+    36:
+      attack_speed_add_percent: 32.5
+      cast_speed_add_percent: 32.5
+    37:
+      attack_speed_add_percent: 33
+      cast_speed_add_percent: 33
+    38:
+      attack_speed_add_percent: 33.5
+      cast_speed_add_percent: 33.5
+    39:
+      attack_speed_add_percent: 34
+      cast_speed_add_percent: 34
+    40:
+      attack_speed_add_percent: 34.5
+      cast_speed_add_percent: 34.5
+tags: ["gem", "support_gem", "loot_gem", "gem_type_3", "support_speed"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["attack", "spell"]
+effect_stats: ["attack_speed_add_percent", "cast_speed_add_percent"]

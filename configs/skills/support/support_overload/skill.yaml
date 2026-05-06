@@ -1,0 +1,152 @@
+id: "support_overload"
+sort_order: 7
+name_key: "gem.support_overload.name"
+description_key: "gem.support_overload.description"
+category: "general_skill_modifier"
+gem_type: "gem_type_3"
+gem_kind: "support"
+sudoku_digit: 3
+source_values:
+  source: "tlidb"
+  tlidb_id: "Overload"
+  display_level: 20
+  raw_lines: ["辅助法术技能。", "每有 1 层聚能祝福，被辅助技能额外 3.05% 伤害，上限 8 层 (Lv1:61/20) (Lv21:81/20) (Lv41:101/20)", "每有 1 层聚能祝福，被辅助技能额外 3.05% 伤害，上限 8 层 (Lv1:61/20) (Lv21:81/20) (Lv41:101/20)"]
+  parsed_values:
+    energy_blessing_damage_per_stack_percent: 3.05
+    energy_blessing_max_stacks: 8
+  anchors:
+    energy_blessing_damage_per_stack_percent: 3.05
+    energy_blessing_max_stacks: 8
+level_table:
+  levels:
+    1:
+      energy_blessing_damage_per_stack_percent: 3.05
+      energy_blessing_max_stacks: 8
+    2:
+      energy_blessing_damage_per_stack_percent: 3.1
+      energy_blessing_max_stacks: 8
+    3:
+      energy_blessing_damage_per_stack_percent: 3.15
+      energy_blessing_max_stacks: 8
+    4:
+      energy_blessing_damage_per_stack_percent: 3.2
+      energy_blessing_max_stacks: 8
+    5:
+      energy_blessing_damage_per_stack_percent: 3.25
+      energy_blessing_max_stacks: 8
+    6:
+      energy_blessing_damage_per_stack_percent: 3.3
+      energy_blessing_max_stacks: 8
+    7:
+      energy_blessing_damage_per_stack_percent: 3.35
+      energy_blessing_max_stacks: 8
+    8:
+      energy_blessing_damage_per_stack_percent: 3.4
+      energy_blessing_max_stacks: 8
+    9:
+      energy_blessing_damage_per_stack_percent: 3.45
+      energy_blessing_max_stacks: 8
+    10:
+      energy_blessing_damage_per_stack_percent: 3.5
+      energy_blessing_max_stacks: 8
+    11:
+      energy_blessing_damage_per_stack_percent: 3.55
+      energy_blessing_max_stacks: 8
+    12:
+      energy_blessing_damage_per_stack_percent: 3.6
+      energy_blessing_max_stacks: 8
+    13:
+      energy_blessing_damage_per_stack_percent: 3.65
+      energy_blessing_max_stacks: 8
+    14:
+      energy_blessing_damage_per_stack_percent: 3.7
+      energy_blessing_max_stacks: 8
+    15:
+      energy_blessing_damage_per_stack_percent: 3.75
+      energy_blessing_max_stacks: 8
+    16:
+      energy_blessing_damage_per_stack_percent: 3.8
+      energy_blessing_max_stacks: 8
+    17:
+      energy_blessing_damage_per_stack_percent: 3.85
+      energy_blessing_max_stacks: 8
+    18:
+      energy_blessing_damage_per_stack_percent: 3.9
+      energy_blessing_max_stacks: 8
+    19:
+      energy_blessing_damage_per_stack_percent: 3.95
+      energy_blessing_max_stacks: 8
+    20:
+      energy_blessing_damage_per_stack_percent: 4
+      energy_blessing_max_stacks: 8
+    21:
+      energy_blessing_damage_per_stack_percent: 4.05
+      energy_blessing_max_stacks: 8
+    22:
+      energy_blessing_damage_per_stack_percent: 4.1
+      energy_blessing_max_stacks: 8
+    23:
+      energy_blessing_damage_per_stack_percent: 4.15
+      energy_blessing_max_stacks: 8
+    24:
+      energy_blessing_damage_per_stack_percent: 4.2
+      energy_blessing_max_stacks: 8
+    25:
+      energy_blessing_damage_per_stack_percent: 4.25
+      energy_blessing_max_stacks: 8
+    26:
+      energy_blessing_damage_per_stack_percent: 4.3
+      energy_blessing_max_stacks: 8
+    27:
+      energy_blessing_damage_per_stack_percent: 4.35
+      energy_blessing_max_stacks: 8
+    28:
+      energy_blessing_damage_per_stack_percent: 4.4
+      energy_blessing_max_stacks: 8
+    29:
+      energy_blessing_damage_per_stack_percent: 4.45
+      energy_blessing_max_stacks: 8
+    30:
+      energy_blessing_damage_per_stack_percent: 4.5
+      energy_blessing_max_stacks: 8
+    31:
+      energy_blessing_damage_per_stack_percent: 4.55
+      energy_blessing_max_stacks: 8
+    32:
+      energy_blessing_damage_per_stack_percent: 4.6
+      energy_blessing_max_stacks: 8
+    33:
+      energy_blessing_damage_per_stack_percent: 4.65
+      energy_blessing_max_stacks: 8
+    34:
+      energy_blessing_damage_per_stack_percent: 4.7
+      energy_blessing_max_stacks: 8
+    35:
+      energy_blessing_damage_per_stack_percent: 4.75
+      energy_blessing_max_stacks: 8
+    36:
+      energy_blessing_damage_per_stack_percent: 4.8
+      energy_blessing_max_stacks: 8
+    37:
+      energy_blessing_damage_per_stack_percent: 4.85
+      energy_blessing_max_stacks: 8
+    38:
+      energy_blessing_damage_per_stack_percent: 4.9
+      energy_blessing_max_stacks: 8
+    39:
+      energy_blessing_damage_per_stack_percent: 4.95
+      energy_blessing_max_stacks: 8
+    40:
+      energy_blessing_damage_per_stack_percent: 5
+      energy_blessing_max_stacks: 8
+tags: ["gem", "support_gem", "loot_gem", "gem_type_3", "support_damage"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["spell"]
+effect_stats:
+  - stat: "energy_blessing_damage_per_stack_percent"
+    value: 3.05
+    layer: "additive"
+  - stat: "energy_blessing_max_stacks"
+    value: 8
+    layer: "additive"

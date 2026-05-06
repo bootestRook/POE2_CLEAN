@@ -1,0 +1,112 @@
+id: "support_added_erosion_damage"
+sort_order: 17
+name_key: "gem.support_added_erosion_damage.name"
+description_key: "gem.support_added_erosion_damage.description"
+category: "damage_type_enhancer"
+gem_type: "gem_type_4"
+gem_kind: "support"
+sudoku_digit: 4
+source_values:
+  source: "tlidb"
+  tlidb_id: "Added_Erosion_Damage"
+  display_level: 20
+  raw_lines: ["辅助击中敌人的技能。", "被辅助技能附加 2 - 2 点腐蚀伤害 (Lv1:2) (Lv2:3) (Lv3:4) (Lv4:5) (Lv5:6) (Lv6:7) (Lv7:8) (Lv8:9) (Lv9:11) (Lv10:13) (Lv11:15) (Lv12:17) (Lv13:20) (Lv14:25) (Lv15:35) (Lv16:50) (Lv17:60) (Lv18:70) (Lv19:85) (Lv20:104) (Lv21:105) (Lv22:106) (Lv23:107) (Lv24:108) (Lv25:109) (Lv26:111) (Lv27:112) (Lv28:113) (Lv29:114) (Lv30:115) (Lv31:116) (Lv32:117) (Lv33:119) (Lv34:120) (Lv35:121) (Lv36:122) (Lv37:123) (Lv38:125) (Lv39:126) (Lv40:127) (Lv1:2) (Lv2:3) (Lv3:4) (Lv4:5) (Lv5:6) (Lv6:7) (Lv7:8) (Lv8:9) (Lv9:11) (Lv10:13) (Lv11:15) (Lv12:17) (Lv13:20) (Lv14:25) (Lv15:35) (Lv16:50) (Lv17:60) (Lv18:70) (Lv19:85) (Lv20:104) (Lv21:105) (Lv22:106) (Lv23:107) (Lv24:108) (Lv25:109) (Lv26:111) (Lv27:112) (Lv28:113) (Lv29:114) (Lv30:115) (Lv31:116) (Lv32:117) (Lv33:119) (Lv34:120) (Lv35:121) (Lv36:122) (Lv37:123) (Lv38:125) (Lv39:126) (Lv40:127)", "被辅助技能附加 2 - 2 点腐蚀伤害 (Lv1:2) (Lv2:3) (Lv3:4) (Lv4:5) (Lv5:6) (Lv6:7) (Lv7:8) (Lv8:9) (Lv9:11) (Lv10:13) (Lv11:15) (Lv12:17) (Lv13:20) (Lv14:25) (Lv15:35) (Lv16:50) (Lv17:60) (Lv18:70) (Lv19:85) (Lv20:104) (Lv21:105) (Lv22:106) (Lv23:107) (Lv24:108) (Lv25:109) (Lv26:111) (Lv27:112) (Lv28:113) (Lv29:114) (Lv30:115) (Lv31:116) (Lv32:117) (Lv33:119) (Lv34:120) (Lv35:121) (Lv36:122) (Lv37:123) (Lv38:125) (Lv39:126) (Lv40:127) (Lv1:2) (Lv2:3) (Lv3:4) (Lv4:5) (Lv5:6) (Lv6:7) (Lv7:8) (Lv8:9) (Lv9:11) (Lv10:13) (Lv11:15) (Lv12:17) (Lv13:20) (Lv14:25) (Lv15:35) (Lv16:50) (Lv17:60) (Lv18:70) (Lv19:85) (Lv20:104) (Lv21:105) (Lv22:106) (Lv23:107) (Lv24:108) (Lv25:109) (Lv26:111) (Lv27:112) (Lv28:113) (Lv29:114) (Lv30:115) (Lv31:116) (Lv32:117) (Lv33:119) (Lv34:120) (Lv35:121) (Lv36:122) (Lv37:123) (Lv38:125) (Lv39:126) (Lv40:127)"]
+  parsed_values:
+    added_chaos_damage_min: 104
+    added_chaos_damage_max: 104
+    added_chaos_damage: 104
+  anchors:
+    added_chaos_damage_min: 104
+    added_chaos_damage_max: 104
+    added_chaos_damage: 104
+level_table:
+  levels:
+    1:
+      added_chaos_damage: 2
+    2:
+      added_chaos_damage: 3
+    3:
+      added_chaos_damage: 4
+    4:
+      added_chaos_damage: 5
+    5:
+      added_chaos_damage: 6
+    6:
+      added_chaos_damage: 7
+    7:
+      added_chaos_damage: 8
+    8:
+      added_chaos_damage: 9
+    9:
+      added_chaos_damage: 11
+    10:
+      added_chaos_damage: 13
+    11:
+      added_chaos_damage: 15
+    12:
+      added_chaos_damage: 17
+    13:
+      added_chaos_damage: 20
+    14:
+      added_chaos_damage: 25
+    15:
+      added_chaos_damage: 35
+    16:
+      added_chaos_damage: 50
+    17:
+      added_chaos_damage: 60
+    18:
+      added_chaos_damage: 70
+    19:
+      added_chaos_damage: 85
+    20:
+      added_chaos_damage: 104
+    21:
+      added_chaos_damage: 105
+    22:
+      added_chaos_damage: 106
+    23:
+      added_chaos_damage: 107
+    24:
+      added_chaos_damage: 108
+    25:
+      added_chaos_damage: 109
+    26:
+      added_chaos_damage: 111
+    27:
+      added_chaos_damage: 112
+    28:
+      added_chaos_damage: 113
+    29:
+      added_chaos_damage: 114
+    30:
+      added_chaos_damage: 115
+    31:
+      added_chaos_damage: 116
+    32:
+      added_chaos_damage: 117
+    33:
+      added_chaos_damage: 119
+    34:
+      added_chaos_damage: 120
+    35:
+      added_chaos_damage: 121
+    36:
+      added_chaos_damage: 122
+    37:
+      added_chaos_damage: 123
+    38:
+      added_chaos_damage: 125
+    39:
+      added_chaos_damage: 126
+    40:
+      added_chaos_damage: 127
+tags: ["gem", "support_gem", "loot_gem", "gem_type_4", "support_damage"]
+apply_filter:
+  target_kinds: ["active_skill"]
+  tags_any: ["attack", "spell"]
+  tags_none: ["dot", "guard"]
+effect_stats:
+  - stat: "added_chaos_damage"
+    value: 104
+    layer: "additive"

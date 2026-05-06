@@ -1,0 +1,105 @@
+id: "support_raging_slash"
+sort_order: 29
+name_key: "gem.support_raging_slash.name"
+description_key: "gem.support_raging_slash.description"
+category: "skill_shape_modifier"
+gem_type: "gem_type_7"
+gem_kind: "support"
+sudoku_digit: 7
+source_values:
+  source: "tlidb"
+  tlidb_id: "Raging_Slash"
+  display_level: 20
+  raw_lines: ["辅助近战挥斩技能。", "被辅助技能 +21% 斩击几率 (Lv1:21) (Lv21:41) (Lv41:51)", "被辅助技能 +21% 斩击几率 (Lv1:21) (Lv21:41) (Lv41:51)"]
+  parsed_values:
+    slash_chance_add_percent: 21
+  anchors:
+    slash_chance_add_percent:
+      20: 21
+level_table:
+  levels:
+    1:
+      slash_chance_add_percent: 21
+    2:
+      slash_chance_add_percent: 22
+    3:
+      slash_chance_add_percent: 23
+    4:
+      slash_chance_add_percent: 24
+    5:
+      slash_chance_add_percent: 25
+    6:
+      slash_chance_add_percent: 26
+    7:
+      slash_chance_add_percent: 27
+    8:
+      slash_chance_add_percent: 28
+    9:
+      slash_chance_add_percent: 29
+    10:
+      slash_chance_add_percent: 30
+    11:
+      slash_chance_add_percent: 31
+    12:
+      slash_chance_add_percent: 32
+    13:
+      slash_chance_add_percent: 33
+    14:
+      slash_chance_add_percent: 34
+    15:
+      slash_chance_add_percent: 35
+    16:
+      slash_chance_add_percent: 36
+    17:
+      slash_chance_add_percent: 37
+    18:
+      slash_chance_add_percent: 38
+    19:
+      slash_chance_add_percent: 39
+    20:
+      slash_chance_add_percent: 40
+    21:
+      slash_chance_add_percent: 41
+    22:
+      slash_chance_add_percent: 41.5
+    23:
+      slash_chance_add_percent: 42
+    24:
+      slash_chance_add_percent: 42.5
+    25:
+      slash_chance_add_percent: 43
+    26:
+      slash_chance_add_percent: 43.5
+    27:
+      slash_chance_add_percent: 44
+    28:
+      slash_chance_add_percent: 44.5
+    29:
+      slash_chance_add_percent: 45
+    30:
+      slash_chance_add_percent: 45.5
+    31:
+      slash_chance_add_percent: 46
+    32:
+      slash_chance_add_percent: 46.5
+    33:
+      slash_chance_add_percent: 47
+    34:
+      slash_chance_add_percent: 47.5
+    35:
+      slash_chance_add_percent: 48
+    36:
+      slash_chance_add_percent: 48.5
+    37:
+      slash_chance_add_percent: 49
+    38:
+      slash_chance_add_percent: 49.5
+    39:
+      slash_chance_add_percent: 50
+    40:
+      slash_chance_add_percent: 50.5
+tags: ["gem", "support_gem", "loot_gem", "gem_type_7", "support_shape"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["melee"]
+effect_stats: ["slash_chance_add_percent"]

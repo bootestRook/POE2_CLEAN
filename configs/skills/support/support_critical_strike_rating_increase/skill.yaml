@@ -1,0 +1,105 @@
+id: "support_critical_strike_rating_increase"
+sort_order: 3
+name_key: "gem.support_critical_strike_rating_increase.name"
+description_key: "gem.support_critical_strike_rating_increase.description"
+category: "general_skill_modifier"
+gem_type: "gem_type_3"
+gem_kind: "support"
+sudoku_digit: 3
+source_values:
+  source: "tlidb"
+  tlidb_id: "Critical_Strike_Rating_Increase"
+  display_level: 20
+  raw_lines: ["辅助击中敌人的技能。", "被辅助技能 +135% 暴击值 (Lv1:135) (Lv21:235) (Lv41:335)", "被辅助技能 +135% 暴击值 (Lv1:135) (Lv21:235) (Lv41:335)"]
+  parsed_values:
+    crit_rating: 135
+  anchors:
+    crit_rating:
+      20: 135
+level_table:
+  levels:
+    1:
+      crit_rating: 135
+    2:
+      crit_rating: 140
+    3:
+      crit_rating: 145
+    4:
+      crit_rating: 150
+    5:
+      crit_rating: 155
+    6:
+      crit_rating: 160
+    7:
+      crit_rating: 165
+    8:
+      crit_rating: 170
+    9:
+      crit_rating: 175
+    10:
+      crit_rating: 180
+    11:
+      crit_rating: 185
+    12:
+      crit_rating: 190
+    13:
+      crit_rating: 195
+    14:
+      crit_rating: 200
+    15:
+      crit_rating: 205
+    16:
+      crit_rating: 210
+    17:
+      crit_rating: 215
+    18:
+      crit_rating: 220
+    19:
+      crit_rating: 225
+    20:
+      crit_rating: 230
+    21:
+      crit_rating: 235
+    22:
+      crit_rating: 240
+    23:
+      crit_rating: 245
+    24:
+      crit_rating: 250
+    25:
+      crit_rating: 255
+    26:
+      crit_rating: 260
+    27:
+      crit_rating: 265
+    28:
+      crit_rating: 270
+    29:
+      crit_rating: 275
+    30:
+      crit_rating: 280
+    31:
+      crit_rating: 285
+    32:
+      crit_rating: 290
+    33:
+      crit_rating: 295
+    34:
+      crit_rating: 300
+    35:
+      crit_rating: 305
+    36:
+      crit_rating: 310
+    37:
+      crit_rating: 315
+    38:
+      crit_rating: 320
+    39:
+      crit_rating: 325
+    40:
+      crit_rating: 330
+tags: ["gem", "support_gem", "loot_gem", "gem_type_3", "support_crit"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["attack", "spell", "projectile", "area", "melee", "ranged", "aura"]
+effect_stats: ["crit_rating"]

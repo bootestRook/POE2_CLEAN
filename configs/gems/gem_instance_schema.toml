@@ -1,0 +1,18 @@
+[gem_instance_schema]
+required_fields = [
+  "instance_id",
+  "base_gem_id",
+  "gem_kind",
+  "sudoku_digit",
+  "gem_type",
+  "rarity",
+  "level",
+  "locked",
+  "board_position",
+]
+rarities = ["normal", "magic", "rare"]
+
+[rarity_affix_counts]
+normal = 0
+magic = 1
+rare = 2

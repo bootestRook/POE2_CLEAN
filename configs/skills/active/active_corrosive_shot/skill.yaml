@@ -1,0 +1,474 @@
+id: "active_corrosive_shot"
+version: "1.0.0"
+product_status: "product"
+source_values:
+  source: "tlidb"
+  tlidb_id: "Corrosive_Shot"
+  display_level: 20
+  raw_lines: ["释放该技能向前抛射一个侵蚀弹，侵蚀弹接触目标时产生爆炸，造成 95% 武器攻击伤害。", "未分裂的侵蚀弹接触目标时还会生成侵蚀地面，对其中的敌人每秒造成 57 持续混沌伤害，并使其中敌人受到的该技能的伤害额外增加。", "该技能造成的凋零伤害更高。", "该技能全部物理伤害转化为混沌伤害。", "爆炸：", "造成 95% 武器攻击伤害", "该技能 +30% 凋零几率", "该技能额外 +30% 凋零伤害", "该技能 100% 物理伤害转化为混沌伤害", "侵蚀地面：", "侵蚀地面持续 3 秒", "伤害状态持续 2 秒，每秒造成 57 持续混沌伤害"]
+  parsed_values:
+    base_damage: 95
+    mana_cost: 5
+    release_interval_ms: 1000
+  anchors:
+    base_damage:
+      20: 95
+level_table:
+  levels:
+    1:
+      base_damage: 9.5
+      weapon_attack_percent: 9.5
+      hit_damage_component_physical: 9.5
+      hit_ailment_wilt_base_damage_per_second: 0.57
+      module_corrosive_ground_damage_amount: 0.741
+      mana_cost: 5
+      release_interval_ms: 1000
+    2:
+      base_damage: 14
+      weapon_attack_percent: 14
+      hit_damage_component_physical: 14
+      hit_ailment_wilt_base_damage_per_second: 0.84
+      module_corrosive_ground_damage_amount: 1.092
+      mana_cost: 5
+      release_interval_ms: 1000
+    3:
+      base_damage: 18.5
+      weapon_attack_percent: 18.5
+      hit_damage_component_physical: 18.5
+      hit_ailment_wilt_base_damage_per_second: 1.11
+      module_corrosive_ground_damage_amount: 1.443
+      mana_cost: 5
+      release_interval_ms: 1000
+    4:
+      base_damage: 23
+      weapon_attack_percent: 23
+      hit_damage_component_physical: 23
+      hit_ailment_wilt_base_damage_per_second: 1.38
+      module_corrosive_ground_damage_amount: 1.794
+      mana_cost: 5
+      release_interval_ms: 1000
+    5:
+      base_damage: 27.5
+      weapon_attack_percent: 27.5
+      hit_damage_component_physical: 27.5
+      hit_ailment_wilt_base_damage_per_second: 1.65
+      module_corrosive_ground_damage_amount: 2.145
+      mana_cost: 5
+      release_interval_ms: 1000
+    6:
+      base_damage: 32
+      weapon_attack_percent: 32
+      hit_damage_component_physical: 32
+      hit_ailment_wilt_base_damage_per_second: 1.92
+      module_corrosive_ground_damage_amount: 2.496
+      mana_cost: 5
+      release_interval_ms: 1000
+    7:
+      base_damage: 36.5
+      weapon_attack_percent: 36.5
+      hit_damage_component_physical: 36.5
+      hit_ailment_wilt_base_damage_per_second: 2.19
+      module_corrosive_ground_damage_amount: 2.847
+      mana_cost: 5
+      release_interval_ms: 1000
+    8:
+      base_damage: 41
+      weapon_attack_percent: 41
+      hit_damage_component_physical: 41
+      hit_ailment_wilt_base_damage_per_second: 2.46
+      module_corrosive_ground_damage_amount: 3.198
+      mana_cost: 5
+      release_interval_ms: 1000
+    9:
+      base_damage: 45.5
+      weapon_attack_percent: 45.5
+      hit_damage_component_physical: 45.5
+      hit_ailment_wilt_base_damage_per_second: 2.73
+      module_corrosive_ground_damage_amount: 3.549
+      mana_cost: 5
+      release_interval_ms: 1000
+    10:
+      base_damage: 50
+      weapon_attack_percent: 50
+      hit_damage_component_physical: 50
+      hit_ailment_wilt_base_damage_per_second: 3
+      module_corrosive_ground_damage_amount: 3.9
+      mana_cost: 5
+      release_interval_ms: 1000
+    11:
+      base_damage: 54.5
+      weapon_attack_percent: 54.5
+      hit_damage_component_physical: 54.5
+      hit_ailment_wilt_base_damage_per_second: 3.27
+      module_corrosive_ground_damage_amount: 4.251
+      mana_cost: 5
+      release_interval_ms: 1000
+    12:
+      base_damage: 59
+      weapon_attack_percent: 59
+      hit_damage_component_physical: 59
+      hit_ailment_wilt_base_damage_per_second: 3.54
+      module_corrosive_ground_damage_amount: 4.602
+      mana_cost: 5
+      release_interval_ms: 1000
+    13:
+      base_damage: 63.5
+      weapon_attack_percent: 63.5
+      hit_damage_component_physical: 63.5
+      hit_ailment_wilt_base_damage_per_second: 3.81
+      module_corrosive_ground_damage_amount: 4.953
+      mana_cost: 5
+      release_interval_ms: 1000
+    14:
+      base_damage: 68
+      weapon_attack_percent: 68
+      hit_damage_component_physical: 68
+      hit_ailment_wilt_base_damage_per_second: 4.08
+      module_corrosive_ground_damage_amount: 5.304
+      mana_cost: 5
+      release_interval_ms: 1000
+    15:
+      base_damage: 72.5
+      weapon_attack_percent: 72.5
+      hit_damage_component_physical: 72.5
+      hit_ailment_wilt_base_damage_per_second: 4.35
+      module_corrosive_ground_damage_amount: 5.655
+      mana_cost: 5
+      release_interval_ms: 1000
+    16:
+      base_damage: 77
+      weapon_attack_percent: 77
+      hit_damage_component_physical: 77
+      hit_ailment_wilt_base_damage_per_second: 4.62
+      module_corrosive_ground_damage_amount: 6.006
+      mana_cost: 5
+      release_interval_ms: 1000
+    17:
+      base_damage: 81.5
+      weapon_attack_percent: 81.5
+      hit_damage_component_physical: 81.5
+      hit_ailment_wilt_base_damage_per_second: 4.89
+      module_corrosive_ground_damage_amount: 6.357
+      mana_cost: 5
+      release_interval_ms: 1000
+    18:
+      base_damage: 86
+      weapon_attack_percent: 86
+      hit_damage_component_physical: 86
+      hit_ailment_wilt_base_damage_per_second: 5.16
+      module_corrosive_ground_damage_amount: 6.708
+      mana_cost: 5
+      release_interval_ms: 1000
+    19:
+      base_damage: 90.5
+      weapon_attack_percent: 90.5
+      hit_damage_component_physical: 90.5
+      hit_ailment_wilt_base_damage_per_second: 5.43
+      module_corrosive_ground_damage_amount: 7.059
+      mana_cost: 5
+      release_interval_ms: 1000
+    20:
+      base_damage: 95
+      weapon_attack_percent: 95
+      hit_damage_component_physical: 95
+      hit_ailment_wilt_base_damage_per_second: 5.7
+      module_corrosive_ground_damage_amount: 7.41
+      mana_cost: 5
+      release_interval_ms: 1000
+    21:
+      base_damage: 95.47
+      weapon_attack_percent: 95.47
+      hit_damage_component_physical: 95.47
+      hit_ailment_wilt_base_damage_per_second: 5.7282
+      module_corrosive_ground_damage_amount: 7.4467
+      mana_cost: 5
+      release_interval_ms: 1000
+    22:
+      base_damage: 95.95
+      weapon_attack_percent: 95.95
+      hit_damage_component_physical: 95.95
+      hit_ailment_wilt_base_damage_per_second: 5.757
+      module_corrosive_ground_damage_amount: 7.4841
+      mana_cost: 5
+      release_interval_ms: 1000
+    23:
+      base_damage: 96.42
+      weapon_attack_percent: 96.42
+      hit_damage_component_physical: 96.42
+      hit_ailment_wilt_base_damage_per_second: 5.7852
+      module_corrosive_ground_damage_amount: 7.5208
+      mana_cost: 5
+      release_interval_ms: 1000
+    24:
+      base_damage: 96.9
+      weapon_attack_percent: 96.9
+      hit_damage_component_physical: 96.9
+      hit_ailment_wilt_base_damage_per_second: 5.814
+      module_corrosive_ground_damage_amount: 7.5582
+      mana_cost: 5
+      release_interval_ms: 1000
+    25:
+      base_damage: 97.37
+      weapon_attack_percent: 97.37
+      hit_damage_component_physical: 97.37
+      hit_ailment_wilt_base_damage_per_second: 5.8422
+      module_corrosive_ground_damage_amount: 7.5949
+      mana_cost: 5
+      release_interval_ms: 1000
+    26:
+      base_damage: 97.85
+      weapon_attack_percent: 97.85
+      hit_damage_component_physical: 97.85
+      hit_ailment_wilt_base_damage_per_second: 5.871
+      module_corrosive_ground_damage_amount: 7.6323
+      mana_cost: 5
+      release_interval_ms: 1000
+    27:
+      base_damage: 98.32
+      weapon_attack_percent: 98.32
+      hit_damage_component_physical: 98.32
+      hit_ailment_wilt_base_damage_per_second: 5.8992
+      module_corrosive_ground_damage_amount: 7.669
+      mana_cost: 5
+      release_interval_ms: 1000
+    28:
+      base_damage: 98.8
+      weapon_attack_percent: 98.8
+      hit_damage_component_physical: 98.8
+      hit_ailment_wilt_base_damage_per_second: 5.928
+      module_corrosive_ground_damage_amount: 7.7064
+      mana_cost: 5
+      release_interval_ms: 1000
+    29:
+      base_damage: 99.27
+      weapon_attack_percent: 99.27
+      hit_damage_component_physical: 99.27
+      hit_ailment_wilt_base_damage_per_second: 5.9562
+      module_corrosive_ground_damage_amount: 7.7431
+      mana_cost: 5
+      release_interval_ms: 1000
+    30:
+      base_damage: 99.75
+      weapon_attack_percent: 99.75
+      hit_damage_component_physical: 99.75
+      hit_ailment_wilt_base_damage_per_second: 5.985
+      module_corrosive_ground_damage_amount: 7.7805
+      mana_cost: 5
+      release_interval_ms: 1000
+    31:
+      base_damage: 100.22
+      weapon_attack_percent: 100.22
+      hit_damage_component_physical: 100.22
+      hit_ailment_wilt_base_damage_per_second: 6.0132
+      module_corrosive_ground_damage_amount: 7.8172
+      mana_cost: 5
+      release_interval_ms: 1000
+    32:
+      base_damage: 100.7
+      weapon_attack_percent: 100.7
+      hit_damage_component_physical: 100.7
+      hit_ailment_wilt_base_damage_per_second: 6.042
+      module_corrosive_ground_damage_amount: 7.8546
+      mana_cost: 5
+      release_interval_ms: 1000
+    33:
+      base_damage: 101.17
+      weapon_attack_percent: 101.17
+      hit_damage_component_physical: 101.17
+      hit_ailment_wilt_base_damage_per_second: 6.0702
+      module_corrosive_ground_damage_amount: 7.8913
+      mana_cost: 5
+      release_interval_ms: 1000
+    34:
+      base_damage: 101.65
+      weapon_attack_percent: 101.65
+      hit_damage_component_physical: 101.65
+      hit_ailment_wilt_base_damage_per_second: 6.099
+      module_corrosive_ground_damage_amount: 7.9287
+      mana_cost: 5
+      release_interval_ms: 1000
+    35:
+      base_damage: 102.12
+      weapon_attack_percent: 102.12
+      hit_damage_component_physical: 102.12
+      hit_ailment_wilt_base_damage_per_second: 6.1272
+      module_corrosive_ground_damage_amount: 7.9654
+      mana_cost: 5
+      release_interval_ms: 1000
+    36:
+      base_damage: 102.6
+      weapon_attack_percent: 102.6
+      hit_damage_component_physical: 102.6
+      hit_ailment_wilt_base_damage_per_second: 6.156
+      module_corrosive_ground_damage_amount: 8.0028
+      mana_cost: 5
+      release_interval_ms: 1000
+    37:
+      base_damage: 103.08
+      weapon_attack_percent: 103.08
+      hit_damage_component_physical: 103.08
+      hit_ailment_wilt_base_damage_per_second: 6.1848
+      module_corrosive_ground_damage_amount: 8.0402
+      mana_cost: 5
+      release_interval_ms: 1000
+    38:
+      base_damage: 103.55
+      weapon_attack_percent: 103.55
+      hit_damage_component_physical: 103.55
+      hit_ailment_wilt_base_damage_per_second: 6.213
+      module_corrosive_ground_damage_amount: 8.0769
+      mana_cost: 5
+      release_interval_ms: 1000
+    39:
+      base_damage: 104.02
+      weapon_attack_percent: 104.02
+      hit_damage_component_physical: 104.02
+      hit_ailment_wilt_base_damage_per_second: 6.2412
+      module_corrosive_ground_damage_amount: 8.1136
+      mana_cost: 5
+      release_interval_ms: 1000
+    40:
+      base_damage: 104.5
+      weapon_attack_percent: 104.5
+      hit_damage_component_physical: 104.5
+      hit_ailment_wilt_base_damage_per_second: 6.27
+      module_corrosive_ground_damage_amount: 8.151
+      mana_cost: 5
+      release_interval_ms: 1000
+auto_release:
+  policy: "target_cluster"
+  notes: ["??????????TLIDB ???? Lv20 ???"]
+display:
+  name_key: "gem.active_corrosive_shot.name"
+  description_key: "gem.active_corrosive_shot.description"
+classification:
+  tags: ["attack", "ranged", "gun", "cannon", "chaos", "projectile", "area", "dot", "ground", "dexterity"]
+  damage_type: "chaos"
+  damage_form: "attack"
+cast:
+  mode: "attack"
+  target_selector: "nearest_enemy"
+  search_range: 420
+  cooldown_ms: 0
+  release_interval_ms: 1000
+  base_cooldown_ms: 0
+  trigger_interval_ms: 0
+  mana_cost: 5
+  windup_ms: 0
+  recovery_ms: 0
+behavior:
+  template: "projectile"
+  params:
+    projectile_count: 1
+    spread_angle_deg: 0
+    projectile_speed: 540
+    projectile_width: 46
+    projectile_height: 30
+    max_distance: 420
+    hit_policy: "first_hit"
+    pierce_count: 0
+    collision_radius: 16
+    spawn_offset:
+      x: -14
+      y: -20
+    projectile_radius: 12
+    impact_radius: 54
+    max_targets: 1
+    min_duration_ms: 80
+    max_duration_ms: 2200
+    trajectory: "linear"
+    travel_time_ms: 520
+    arc_height: 0
+    impact_marker_id: "corrosive_impact"
+modules:
+  - id: "corrosive_projectile"
+    type: "projectile"
+    params:
+      projectile_count: 1
+      spread_angle_deg: 0
+      projectile_speed: 540
+      projectile_width: 46
+      projectile_height: 30
+      max_distance: 420
+      hit_policy: "first_hit"
+      pierce_count: 0
+      collision_radius: 16
+      spawn_offset:
+        x: -14
+        y: -20
+      projectile_radius: 12
+      impact_radius: 54
+      max_targets: 1
+      min_duration_ms: 80
+      max_duration_ms: 2200
+      trajectory: "linear"
+      travel_time_ms: 520
+      arc_height: 0
+      target_policy: "target_position"
+      impact_marker_id: "corrosive_impact"
+      vfx_key: "skill_event.corrosive_shot.vfx"
+  - id: "corrosive_ground"
+    type: "damage_zone"
+    trigger:
+      trigger_marker_id: "corrosive_impact"
+      trigger_delay_ms: 0
+    params:
+      shape: "circle"
+      origin_policy: "trigger_position"
+      facing_policy: "none"
+      hit_at_ms: 1000
+      radius: 80
+      max_targets: 8
+      duration_ms: 3000
+      tick_interval_ms: 1000
+      max_hits: 160
+      max_hits_per_target: 20
+      damage_amount: 7.41
+      emit_hit_vfx: false
+      ring_width: 48
+      vfx_key: "skill_event.corrosive_shot.vfx"
+  - id: "corrosive_exposure"
+    type: "buff"
+    trigger:
+      trigger_marker_id: "corrosive_ground_hit"
+      trigger_delay_ms: 0
+    params:
+      effect_type: "damage_taken_increase"
+      chance_percent: 40
+      duration_ms: 2000
+      effect_per_stack: 30
+      max_stacks: 1
+      source_skill_id: "active_corrosive_shot"
+      target_policy: "trigger_target"
+      vfx_key: "skill_event.corrosive_shot.vfx"
+hit:
+  base_damage: 95
+  damage_basis: "weapon_attack"
+  weapon_attack_percent: 95
+  damage_components:
+    physical: 95
+  damage_conversions: [{"from": "physical", "to": "chaos", "percent": 100}]
+  ailments: [{"type": "wilt", "source_damage_type": "chaos", "chance_percent": 30, "duration_ms": 2000, "base_damage_per_second": 5.7, "max_stacks": 30}]
+  can_crit: true
+  can_apply_status: true
+  damage_timing: "on_projectile_hit"
+  hit_delay_ms: 160
+  hit_radius: 54
+  target_policy: "selected_target"
+scaling:
+  additive_stats: ["damage_add_percent", "chaos_damage_add_percent", "attack_speed_add_percent"]
+  final_stats: ["damage_final_percent", "skill_speed_final_percent"]
+  runtime_params: ["projectile_speed_add_percent", "projectile_count_add", "chain_count_add", "pierce_count_add", "area_add_percent"]
+presentation:
+  vfx: "skill_event.corrosive_shot.vfx"
+  cast_vfx_key: "skill_event.corrosive_shot.vfx"
+  projectile_vfx_key: "skill_event.corrosive_shot.vfx"
+  hit_vfx_key: "skill_event.corrosive_shot.vfx"
+  sfx: "skill_event.corrosive_shot.sfx"
+  floating_text: "skill_event.corrosive_shot.floating_text"
+  floating_text_style: "skill_event.corrosive_shot.floating_text"
+  screen_feedback: "skill_event.corrosive_shot.screen_feedback"
+  hit_stop_ms: 0
+  camera_shake: 0
+preview:
+  show_fields: ["final_damage", "actual_interval_ms", "mana_cost", "base_damage", "damage_type", "damage_form"]

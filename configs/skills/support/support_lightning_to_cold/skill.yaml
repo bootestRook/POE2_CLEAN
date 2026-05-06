@@ -1,0 +1,148 @@
+id: "support_lightning_to_cold"
+sort_order: 13
+name_key: "gem.support_lightning_to_cold.name"
+description_key: "gem.support_lightning_to_cold.description"
+category: "damage_type_enhancer"
+gem_type: "gem_type_4"
+gem_kind: "support"
+sudoku_digit: 4
+source_values:
+  source: "tlidb"
+  tlidb_id: "Lightning_to_Cold"
+  display_level: 20
+  raw_lines: ["辅助击中敌人的技能。", "被辅助技能 50% 闪电伤害转化为冰冷伤害", "被辅助技能额外 5.5% 闪电伤害 (Lv1:11/2) (Lv21:31/2) (Lv41:51/2)", "被辅助技能 50% 闪电伤害转化为冰冷伤害", "被辅助技能额外 5.5% 闪电伤害 (Lv1:11/2) (Lv21:31/2) (Lv41:51/2)"]
+  parsed_values:
+    conversion_lightning_to_cold_percent: 50
+    lightning_damage_add_percent: 5.5
+  anchors:
+    conversion_lightning_to_cold_percent:
+      20: 50
+    lightning_damage_add_percent:
+      20: 5.5
+level_table:
+  levels:
+    1:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 5.5
+    2:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 6
+    3:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 6.5
+    4:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 7
+    5:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 7.5
+    6:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 8
+    7:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 8.5
+    8:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 9
+    9:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 9.5
+    10:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 10
+    11:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 10.5
+    12:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 11
+    13:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 11.5
+    14:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 12
+    15:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 12.5
+    16:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 13
+    17:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 13.5
+    18:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 14
+    19:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 14.5
+    20:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 15
+    21:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 15.5
+    22:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 16
+    23:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 16.5
+    24:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 17
+    25:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 17.5
+    26:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 18
+    27:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 18.5
+    28:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 19
+    29:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 19.5
+    30:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 20
+    31:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 20.5
+    32:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 21
+    33:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 21.5
+    34:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 22
+    35:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 22.5
+    36:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 23
+    37:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 23.5
+    38:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 24
+    39:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 24.5
+    40:
+      conversion_lightning_to_cold_percent: 50
+      lightning_damage_add_percent: 25
+tags: ["gem", "support_gem", "loot_gem", "gem_type_4", "support_damage"]
+apply_filter:
+  target_kinds: ["active_skill", "passive_skill"]
+  tags_any: ["lightning", "cold"]
+effect_stats: ["conversion_lightning_to_cold_percent", "lightning_damage_add_percent"]
