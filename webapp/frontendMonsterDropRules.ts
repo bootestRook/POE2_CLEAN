@@ -8,6 +8,11 @@ export type FrontendMonsterDropRule = {
 };
 
 const DEFAULT_DROP_POOL_ID = "map_default";
+const DEFAULT_LOOT_KINDS = ["equipment", "gem", "map_entry"] as const;
+
+const DROP_POOL_LOOT_KINDS: Record<string, readonly typeof DEFAULT_LOOT_KINDS[number][]> = {
+  map_default: DEFAULT_LOOT_KINDS
+};
 
 const BASE_DROP_RULE: FrontendMonsterDropRule = {
   drop_quantity_multiplier: 1,
@@ -63,4 +68,8 @@ export function scaleFrontendDropRarityWeights<T extends Record<string, number>>
     next[key] = Math.max(0, Math.round(current * Math.max(0, multiplier))) as T[keyof T];
   }
   return next;
+}
+
+export function allowedFrontendLootKindsForPool(dropPoolId: string | undefined) {
+  return DROP_POOL_LOOT_KINDS[dropPoolId || DEFAULT_DROP_POOL_ID] ?? DEFAULT_LOOT_KINDS;
 }
