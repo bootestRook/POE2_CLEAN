@@ -7,8 +7,20 @@ import { BAKED_BATTLE_MAPS, bakedMapAssetById, DEFAULT_BAKED_BATTLE_MAP_ID } fro
 import { BakedBattleMapData, isMapPointWalkable, loadBakedBattleMap, MapPoint, resolveWalkableMove } from "./bakedMapLoader";
 import mapSpawnV1Config from "../configs/monsters/map_spawn_v1.json";
 import monsterDefsToml from "../configs/monsters/monster_defs.toml?raw";
-import { generateProceduralMonsterSpawns, parseMonsterDefinitionsToml } from "./mapSpawnRuntime";
-import type { MapSpawnV1Config, ProceduralSpawnDebugSummary, ProceduralSpawnRarity, ProceduralZoneType } from "./mapSpawnRuntime";
+import { generateProceduralMonsterSpawns, isNemesisRarity, parseMonsterDefinitionsToml } from "./mapSpawnRuntime";
+import type { MapSpawnV1Config, MonsterSkillShape, MonsterType, ProceduralSpawnDebugSummary, ProceduralSpawnRarity, ProceduralZoneType } from "./mapSpawnRuntime";
+import monsterSkillsConfig from "../configs/monsters/monster_skills.json";
+import { allowedFrontendLootKindsForPool, resolveFrontendMonsterDropRule, scaleFrontendDropRarityWeights } from "./frontendMonsterDropRules";
+import {
+  createMonsterSkillTimer,
+  markMonsterSkillReleased,
+  monsterSkillAssignmentFor,
+  monsterSkillDefinitionFor,
+  monsterSkillHitAllowed,
+  nextMonsterSkillCandidate,
+  validateMonsterSkillConfig
+} from "./monsterSkillRuntime";
+import type { MonsterBossPatternSkill, MonsterDamageForm, MonsterDamageType, MonsterSkillConfig, MonsterSkillDefinition, MonsterSkillRange, MonsterSkillRuntimeTimer } from "./monsterSkillRuntime";
 import {
   AUTHORED_MAP_TEMPLATES,
   DEFAULT_AUTHORED_MAP_TEMPLATE_ID,
@@ -28,7 +40,7 @@ import type { MapInstanceMetadata, MapInstanceRotation } from "./mapInstanceRunt
 import { getAnimationFrame, resolveDirection, resolveUnitAnimation, UnitAnimationContext, UnitAnimationFrame } from "./unitAnimation";
 import { BattleGeometryCanvas } from "./BattleGeometryCanvas";
 import type { BattleGeometrySnapshot } from "./battleGeometryRenderer";
-import { fallbackUnitVisualForMonster, MONSTER_GEOMETRY_VISUALS, resolveMonsterGeometryVisual } from "./monsterGeometryVisuals";
+import { fallbackUnitVisualForMonster, MONSTER_GEOMETRY_VISUALS, MONSTER_RARITY_VISUALS, resolveMonsterGeometryVisual } from "./monsterGeometryVisuals";
 import {
   selectEnemyUnitType,
   UNIT_ANIMATION_ASSETS,
@@ -57,6 +69,7 @@ import {
   prefixSuffixCapacity,
 } from "./frontendEquipmentRuntime";
 import type { FrontendEquipmentAffixRoll, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
+import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 
 type Gem = {
   instance_id: string;
@@ -801,6 +814,10 @@ type FrontendMapRunMonster = {
   pack_id: string;
   zone_type: string;
   spawn_rarity: ProceduralSpawnRarity;
+  monster_type?: MonsterType;
+  movement_speed_multiplier?: number;
+  skill_shape?: MonsterSkillShape;
+  nemesis?: boolean;
   boss: boolean;
   position: { x: number; y: number };
   current_life: number;
@@ -842,6 +859,7 @@ type BossPortal = {
   used: boolean;
 };
 
+
 type MapProgressionStageView = {
   id: string;
   display_name: string;
@@ -858,6 +876,8 @@ type MapProgressionStageView = {
   enterable: boolean;
   selected: boolean;
   boss_stage: boolean;
+  stage_scope?: "minor" | "major_final" | "timemark";
+  boss_pack_pool?: "legendary" | "supreme" | "mixed";
   map_template_ids?: string[];
   gem_level_min: number;
   gem_level_max: number;
@@ -872,6 +892,12 @@ const MONSTER_NORMAL_LIFE_BASE = 70;
 const MONSTER_NORMAL_LIFE_GROWTH = 1.115;
 const MONSTER_NORMAL_DAMAGE_BASE = 8;
 const MONSTER_NORMAL_DAMAGE_GROWTH = 1.075;
+const MONSTER_NORMAL_ACCURACY_BASE = 1000;
+const MONSTER_NORMAL_ACCURACY_GROWTH = 1.07;
+const MONSTER_NORMAL_ARMOR_BASE = 12;
+const MONSTER_NORMAL_ARMOR_GROWTH = 1.09;
+const MONSTER_NORMAL_ENERGY_SHIELD_BASE = 0;
+const MONSTER_NORMAL_ENERGY_SHIELD_GROWTH = 1.1;
 const BOSS_BASIC_PROJECTILE_INTERVAL_MIN_MS = 500;
 const BOSS_BASIC_PROJECTILE_INTERVAL_MAX_MS = 1200;
 const BOSS_AREA_SKILL_INTERVAL_MIN_MS = 16_000;
@@ -1010,14 +1036,60 @@ type Enemy = {
   proceduralMonsterPackId?: string;
   proceduralZoneType?: ProceduralZoneType;
   spawnRarity?: ProceduralSpawnRarity;
+  monsterType?: MonsterType;
+  movementSpeedMultiplier?: number;
+  skillShape?: MonsterSkillShape;
+  nemesis?: boolean;
   lifeMultiplier?: number;
   damageMultiplier?: number;
   baseDamage?: number;
+  accuracy?: number;
+  critChancePercent?: number;
+  critDamagePercent?: number;
+  doubleDamageChancePercent?: number;
+  ignite_chance_percent?: number;
+  chill_chance_percent?: number;
+  freeze_chance_percent?: number;
+  shock_chance_percent?: number;
+  wither_chance_percent?: number;
+  corrosion_ailment_chance_percent?: number;
+  control_resistance_percent?: number;
+  knockback_resistance_percent?: number;
+  freeze_resistance_percent?: number;
+  stun_resistance_percent?: number;
+  ailment_resistance_percent?: number;
+  elemental_ailment_resistance_percent?: number;
+  dot_damage_add_percent?: number;
+  dot_duration_add_percent?: number;
+  reap_damage_add_percent?: number;
+  agony_damage_add_percent?: number;
+  armor?: number;
+  fire_resistance_percent?: number;
+  cold_resistance_percent?: number;
+  lightning_resistance_percent?: number;
+  chaos_resistance_percent?: number;
+  corrosion_resistance_percent?: number;
+  erosion_resistance_percent?: number;
+  damage_mitigation_final_percent?: number;
+  damage_avoidance_percent?: number;
+  block_chance_percent?: number;
+  block_damage_reduction_percent?: number;
+  currentEnergyShield?: number;
+  maxEnergyShield?: number;
   damageType?: string;
   hitKind?: MonsterHitKind;
   attackRange?: number;
   attackCadenceMs?: number;
   offenseModifiers?: MonsterOffenseModifiers;
+  monsterSkillId?: string;
+  bossPatternId?: string;
+  monsterSkillForm?: string;
+  monsterSkillRange?: MonsterSkillRange;
+  monsterSkillDamageMultiplierBonus?: number;
+  monsterSkillBuffUntilMs?: number;
+  monsterGuardDamageReductionPercent?: number;
+  monsterGuardUntilMs?: number;
+  activeMonsterSkillUntilMs?: number;
   aggroLocked?: boolean;
   runtimeTier?: EnemyRuntimeTier;
   attackStartedAtMs?: number;
@@ -1118,6 +1190,8 @@ type FireBolt = {
   canHitPlayer?: boolean;
   playerDamageMultiplier?: number;
   playerHitKind?: MonsterHitKind;
+  playerLeashRange?: number;
+  playerHitMarkerId?: string;
   collisionRadius?: number;
 };
 
@@ -1129,6 +1203,10 @@ type PendingBossDamageZoneHit = {
   damageMultiplier: number;
   hitKind: MonsterHitKind;
   damageType: string;
+  damageForm?: MonsterDamageForm;
+  leashRange?: number;
+  sourceText?: string;
+  hitMarkerId?: string;
 };
 
 type BossSkillTimers = {
@@ -1444,9 +1522,6 @@ const RUNTIME_DROPPED_FRAME_MS = 33;
 const RUNTIME_SLOW_LOGIC_MS = 16;
 const RUNTIME_MIN_FRAME_MS = 8;
 const TRIGGERED_SKILL_EVENT_MIN_DELAY_SECONDS = 1 / 60;
-const FRONTEND_EQUIPMENT_DROP_KIND_CHANCE = 0.75;
-const FRONTEND_MAP_ENTRY_DROP_KIND_CHANCE = 0.20;
-const FRONTEND_GEM_DROP_KIND_CHANCE = 0.05;
 const DEFAULT_PLAYER_NAME = "玩家";
 const MAX_RUNTIME_PROJECTILE_VISUALS = 80;
 const MAX_RUNTIME_HIT_VFX = 80;
@@ -1463,7 +1538,7 @@ const ENEMY_INDIVIDUAL_AGGRO_RADIUS = 320;
 const ENEMY_LOW_FREQUENCY_THINK_INTERVAL = 0.18;
 const MAX_VISIBLE_ENEMY_DOM_NODES = 180;
 const MAX_RUNTIME_SIMULATED_ENEMIES = 240;
-const MONSTER_CHASE_SPEED = 220;
+const MONSTER_CHASE_SPEED = 190;
 const BOSS_CHASE_SPEED = 120;
 const PLAYER_GEOMETRY_RADIUS = 18;
 const ENEMY_MELEE_ATTACK_DISTANCE = 42;
@@ -2640,10 +2715,10 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
   if (!save || Number(save.version) !== FRONTEND_SAVE_VERSION) return null;
   const legacyState = save.app_state;
   if (legacyState && typeof legacyState === "object") {
-    return recalculateFrontendSkillPreview(legacyState as AppState);
+    return recalculateFrontendSkillPreview(sanitizeEquipmentSlotsForState(legacyState as AppState));
   }
   const initial = createFrontendInitialAppState();
-  return recalculateFrontendSkillPreview({
+  return recalculateFrontendSkillPreview(sanitizeEquipmentSlotsForState({
     ...initial,
     player_name: normalizePlayerName(save.player_name ?? initial.player_name),
     inventory: Array.isArray(save.inventory) ? save.inventory : initial.inventory,
@@ -2659,7 +2734,7 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
     current_map_run: null,
     autosave: initial.autosave,
     ui_text: save.ui_text ?? initial.ui_text
-  });
+  }));
 }
 
 function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
@@ -2702,6 +2777,7 @@ function createFrontendItemTooltipView(item: {
   descriptionText: string;
   iconText: string;
   iconColorKey?: string;
+  iconSprite?: string;
   tags: TooltipTagView[];
   statLines?: TooltipStatLine[];
   bonusLines?: string[];
@@ -2709,6 +2785,7 @@ function createFrontendItemTooltipView(item: {
   return {
     icon_text: item.iconText,
     icon_color_key: item.iconColorKey ?? "orange",
+    icon_sprite: item.iconSprite,
     name_text: item.nameText,
     subtitle_text: `${item.rarityText} · ${item.categoryText}`,
     type_identity_text: item.identityText,
@@ -5605,6 +5682,7 @@ function GameApp() {
   const continuousAttackRuntime = useRef<ContinuousAttackRuntime | null>(null);
   const activeDamageZones = useRef<ActiveDamageZoneRuntime[]>([]);
   const bossSkillTimers = useRef<Map<number, BossSkillTimers>>(new Map());
+  const monsterSkillTimers = useRef<Map<number, MonsterSkillRuntimeTimer>>(new Map());
   const pendingBossDamageZoneHits = useRef<PendingBossDamageZoneHit[]>([]);
   const onKillRecastCounts = useRef<Map<string, number>>(new Map());
   const runtimePerf = useRef<RuntimePerfSummary>({
@@ -6005,7 +6083,7 @@ function GameApp() {
 
   useEffect(() => {
     if (!state?.equipment_slots) return;
-    setEquipmentSlots(normalizeEquipmentSlots(state.equipment_slots));
+    setEquipmentSlots(sanitizeEquipmentSlotsForState(state).equipment_slots ?? Array(EQUIPMENT_SLOT_COUNT).fill(null));
   }, [state?.equipment_slots]);
 
   useEffect(() => {
@@ -6295,10 +6373,9 @@ function GameApp() {
       const nowMs = elapsedRef.current * 1000;
       const attackLockedEnemyIds = currentEnemyAttackLockedIds(nowMs, enemiesStateRef.current, nextPlayer, battleMap);
       const movingEnemies = updateRuntimeEnemies(enemiesStateRef.current, nextPlayer, battleMap, dt, elapsedRef.current, authoredSpawnPlanActive, authoredAggroSources, triggeredEncounterSourceIds.current, attackLockedEnemyIds);
-      currentVisualEnemies = applyRuntimeMonsterAttacks(
-        spawnEnemy ? [...movingEnemies, createEnemy(nextEnemyId.current++, nextPlayer.x, nextPlayer.y, battleMap, "normal", encounterMonsterPalette.current)] : movingEnemies,
-        nowMs
-      );
+      const spawnedEnemies = spawnEnemy ? [...movingEnemies, createEnemy(nextEnemyId.current++, nextPlayer.x, nextPlayer.y, battleMap, "normal", encounterMonsterPalette.current)] : movingEnemies;
+      const skilledEnemies = updateMonsterSkillRuntime(spawnedEnemies, nowMs);
+      currentVisualEnemies = applyRuntimeMonsterAttacks(skilledEnemies, nowMs);
       enemiesStateRef.current = currentVisualEnemies;
       setEnemies(currentVisualEnemies);
       updateBossSkillRuntime(currentVisualEnemies, nowMs);
@@ -6410,6 +6487,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const nextEnemies = currentEnemies.map((enemy) => {
       if (enemy.hp <= 0) return enemy;
       if (enemy.boss) return enemy;
+      if (enemy.activeMonsterSkillUntilMs !== undefined && nowMs < enemy.activeMonsterSkillUntilMs) return enemy;
       if (nextPlayer.hp <= 0 || !canEnemyStartRuntimeAttack(enemy, nextPlayer, nowMs, battleMap)) return enemy;
       const attackedEnemy = {
         ...enemy,
@@ -6464,8 +6542,298 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     return nextEnemies;
   }
 
+  function updateMonsterSkillRuntime(currentEnemies: Enemy[], nowMs: number) {
+    const liveEnemyIds = new Set(currentEnemies.filter((enemy) => enemy.hp > 0).map((enemy) => enemy.id));
+    for (const enemyId of monsterSkillTimers.current.keys()) {
+      if (!liveEnemyIds.has(enemyId)) monsterSkillTimers.current.delete(enemyId);
+    }
+    if (playerStateRef.current.hp <= 0) return currentEnemies;
+
+    const nextEnemies = currentEnemies.map((enemy) => {
+      if (enemy.monsterSkillBuffUntilMs !== undefined && nowMs >= enemy.monsterSkillBuffUntilMs) {
+        return { ...enemy, monsterSkillBuffUntilMs: undefined, monsterSkillDamageMultiplierBonus: undefined };
+      }
+      if (enemy.monsterGuardUntilMs !== undefined && nowMs >= enemy.monsterGuardUntilMs) {
+        return { ...enemy, monsterGuardUntilMs: undefined, monsterGuardDamageReductionPercent: undefined };
+      }
+      return enemy;
+    });
+
+    for (let index = 0; index < nextEnemies.length; index += 1) {
+      const enemy = nextEnemies[index];
+      if (enemy.hp <= 0) continue;
+      if (!enemy.monsterId) continue;
+      if (enemy.activeMonsterSkillUntilMs !== undefined && nowMs < enemy.activeMonsterSkillUntilMs) continue;
+      const assignment = monsterSkillAssignmentFor(MONSTER_SKILL_CONFIG, enemy.monsterId);
+      if (!assignment) continue;
+      const timer = monsterSkillTimers.current.get(enemy.id) ?? createMonsterSkillTimer();
+      monsterSkillTimers.current.set(enemy.id, timer);
+      const aggroLocked = Boolean(enemy.aggroLocked || enemy.boss || enemy.nemesis);
+      if (aggroLocked && timer.aggroStartedAtMs === undefined) timer.aggroStartedAtMs = nowMs;
+      if (!aggroLocked) continue;
+      const playerNow = playerStateRef.current;
+      const candidate = nextMonsterSkillCandidate(
+        MONSTER_SKILL_CONFIG,
+        assignment,
+        timer,
+        nowMs,
+        distance(enemy, playerNow),
+        aggroLocked
+      );
+      if (!candidate) continue;
+      nextEnemies[index] = releaseMonsterSkill(nextEnemies, index, candidate.skill, candidate.sequence, nowMs);
+      markMonsterSkillReleased(timer, candidate.skill, nowMs);
+    }
+
+    return nextEnemies;
+  }
+
+  function releaseMonsterSkill(currentEnemies: Enemy[], index: number, skill: MonsterSkillDefinition | MonsterBossPatternSkill, sequence: number, nowMs: number) {
+    const enemy = currentEnemies[index];
+    const activeUntil = nowMs + Math.max(ENEMY_ATTACK_VISUAL_DURATION_MS, Number(skill.windup_ms ?? 0));
+    let updatedEnemy: Enemy = {
+      ...enemy,
+      monsterSkillId: skill.id,
+      monsterSkillForm: skill.chinese_form,
+      monsterSkillRange: skill.range,
+      activeMonsterSkillUntilMs: activeUntil,
+      attackStartedAtMs: nowMs,
+      attackUntilMs: activeUntil,
+      nextAttackReadyAtMs: nowMs + Math.max(monsterAttackCadenceMs(enemy), Number(skill.cooldown_ms ?? 0)),
+      velocityX: 0,
+      velocityY: 0
+    };
+
+    if (skill.module === "monster_guard") {
+      updatedEnemy = {
+        ...updatedEnemy,
+        monsterGuardDamageReductionPercent: Math.max(0, Number(skill.guard_damage_reduction_percent ?? 0)),
+        monsterGuardUntilMs: nowMs + Math.max(1, Number(skill.guard_duration_ms ?? skill.duration_ms ?? 1000)),
+        monsterSkillDamageMultiplierBonus: Math.max(1, Number(skill.buff_damage_multiplier ?? 1)),
+        monsterSkillBuffUntilMs: nowMs + Math.max(1, Number(skill.buff_duration_ms ?? skill.guard_duration_ms ?? 1000))
+      };
+      releaseMonsterSkillMeleeZone(updatedEnemy, skill, sequence, nowMs);
+      return updatedEnemy;
+    }
+
+    if (skill.module === "monster_support") {
+      const radius = Math.max(1, Number(skill.buff_radius ?? skill.range.effect_range));
+      const buffUntilMs = nowMs + Math.max(1, Number(skill.buff_duration_ms ?? 2000));
+      const multiplier = Math.max(1, Number(skill.buff_damage_multiplier ?? 1));
+      for (let allyIndex = 0; allyIndex < currentEnemies.length; allyIndex += 1) {
+        const ally = currentEnemies[allyIndex];
+        if (ally.hp <= 0 || distance(ally, enemy) > radius) continue;
+        currentEnemies[allyIndex] = {
+          ...ally,
+          monsterSkillDamageMultiplierBonus: multiplier,
+          monsterSkillBuffUntilMs: buffUntilMs
+        };
+      }
+      return { ...currentEnemies[index], ...updatedEnemy };
+    }
+
+    if (skill.module === "monster_charge" || skill.module === "monster_ambush") {
+      updatedEnemy = moveMonsterBySkill(updatedEnemy, skill);
+    }
+
+    if (skill.module === "monster_projectile") {
+      releaseMonsterSkillProjectiles(updatedEnemy, skill, sequence, nowMs);
+    } else {
+      releaseMonsterSkillMeleeZone(updatedEnemy, skill, sequence, nowMs);
+    }
+    return updatedEnemy;
+  }
+
+  function moveMonsterBySkill(enemy: Enemy, skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    const playerNow = playerStateRef.current;
+    const direction = normalizedWorldDirection({ x: playerNow.x - enemy.x, y: playerNow.y - enemy.y });
+    const maxDistance = Math.max(1, Number(skill.range.effect_range));
+    const desiredDistance = skill.module === "monster_ambush"
+      ? Math.max(0, distance(enemy, playerNow) - Math.max(48, Number(skill.radius ?? enemyCollisionRadius(enemy) + PLAYER_GEOMETRY_RADIUS)))
+      : maxDistance;
+    const travel = Math.min(maxDistance, desiredDistance);
+    const target = { x: enemy.x + direction.x * travel, y: enemy.y + direction.y * travel };
+    const resolved = resolveWalkableMove(battleMap, enemy, target);
+    return { ...enemy, x: resolved.x, y: resolved.y };
+  }
+
+  function releaseMonsterSkillProjectiles(enemy: Enemy, skill: MonsterSkillDefinition | MonsterBossPatternSkill, sequence: number, nowMs: number) {
+    const count = Math.max(1, Math.round(Number(skill.projectile_count ?? 1)));
+    const baseDirection = guideDirection(enemy, playerStateRef.current);
+    const spreadStep = count <= 1 ? 0 : Math.min(16, 54 / Math.max(1, count - 1));
+    const events: SkillEvent[] = [];
+    for (let index = 0; index < count; index += 1) {
+      const offset = (index - (count - 1) / 2) * spreadStep;
+      const direction = normalizedWorldDirection(rotateDirection(baseDirection, offset));
+      const speed = Math.max(1, Number(skill.projectile_speed ?? 300));
+      const travel = Math.max(1, Number(skill.range.effect_range));
+      const lifetimeMs = Math.round(travel / speed * 1000);
+      const projectileId = `monster_${enemy.id}_${skill.id}_${sequence}_${index + 1}_${nowMs}`;
+      const target = { x: enemy.x + direction.x * travel, y: enemy.y + direction.y * travel };
+      events.push({
+        event_id: `${projectileId}.spawn`,
+        type: "projectile_spawn",
+        timestamp_ms: nowMs,
+        source_entity: "boss",
+        target_entity: "player",
+        position: { x: enemy.x, y: enemy.y },
+        direction,
+        delay_ms: Math.max(0, Number(skill.windup_ms ?? 0)),
+        duration_ms: lifetimeMs,
+        amount: null,
+        damage_type: monsterSkillDamageType(skill),
+        skill_instance_id: skill.id,
+        vfx_key: monsterSkillVfxKey(skill),
+        sfx_key: "",
+        reason_key: "monster_skill_projectile",
+        payload: {
+          skill_name: skill.chinese_form,
+          skill_id: skill.id,
+          projectile_id: projectileId,
+          projectile_index: index + 1,
+          projectile_count: count,
+          spawn_world_position: { x: enemy.x, y: enemy.y },
+          target_world_position: target,
+          expire_world_position: target,
+          direction_world: direction,
+          velocity_world: { x: direction.x * speed, y: direction.y * speed },
+          projectile_speed: speed,
+          projectile_width: Number(skill.projectile_width ?? skill.projectile_radius ?? 18) * 2,
+          projectile_height: Number(skill.projectile_width ?? skill.projectile_radius ?? 18) * 2,
+          projectile_radius: Number(skill.projectile_radius ?? 12),
+          collision_radius: Number(skill.projectile_radius ?? 12),
+          impact_radius: Number(skill.projectile_radius ?? 12),
+          lifetime_ms: lifetimeMs,
+          local_spread_angle: offset,
+          projectile_visual_mode: "standard",
+          trajectory: "linear",
+          area_scale: 1,
+          can_hit_player: true,
+          source_enemy_id: enemy.id,
+          player_damage_multiplier: Math.max(0, Number(skill.damage_multiplier ?? 1)),
+          player_hit_kind: skill.hit_kind ?? "attack",
+          player_leash_range: skill.range.leash_range,
+          damage_form: monsterSkillDamageForm(skill),
+          hit_marker_id: skill.hit_marker_id
+        }
+      });
+    }
+    consumeSkillEventTimeline(events);
+  }
+
+  function releaseMonsterSkillMeleeZone(enemy: Enemy, skill: MonsterSkillDefinition | MonsterBossPatternSkill, sequence: number, nowMs: number) {
+    const radius = Math.max(1, Number(skill.radius ?? skill.range.effect_range));
+    const warningMs = Math.max(0, Number(skill.warning_ms ?? 0));
+    const windupMs = Math.max(0, Number(skill.windup_ms ?? 0));
+    const delayMs = warningMs + windupMs;
+    const playerNow = playerStateRef.current;
+    const center = skill.module === "monster_damage_zone" && skill.range.min_cast_range !== undefined
+      ? clampMonsterSkillZoneCenter(enemy, playerNow, skill)
+      : { x: enemy.x, y: enemy.y };
+    const direction = guideDirection(enemy, center);
+    const zoneId = `monster_${enemy.id}_${skill.id}_${sequence}_${nowMs}`;
+    const basePayload = {
+      skill_name: skill.chinese_form,
+      skill_id: skill.id,
+      zone_id: zoneId,
+      shape: "circle",
+      radius,
+      origin_world_position: center,
+      direction_world: direction,
+      vfx_key: monsterSkillVfxKey(skill),
+      damage_amount: monsterOutgoingDamage(enemy) * Math.max(0, Number(skill.damage_multiplier ?? 1)),
+      max_hits: 1,
+      max_hits_per_target: 1,
+      damage_form: monsterSkillDamageForm(skill),
+      hit_marker_id: skill.hit_marker_id,
+      trigger_marker_id: skill.trigger_marker_id
+    };
+    const events: SkillEvent[] = [];
+    if (warningMs > 0) {
+      events.push({
+        event_id: `${zoneId}.prime`,
+        type: "damage_zone_prime",
+        timestamp_ms: nowMs,
+        source_entity: "boss",
+        target_entity: "player",
+        position: center,
+        direction,
+        delay_ms: 0,
+        duration_ms: warningMs,
+        amount: null,
+        damage_type: monsterSkillDamageType(skill),
+        skill_instance_id: skill.id,
+        vfx_key: monsterSkillVfxKey(skill),
+        sfx_key: "",
+        reason_key: "monster_skill_damage_zone_prime",
+        payload: basePayload
+      });
+    }
+    events.push({
+      event_id: `${zoneId}.damage_zone`,
+      type: skill.module === "monster_melee_arc" ? "melee_arc" : "damage_zone",
+      timestamp_ms: nowMs,
+      source_entity: "boss",
+      target_entity: "player",
+      position: center,
+      direction,
+      delay_ms: delayMs,
+      duration_ms: Math.max(220, Number(skill.duration_ms ?? 420)),
+      amount: null,
+      damage_type: monsterSkillDamageType(skill),
+      skill_instance_id: skill.id,
+      vfx_key: monsterSkillVfxKey(skill),
+      sfx_key: "",
+      reason_key: "monster_skill_damage_zone",
+      payload: {
+        ...basePayload,
+        arc_angle: Number(skill.arc_angle ?? 120),
+        range: radius
+      }
+    });
+    pendingBossDamageZoneHits.current.push({
+      id: zoneId,
+      boss: enemy,
+      zones: [{ ...center, radius }],
+      remainingMs: delayMs,
+      damageMultiplier: Math.max(0, Number(skill.damage_multiplier ?? 1)),
+      hitKind: skill.hit_kind ?? "attack",
+      damageType: monsterSkillDamageType(skill),
+      damageForm: monsterSkillDamageForm(skill),
+      leashRange: skill.range.leash_range,
+      sourceText: skill.chinese_form,
+      hitMarkerId: skill.hit_marker_id
+    });
+    consumeSkillEventTimeline(events);
+  }
+
+  function clampMonsterSkillZoneCenter(enemy: Enemy, target: { x: number; y: number }, skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    const direction = normalizedWorldDirection({ x: target.x - enemy.x, y: target.y - enemy.y });
+    const placementDistance = Math.min(distance(enemy, target), Math.max(1, Number(skill.range.effect_range)));
+    return {
+      x: enemy.x + direction.x * placementDistance,
+      y: enemy.y + direction.y * placementDistance
+    };
+  }
+
+  function monsterSkillDamageType(skill: MonsterSkillDefinition | MonsterBossPatternSkill): MonsterDamageType {
+    return skill.damage_type;
+  }
+
+  function monsterSkillDamageForm(skill: MonsterSkillDefinition | MonsterBossPatternSkill): MonsterDamageForm {
+    return skill.damage_form;
+  }
+
+  function monsterSkillVfxKey(skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    if (skill.damage_type === "fire") return "skill_event_ignite";
+    if (skill.damage_type === "cold") return "skill_event_frost";
+    if (skill.damage_type === "lightning") return "skill_event_sparkle_projectile";
+    if (skill.damage_type === "chaos") return "skill_event_poison";
+    return skill.module === "monster_projectile" ? "skill_event_sparkle_projectile" : "boss_damage_zone";
+  }
+
   function updateBossSkillRuntime(currentEnemies: Enemy[], nowMs: number) {
-    const liveBosses = currentEnemies.filter((enemy) => enemy.boss && enemy.hp > 0);
+    const liveBosses = currentEnemies.filter((enemy) => enemy.boss && enemy.hp > 0 && !enemy.bossPatternId);
     const liveBossIds = new Set(liveBosses.map((enemy) => enemy.id));
     for (const bossId of bossSkillTimers.current.keys()) {
       if (!liveBossIds.has(bossId)) bossSkillTimers.current.delete(bossId);
@@ -6725,6 +7093,10 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     if (playerNow.hp <= 0) return 0;
     const nextBolts = boltsStateRef.current.map((bolt) => {
       if (!bolt.canHitPlayer || bolt.sourceEntity !== "boss") return bolt;
+      const boss = enemiesStateRef.current.find((enemy) => enemy.id === bolt.sourceEnemyId) ?? null;
+      if (boss && bolt.playerLeashRange !== undefined && !monsterSkillHitAllowed({ range: { cast_range: 1, effect_range: 1, leash_range: bolt.playerLeashRange } }, distance(boss, playerNow))) {
+        return { ...bolt, canHitPlayer: false };
+      }
       const point = fireBoltWorldPoint(bolt);
       const collisionRadius = Math.max(1, Number(bolt.collisionRadius ?? bolt.impactRadius ?? BOSS_PROJECTILE_RADIUS));
       if (distance(point, playerNow) > collisionRadius + PLAYER_GEOMETRY_RADIUS) return bolt;
@@ -6769,6 +7141,9 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         continue;
       }
       const playerNow = playerStateRef.current;
+      if (pending.leashRange !== undefined && !monsterSkillHitAllowed({ range: { cast_range: 1, effect_range: 1, leash_range: pending.leashRange } }, distance(pending.boss, playerNow))) {
+        continue;
+      }
       const hit = pending.zones.some((zone) => distance(playerNow, zone) <= zone.radius + PLAYER_GEOMETRY_RADIUS);
       if (hit) {
         hitCount += 1;
@@ -6779,7 +7154,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
           sourceText: "Boss 多点预警伤害",
           impact: { x: playerNow.x, y: playerNow.y },
           vfxKey: "boss_damage_zone",
-          impactRadius: BOSS_AREA_RADIUS
+          impactRadius: pending.zones[0]?.radius ?? BOSS_AREA_RADIUS
         });
       }
     }
@@ -6928,6 +7303,10 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const lockedIds = new Set<number>();
     for (const enemy of currentEnemies) {
       if (enemy.attackUntilMs !== undefined && nowMs < enemy.attackUntilMs) {
+        lockedIds.add(enemy.id);
+        continue;
+      }
+      if (enemy.activeMonsterSkillUntilMs !== undefined && nowMs < enemy.activeMonsterSkillUntilMs) {
         lockedIds.add(enemy.id);
         continue;
       }
@@ -7178,8 +7557,9 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const components = damagePayloadComponents(skill, Number(amount ?? 0), skill.damage_type, skill.hit as Record<string, unknown>);
     const resistancePenetrationPercent = Number(skill.runtime_params?.resistance_penetration_percent ?? 0);
     const armorReductionPenetrationPercent = Number(skill.runtime_params?.armor_reduction_penetration_percent ?? 0);
+    const rollKey = `skill:${skill.active_gem_instance_id}:${enemy.id}:${Math.round(elapsedRef.current * 1000)}`;
     return Object.entries(components).reduce((total, [damageType, value]) => {
-      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent);
+      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, rollKey);
     }, 0);
   }
 
@@ -7300,7 +7680,8 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         const damage = damageByTarget.get(enemy.id) ?? 0;
         const buffs = buffsByTarget.get(enemy.id) ?? [];
         if (damage <= 0 && buffs.length === 0) return enemy;
-        const hp = enemy.hp - damage;
+        const damageResult = applyDamageToEnemyResources(enemy, damage);
+        const hp = damageResult.hp;
         if (damage > 0) {
           nextTexts.push({
             id: nextTextId.current++,
@@ -7312,7 +7693,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
             duration: 0.8
           });
         }
-        const damagedEnemy = mergeFrontendEnemyBuffs({ ...enemy, hp, lastDamagedAt: damage > 0 ? elapsedRef.current : enemy.lastDamagedAt }, buffs);
+        const damagedEnemy = mergeFrontendEnemyBuffs({ ...enemy, ...damageResult, lastDamagedAt: damage > 0 ? elapsedRef.current : enemy.lastDamagedAt }, buffs);
         if (enemy.hp > 0 && hp <= 0) killedTargets.push(targetById.get(enemy.id) ?? enemy);
         return damagedEnemy;
       })
@@ -8266,6 +8647,19 @@ function frontendDamageEventsForTarget(
         aggravation_cooldown_ms: params.aggravation_cooldown_ms,
         dot_damage_bonus_per_10_aggravation_percent: params.dot_damage_bonus_per_10_aggravation_percent
       }, durationMs, waveDelayMs));
+      if (String(params.knockback_policy ?? "") === "reverse") {
+        for (let pullMs = Number(params.knockback_interval_ms ?? 100); pullMs <= durationMs; pullMs += Number(params.knockback_interval_ms ?? 100)) {
+          events.push(frontendSkillEvent(skill, "forced_movement", null, center, direction, Number(params.knockback_distance ?? 0), skill.damage_type, {
+            origin_world_position: center,
+            origin: center,
+            radius,
+            movement_policy: "pull_to_origin",
+            movement_scope: "damage_zone",
+            movement_distance: Number(params.knockback_distance ?? 0),
+            pull_time_ms: pullMs
+          }, 120, waveDelayMs + pullMs));
+        }
+      }
       if (useDynamicTickRuntime) continue;
       for (let tick = 1; tick <= tickCount; tick += 1) {
         for (const target of zoneTargets) {
@@ -8295,19 +8689,6 @@ function frontendDamageEventsForTarget(
               duration_ms: durationMs
             }, durationMs, eventDelayMs));
           }
-        }
-      }
-      if (String(params.knockback_policy ?? "") === "reverse") {
-        for (let pullMs = Number(params.knockback_interval_ms ?? 100); pullMs <= durationMs; pullMs += Number(params.knockback_interval_ms ?? 100)) {
-          events.push(frontendSkillEvent(skill, "forced_movement", null, center, direction, Number(params.knockback_distance ?? 0), skill.damage_type, {
-            origin_world_position: center,
-            origin: center,
-            radius,
-            movement_policy: "pull_to_origin",
-            movement_scope: "damage_zone",
-            movement_distance: Number(params.knockback_distance ?? 0),
-            pull_time_ms: pullMs
-          }, 120, waveDelayMs + pullMs));
         }
       }
     }
@@ -9249,6 +9630,8 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           canHitPlayer: event.source_entity === "boss" && event.payload?.can_hit_player === true,
           playerDamageMultiplier: Number(event.payload?.player_damage_multiplier ?? 1),
           playerHitKind: event.payload?.player_hit_kind === "spell" ? "spell" : "attack",
+          playerLeashRange: Number.isFinite(Number(event.payload?.player_leash_range)) ? Number(event.payload?.player_leash_range) : undefined,
+          playerHitMarkerId: typeof event.payload?.hit_marker_id === "string" ? event.payload.hit_marker_id : undefined,
           collisionRadius: Number(event.payload?.collision_radius ?? event.payload?.projectile_radius ?? event.payload?.impact_radius ?? 18),
           sourceSkillName: typeof event.payload?.skill_name === "string" ? event.payload.skill_name : undefined
         });
@@ -9480,9 +9863,16 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     const targetId = Number(event.target_entity);
     if (!Number.isFinite(targetId)) return;
     const payload = event.payload ?? {};
-    const statusType = String(payload.status_type ?? "");
+    const statusType = normalizeFrontendStatusType(String(payload.status_type ?? ""));
     if (!statusType) return;
-    const duration = Math.max(0.1, Number(payload.duration_ms ?? event.duration_ms ?? 0) / 1000);
+    const targetEnemy = enemiesStateRef.current.find((enemy) => enemy.id === targetId && enemy.hp > 0);
+    if (!targetEnemy) return;
+    const applyChance = 100 - enemyStatusApplyResistancePercent(targetEnemy, statusType);
+    if (applyChance <= 0) return;
+    if (applyChance < 100 && stablePercent(`${event.event_id}:${targetId}:${statusType}:enemy_status_resist`) >= applyChance) return;
+    const duration = Math.max(0.1, Number(payload.duration_ms ?? event.duration_ms ?? 0) / 1000)
+      * enemyStatusDurationMultiplier(targetEnemy, statusType);
+    if (duration <= 0) return;
     const valuePercent = Math.max(0, Number(payload.effect_per_stack ?? payload.base_value ?? 0));
     const baseValue = Math.max(0, Number(payload.base_value ?? 0));
     const sourceSkillId = String(payload.source_skill_id ?? payload.skill_id ?? event.skill_instance_id);
@@ -9586,6 +9976,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     const damageByTarget = new Map<number, number>();
     const enemyById = new Map(enemiesStateRef.current.map((enemy) => [enemy.id, enemy]));
     const remainingHp = new Map(enemiesStateRef.current.map((enemy) => [enemy.id, enemy.hp]));
+    const remainingShield = new Map(enemiesStateRef.current.map((enemy) => [enemy.id, Math.max(0, Number(enemy.currentEnergyShield ?? 0))]));
     const killedTriggers: { event: SkillEvent; enemy: Enemy }[] = [];
     for (const event of events) {
       const targetId = Number(event.target_entity);
@@ -9596,7 +9987,13 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
       if (!enemy || damage <= 0) continue;
       if (enemy.boss || enemy.spawnRarity === "rare") gainWarIntentPoint();
       const before = remainingHp.get(targetId) ?? enemy.hp;
-      let after = before - damage;
+      const resourceResult = applyDamageToEnemyResources({
+        ...enemy,
+        hp: before,
+        currentEnergyShield: remainingShield.get(targetId) ?? enemy.currentEnergyShield
+      }, damage);
+      let after = resourceResult.hp;
+      remainingShield.set(targetId, Math.max(0, Number(resourceResult.currentEnergyShield ?? 0)));
       const cullThresholdPercent = Math.max(0, Number(event.payload?.cull_threshold_percent ?? 0));
       if (cullThresholdPercent > 0 && enemy.maxHp > 0 && after > 0 && after / enemy.maxHp * 100 <= cullThresholdPercent) {
         after = 0;
@@ -9611,7 +10008,8 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     const liveEnemiesAfterDamage = enemiesStateRef.current
       .map((enemy) => {
         const hp = remainingHp.get(enemy.id) ?? enemy.hp;
-        return { ...enemy, hp, lastDamagedAt: hp < enemy.hp ? elapsedRef.current : enemy.lastDamagedAt };
+        const currentEnergyShield = remainingShield.has(enemy.id) ? remainingShield.get(enemy.id) : enemy.currentEnergyShield;
+        return { ...enemy, hp, currentEnergyShield, lastDamagedAt: hp < enemy.hp ? elapsedRef.current : enemy.lastDamagedAt };
       })
       .filter((enemy) => shouldRetainEnemyForGameplayOrDamageFlash(enemy, elapsedRef.current));
     let killed = 0;
@@ -10020,15 +10418,15 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function frontendMonsterDropChance(stage: MapProgressionStageView, enemy: Enemy) {
     const baseChance = clamp(stage.base_drop_chance, 0, 0.6);
-    const rarityMultiplier: Record<string, number> = {
-      normal: 1,
-      magic: 1.8,
-      rare: 3.2,
-      boss: 6,
-      legendary: 6
-    };
-    const rarity = enemy.boss ? "boss" : String(enemy.spawnRarity ?? "normal");
-    return clamp(baseChance * (rarityMultiplier[rarity] ?? 1), 0, enemy.boss ? 0.9 : 0.65);
+    return clamp(baseChance, 0, enemy.boss ? 0.95 : 0.75);
+  }
+
+  function frontendMonsterDropAttempts(enemy: Enemy, salt: number) {
+    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss);
+    const quantityMultiplier = Math.max(0, Number(dropRule.drop_quantity_multiplier ?? 0));
+    const guaranteedAttempts = Math.floor(quantityMultiplier);
+    const fractionalAttempt = quantityMultiplier - guaranteedAttempts;
+    return guaranteedAttempts + (frontendDropRoll(enemy, salt + 191) < fractionalAttempt ? 1 : 0);
   }
 
   function frontendRandomMapLevel(stage: MapProgressionStageView, enemy: Enemy, salt: number) {
@@ -10038,8 +10436,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   }
 
   function frontendEquipmentDropRarity(stage: MapProgressionStageView, enemy: Enemy, roll: number) {
-    if (enemy.boss) return "purple";
-    const weights = stage.equipment_rarity_weights ?? { white: 700, blue: 250, purple: 50, pink: 0 };
+    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss);
+    const weights = scaleFrontendDropRarityWeights(
+      stage.equipment_rarity_weights ?? { white: 700, blue: 250, purple: 50, pink: 0 },
+      dropRule.drop_rarity_multiplier,
+      ["blue", "purple", "pink"]
+    );
     const white = Math.max(0, Number(weights.white ?? 0));
     const blue = Math.max(0, Number(weights.blue ?? 0));
     const purple = Math.max(0, Number(weights.purple ?? 0));
@@ -10053,13 +10455,33 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     return "pink";
   }
 
+  function frontendDropKind(stage: MapProgressionStageView, roll: number, canDropMapEntry: boolean, dropPoolId: string | undefined): DropPrompt["loot_kind"] {
+    const allowedKinds = new Set(allowedFrontendLootKindsForPool(dropPoolId));
+    const equipment = allowedKinds.has("equipment") ? Math.max(0, Number(stage.equipment_weight ?? 0)) : 0;
+    const gem = allowedKinds.has("gem") ? Math.max(0, Number(stage.gem_weight ?? 0)) : 0;
+    const mapEntry = allowedKinds.has("map_entry") && canDropMapEntry ? Math.max(0, Number(stage.map_entry_weight ?? 0)) : 0;
+    const total = equipment + gem + mapEntry;
+    if (total <= 0) return "equipment";
+    const cursor = roll * total;
+    if (cursor < equipment) return "equipment";
+    if (cursor < equipment + gem) return "gem";
+    return "map_entry";
+  }
+
   function frontendMapEntryTargetStage(stage: MapProgressionStageView, stages: MapProgressionStageView[], enemy: Enemy, salt: number) {
+    if (stage.stage_scope === "major_final" && stage.phase !== "timemark") return stage;
     const candidates = [
       ...(stage.order > 1 ? [stage] : []),
       ...stages.filter((candidate) => candidate.order === stage.order + 1 && candidate.id !== stage.id)
     ];
     if (candidates.length === 0) return null;
     return candidates[Math.floor(frontendDropRoll(enemy, salt) * candidates.length) % candidates.length];
+  }
+
+  function frontendMajorFinalBossNextStage(stage: MapProgressionStageView, stages: MapProgressionStageView[], enemy: Enemy) {
+    if (!enemy.boss) return null;
+    if (stage.stage_scope !== "major_final" || stage.phase === "timemark") return null;
+    return stages.find((candidate) => candidate.order === stage.order + 1 && candidate.id !== stage.id) ?? null;
   }
 
   function frontendGemDropWeight(gem: GmGemOption) {
@@ -10088,10 +10510,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const stages = state?.map_progression?.stages ?? [];
     const mapEntryStage = frontendMapEntryTargetStage(stage, stages, enemy, index + 109);
     const kindRoll = frontendDropRoll(enemy, index + 17);
-    const gemDropThreshold = 1 - FRONTEND_GEM_DROP_KIND_CHANCE;
+    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss);
     const level = Math.round(clamp(stage.gem_level_min + frontendDropRoll(enemy, index + 29) * (stage.gem_level_max - stage.gem_level_min), stage.gem_level_min, stage.gem_level_max));
     const equipmentLevel = frontendRandomMapLevel(stage, enemy, index + 83);
-    let lootKind: DropPrompt["loot_kind"] = "equipment";
+    let lootKind = frontendDropKind(stage, kindRoll, Boolean(mapEntryStage), dropRule.drop_pool_id);
     let nameText = `Lv${equipmentLevel} 装备`;
     let equipmentRarity = frontendEquipmentDropRarity(stage, enemy, frontendDropRoll(enemy, index + 97));
     let rarityText = frontendEquipmentRarityText(equipmentRarity);
@@ -10101,15 +10523,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     let equipmentAffixes: FrontendEquipmentAffixRoll[] | undefined;
     let equipmentStatModifiers: FrontendEquipmentStatModifier[] | undefined;
     let statusText = "点击拾取";
-    if (kindRoll >= FRONTEND_EQUIPMENT_DROP_KIND_CHANCE
-      && kindRoll < gemDropThreshold
-      && mapEntryStage) {
+    if (lootKind === "map_entry" && mapEntryStage) {
       lootKind = "map_entry";
       nameText = `${mapEntryStage.display_name} 门票`;
       rarityText = "地图";
       targetStageId = mapEntryStage.id;
-    } else if (kindRoll >= gemDropThreshold
-      || (kindRoll >= FRONTEND_EQUIPMENT_DROP_KIND_CHANCE && !mapEntryStage)) {
+    } else if (lootKind === "gem") {
       lootKind = "gem";
       const gemOptions = gmOptions?.gems ?? [];
       const gemOption = chooseFrontendGemDropOption(gemOptions, enemy, index + 41);
@@ -10146,8 +10565,24 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     };
   }
 
+  function createGuaranteedNextMapEntryDrop(enemy: Enemy, stage: MapProgressionStageView, stages: MapProgressionStageView[], index: number): DropPrompt | null {
+    const targetStage = frontendMajorFinalBossNextStage(stage, stages, enemy);
+    if (!targetStage) return null;
+    return {
+      drop_id: `frontend_drop_${frontendDropId.current++}`,
+      loot_kind: "map_entry",
+      name_text: `${targetStage.display_name} 门票`,
+      rarity_text: "地图",
+      picked_up: false,
+      status_text: "点击拾取",
+      position: { x: enemy.x + 28 + (index % 2) * 12, y: enemy.y },
+      level: stage.gem_level_max,
+      target_stage_id: targetStage.id
+    };
+  }
+
   function spawnBossPortalForKilledEnemies(killedEnemies: Enemy[]) {
-    const boss = killedEnemies.find((enemy) => enemy.boss);
+    const boss = killedEnemies.find((enemy) => enemy.boss || isNemesisRarity(enemy.spawnRarity));
     if (!boss) return;
     setBossPortal((current) => {
       if (current && !current.used) return current;
@@ -10157,8 +10592,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         used: false
       };
     });
-    setCombatLogs((logs) => ["Boss 已击杀，传送门已开启。", ...logs].slice(0, 8));
-    setNotice("Boss 已击杀，传送门已开启。");
+    setCombatLogs((logs) => ["Boss defeated. Exit portal opened.", ...logs].slice(0, 8));
+    setNotice("Boss defeated. Exit portal opened.");
   }
 
   function spawnFrontendDrops(killedEnemies: Enemy[]) {
@@ -10166,11 +10601,19 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     spawnBossPortalForKilledEnemies(killedEnemies);
     const stage = selectedFrontendMapStage();
     if (!stage) return;
-    const drops = killedEnemies
-      .map((enemy, index) => createFrontendDrop(enemy, stage, index))
+    const stages = state?.map_progression?.stages ?? [];
+    const guaranteedDrops = killedEnemies
+      .map((enemy, index) => createGuaranteedNextMapEntryDrop(enemy, stage, stages, index))
       .filter((drop): drop is DropPrompt => Boolean(drop));
-    if (drops.length === 0) return;
-    drops.forEach((drop, index) => {
+    const drops = killedEnemies
+      .flatMap((enemy, index) => {
+        const attempts = frontendMonsterDropAttempts(enemy, index);
+        return Array.from({ length: attempts }, (_, attemptIndex) => createFrontendDrop(enemy, stage, index * 100 + attemptIndex));
+      })
+      .filter((drop): drop is DropPrompt => Boolean(drop));
+    const allDrops = [...guaranteedDrops, ...drops];
+    if (allDrops.length === 0) return;
+    allDrops.forEach((drop, index) => {
       const position = drop.position ?? { x: playerStateRef.current.x, y: playerStateRef.current.y };
       dropDisplayPositions.current.set(drop.drop_id, {
         x: position.x + (index % 3) * 22,
@@ -10178,18 +10621,31 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       });
       knownDropIds.current.add(drop.drop_id);
     });
-    applyFrontendState((current) => ({ ...current, drops: [...current.drops, ...drops] }));
-    setNotice(`掉落：${drops.map((drop) => drop.name_text).join("、")}。`);
+    applyFrontendState((current) => ({ ...current, drops: [...current.drops, ...allDrops] }));
+    setNotice(`掉落：${allDrops.map((drop) => drop.name_text).join("、")}。`);
+  }
+
+  function nextFrontendInventoryItemId(current: AppState) {
+    const existingIds = new Set(current.inventory.map((item) => item.instance_id));
+    let id = `frontend_item_${frontendItemId.current++}`;
+    while (existingIds.has(id)) {
+      id = `frontend_item_${frontendItemId.current++}`;
+    }
+    return id;
   }
 
   function createFrontendInventoryItem(drop: DropPrompt, current: AppState): Gem {
     if (drop.dropped_item) {
+      const existingIds = new Set(current.inventory.map((item) => item.instance_id));
       return {
         ...cloneFrontendData(drop.dropped_item),
+        instance_id: existingIds.has(drop.dropped_item.instance_id)
+          ? nextFrontendInventoryItemId(current)
+          : drop.dropped_item.instance_id,
         board_position: null
       };
     }
-    const id = `frontend_item_${frontendItemId.current++}`;
+    const id = nextFrontendInventoryItemId(current);
     if (drop.loot_kind === "gem") {
       const seedInventory = FRONTEND_INITIAL_APP_STATE.inventory as Gem[];
       const template = current.inventory.find((item) => item.instance_id === drop.base_gem_instance_id)
@@ -10223,9 +10679,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         : []);
       const descriptionText = `${rarityText}${sourceText}。等级 ${drop.level ?? 1}。`;
       const equipmentSlotId = frontendEquipmentSourceSlotIdFromText(sourceText);
+      const iconSprite = frontendEquipmentIconSprite(drop.equipment_source ?? sourceText);
       const tags = [
         { id: "equipment", text: "装备", tone: "category" },
         { id: drop.equipment_source ?? "equipment", text: sourceText, tone: "type" },
+        ...(isTwoHandedEquipmentSource(drop.equipment_source ?? sourceText) ? [{ id: "two_handed", text: "双手", tone: "type" as const }] : []),
         { id: String(drop.equipment_rarity ?? "rarity"), text: rarityText }
       ];
       return {
@@ -10250,6 +10708,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           descriptionText,
           iconText: sourceText.slice(0, 1),
           iconColorKey: drop.equipment_rarity === "blue" ? "blue" : drop.equipment_rarity === "purple" ? "orange" : "white",
+          iconSprite,
           tags,
           statLines: [
             { label_text: "等级", value_text: String(drop.level ?? 1) },
@@ -10342,7 +10801,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       x: portal.position.x,
       y: portal.position.y
     };
-    setNotice("正在前往传送门。");
+    setNotice("Moving to Boss exit.");
   }
 
   function finishBossPortalUse(portalId: string) {
@@ -10363,8 +10822,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setAuthoredAggroSources([]);
     setAuthoredSpawnPlanActive(false);
     applyFrontendState((current) => ({ ...current, current_map_run: null, drops: [] }));
-    setCombatLogs((logs) => ["已进入传送门，本局游戏结束。", ...logs].slice(0, 8));
-    setNotice("已进入传送门，本局游戏结束。");
+    setCombatLogs((logs) => ["Exited through Boss portal.", ...logs].slice(0, 8));
+    setNotice("Exited through Boss portal.");
   }
 
   function resetBattleRuntimeForChallenge(spawnPoint: { x: number; y: number }) {
@@ -10398,6 +10857,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     scheduledSkillEvents.current = [];
     activeDamageZones.current = [];
     bossSkillTimers.current = new Map();
+    monsterSkillTimers.current = new Map();
     pendingBossDamageZoneHits.current = [];
     onKillRecastCounts.current.clear();
     enemyVisuals.current = new Map();
@@ -10566,17 +11026,22 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       if (action === "gm-add-gem") {
         const baseGemId = String(payload.base_gem_id ?? gmOptions?.gems[0]?.id ?? "");
         const level = Number(payload.level ?? 1);
-        const drop: DropPrompt = {
-          drop_id: `frontend_gm_gem_${frontendDropId.current++}`,
-          loot_kind: "gem",
-          name_text: gmOptions?.gems.find((gem) => gem.id === baseGemId)?.name_text ?? "技能宝石",
-          rarity_text: "宝石",
-          picked_up: false,
-          status_text: "GM 添加",
-          level,
-          base_gem_instance_id: baseGemId
-        };
-        return { ...current, inventory: [...current.inventory, createFrontendInventoryItem(drop, current)] };
+        const quantity = Math.max(1, Math.min(60, Math.floor(Number(payload.quantity ?? 1) || 1)));
+        const nameText = gmOptions?.gems.find((gem) => gem.id === baseGemId)?.name_text ?? "技能宝石";
+        const generatedItems = Array.from({ length: quantity }, () => {
+          const drop: DropPrompt = {
+            drop_id: `frontend_gm_gem_${frontendDropId.current++}`,
+            loot_kind: "gem",
+            name_text: nameText,
+            rarity_text: "宝石",
+            picked_up: false,
+            status_text: "GM 添加",
+            level,
+            base_gem_instance_id: baseGemId
+          };
+          return createFrontendInventoryItem(drop, current);
+        });
+        return { ...current, inventory: [...current.inventory, ...generatedItems] };
       }
       if (action === "gm-add-equipment") {
         const source = String(payload.source ?? gmOptions?.equipment_sources[0]?.id ?? frontendEquipmentSources()[0]?.id ?? "装备");
@@ -11783,7 +12248,7 @@ function MapSelectionPanel({
             >
               <strong>{stage.display_name}</strong>
               <span>地图等级：{stage.map_level_text} · 怪物等级：{stage.monster_level}</span>
-              <span>{stage.free_entry ? "无限免费" : `门票 ${stage.entry_count}/${stage.entry_cost}`}{stage.boss_stage ? " · Boss奖励" : ""}</span>
+              <span>{stage.free_entry ? "无限免费" : `门票 ${stage.entry_count}/${stage.entry_cost}`}{stage.boss_stage ? " · Boss奖励" : ""} · {stageScopeLabel(stage)} · {stageBossPackPoolLabel(stage)}</span>
             </button>
           );
         })}
@@ -11843,17 +12308,18 @@ function BossPortalLayer({
   if (!portal || portal.used) return null;
   const position = battleWorldToViewport(portal.position, camera);
   return (
-    <div className="boss-portal-layer" aria-label="Boss 传送门">
+    <div className="boss-portal-layer" aria-label="Boss exit portal">
       <button
         type="button"
         className="boss-portal"
         style={{ left: position.x, top: position.y }}
         onClick={() => onUse(portal)}
-        title="进入传送门"
+        title="Boss exit"
       >
-        <span className="boss-portal-label">传送门</span>
-        <span className="boss-portal-ring" aria-hidden="true" />
-        <span className="boss-portal-core" aria-hidden="true" />
+        <span className="boss-portal-label">{"Boss \u51fa\u53e3"}</span>
+        <span className="boss-portal-gate" aria-hidden="true">
+          <span className="boss-portal-door" />
+        </span>
       </button>
     </div>
   );
@@ -12083,6 +12549,7 @@ function BoardCell({
     >
       {gem && !isGhost ? (
         <span
+          className="board-gem-drag-target"
           draggable={false}
           onDragStart={onDragGem}
           onMouseDown={(event) => onPointerDragGem(event, gem, origin)}
@@ -12645,6 +13112,17 @@ function normalizeEquipmentSlots(slots: (string | null)[]) {
   const next = slots.slice(0, EQUIPMENT_SLOT_COUNT);
   while (next.length < EQUIPMENT_SLOT_COUNT) next.push(null);
   return next.map((instanceId) => instanceId ?? null);
+}
+
+function sanitizeEquipmentSlotsForState(state: AppState): AppState {
+  const normalizedSlots = normalizeEquipmentSlots(state.equipment_slots ?? []);
+  const equipment_slots = normalizedSlots.map((instanceId, slotIndex) => {
+    if (!instanceId) return null;
+    const item = inventoryItemById(state, instanceId);
+    const slot = EQUIPMENT_SLOT_SPECS[slotIndex];
+    return item && slot && canPlaceItemInEquipmentSlot(item, slot) ? instanceId : null;
+  });
+  return { ...state, equipment_slots };
 }
 
 function removeItemsFromEquipmentSlots(slots: (string | null)[], instanceIds: string[]) {
@@ -15258,6 +15736,60 @@ type EnemySpatialIndex = {
 
 const ENEMY_SPATIAL_INDEX_CACHE = new WeakMap<Enemy[], EnemySpatialIndex>();
 
+const LEGENDARY_BOSS_PACK_IDS = [
+  "geo_boss_king",
+  "geo_boss_void",
+  "geo_boss_tyrant",
+  "geo_boss_star_mother",
+  "geo_boss_judicator",
+  "geo_boss_mirror",
+  "geo_boss_crack_crown",
+  "geo_boss_null_bastion",
+  "geo_boss_razor_gyre",
+  "geo_boss_orbit_matron",
+  "geo_boss_king_vanguard",
+  "geo_boss_void_bulwark",
+  "geo_boss_tyrant_fangs",
+  "geo_boss_star_mother_swarm",
+  "geo_boss_judicator_court",
+  "geo_boss_mirror_shades",
+  "geo_boss_crack_crown_sentinels",
+  "geo_boss_null_bastion_prism",
+  "geo_boss_razor_gyre_winds",
+  "geo_boss_orbit_matron_orbits",
+  "geo_boss_king_crawlers",
+  "geo_boss_void_shades",
+  "geo_boss_tyrant_chargers",
+  "geo_boss_star_mother_casters",
+  "geo_boss_judicator_judges",
+  "geo_boss_mirror_reflections",
+  "geo_boss_crack_crown_hunters",
+  "geo_boss_null_bastion_guards",
+  "geo_boss_razor_gyre_assassins",
+  "geo_boss_orbit_matron_cluster"
+];
+
+const SUPREME_BOSS_PACK_IDS = [
+  "geo_boss_eclipse",
+  "geo_boss_triad",
+  "geo_boss_high_judicator",
+  "geo_boss_blood_eclipse",
+  "geo_boss_shard_mirror",
+  "geo_boss_final_triad",
+  "geo_boss_eclipse_plague",
+  "geo_boss_triad_court",
+  "geo_boss_high_judicator_guard",
+  "geo_boss_blood_eclipse_core",
+  "geo_boss_shard_mirror_twins",
+  "geo_boss_final_triad_hunters",
+  "geo_boss_eclipse_sigil",
+  "geo_boss_triad_blinkers",
+  "geo_boss_high_judicator_obelisk",
+  "geo_boss_blood_eclipse_fangs",
+  "geo_boss_shard_mirror_shades",
+  "geo_boss_final_triad_casters"
+];
+
 type EnemyNavigationContext = {
   map: BakedBattleMapData;
   width: number;
@@ -15273,6 +15805,8 @@ type EnemyNavigationHeapNode = {
   cost: number;
 };
 
+const MONSTER_SKILL_CONFIG = monsterSkillsConfig as MonsterSkillConfig;
+
 function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: number, selectedMapId: string | null, stage?: MapProgressionStageView | null, instanceSeed?: string) {
   const spawnMap = isEditorRuntimeBattleMap(map) ? {
     ...map,
@@ -15287,18 +15821,22 @@ function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: numb
       }))
     }))
   } : map;
-  const result = generateProceduralMonsterSpawns(spawnMap, {
-    ...(mapSpawnV1Config as MapSpawnV1Config),
-    monster_definitions: parseMonsterDefinitionsToml(monsterDefsToml)
-  }, {
+  const result = generateProceduralMonsterSpawns(spawnMap, stageScopedMapSpawnConfig(stage), {
     startId,
     seed: `${selectedMapId ?? map.id}:${map.displayName}:v1:${instanceSeed || `${Date.now()}:${Math.random()}`}`
   });
   const level = Math.max(1, Number(stage?.monster_level ?? 1));
   const normalLife = monsterNormalLifeForLevel(level);
   const normalDamage = monsterNormalDamageForLevel(level);
+  const normalAccuracy = monsterNormalAccuracyForLevel(level);
+  const normalArmor = monsterNormalArmorForLevel(level);
+  const normalEnergyShield = monsterNormalEnergyShieldForLevel(level);
   const enemies: Enemy[] = result.enemies.map((monster) => {
     const maxHp = Math.max(1, Math.round(normalLife * monster.life_multiplier));
+    const defense = monsterDefenseStats(monster.monster_type, monster.spawn_rarity, normalArmor, normalEnergyShield);
+    const attackStats = monsterAttackStats(monster.monster_type, monster.spawn_rarity, normalAccuracy, monster.damage_type);
+    const skillAssignment = monsterSkillAssignmentFor(MONSTER_SKILL_CONFIG, monster.monster_id);
+    const baseSkill = monsterSkillDefinitionFor(MONSTER_SKILL_CONFIG, skillAssignment?.skill_id);
     return {
       id: monster.runtime_id,
       x: monster.x,
@@ -15312,15 +15850,25 @@ function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: numb
       proceduralMonsterPackId: monster.monster_pack_id,
       proceduralZoneType: monster.zone_type,
       spawnRarity: monster.spawn_rarity,
+      monsterType: monster.monster_type,
+      movementSpeedMultiplier: monster.movement_speed_multiplier,
+      skillShape: monster.skill_shape,
+      nemesis: monster.nemesis,
       lifeMultiplier: monster.life_multiplier,
       damageMultiplier: monster.damage_multiplier,
       baseDamage: normalDamage,
+      ...attackStats,
+      ...defense,
       damageType: monster.damage_type,
       hitKind: monster.hit_kind,
       attackRange: monster.attack_range,
       attackCadenceMs: monster.attack_cadence_ms,
       offenseModifiers: monster.offense_modifiers,
-      runtimeTier: monster.boss ? "active" : "dormant",
+      monsterSkillId: skillAssignment?.skill_id,
+      bossPatternId: skillAssignment?.boss_pattern_id,
+      monsterSkillForm: skillAssignment?.chinese_form ?? baseSkill?.chinese_form,
+      monsterSkillRange: baseSkill?.range,
+      runtimeTier: monster.nemesis ? "active" : "dormant",
       nextThinkAt: 0
     };
   });
@@ -15334,12 +15882,276 @@ function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: numb
   return { enemies, aggroSources, nextId: result.nextId, debug: result.debug };
 }
 
+function stageScopedMapSpawnConfig(stage?: MapProgressionStageView | null): MapSpawnV1Config {
+  const bossPackIds = stageBossPackIds(stage);
+  return {
+    ...(mapSpawnV1Config as MapSpawnV1Config),
+    monster_definitions: parseMonsterDefinitionsToml(monsterDefsToml),
+    map_spawn_profiles: (mapSpawnV1Config as MapSpawnV1Config).map_spawn_profiles.map((profile) => ({
+      ...profile,
+      zone_rules: {
+        ...profile.zone_rules,
+        boss_room: {
+          ...profile.zone_rules.boss_room,
+          fixed_pack_ids: bossPackIds
+        }
+      }
+    }))
+  };
+}
+
+function stageBossPackIds(stage?: MapProgressionStageView | null) {
+  const pool = stageBossPackPool(stage);
+  if (pool === "mixed") return [...LEGENDARY_BOSS_PACK_IDS, ...SUPREME_BOSS_PACK_IDS];
+  return pool === "supreme" ? SUPREME_BOSS_PACK_IDS : LEGENDARY_BOSS_PACK_IDS;
+}
+
+function stageBossPackPool(stage?: MapProgressionStageView | null): "legendary" | "supreme" | "mixed" {
+  if (stage?.boss_pack_pool === "legendary" || stage?.boss_pack_pool === "supreme" || stage?.boss_pack_pool === "mixed") {
+    return stage.boss_pack_pool;
+  }
+  if (stage?.stage_scope === "timemark" || stage?.phase === "timemark" || stage?.id.startsWith("timemark_")) return "mixed";
+  if (stage?.stage_scope === "major_final" || stage?.boss_stage === true) return "supreme";
+  return "legendary";
+}
+
+function stageBossPackPoolLabel(stage?: MapProgressionStageView | null) {
+  const pool = stageBossPackPool(stage);
+  if (pool === "mixed") return "混合首领";
+  if (pool === "supreme") return "至高首领";
+  return "传奇首领";
+}
+
+function stageScopeLabel(stage?: MapProgressionStageView | null) {
+  if (stage?.stage_scope === "timemark" || stage?.phase === "timemark") return "时刻关";
+  if (stage?.stage_scope === "major_final") return "大关最后关";
+  return "小关";
+}
+
 function monsterNormalLifeForLevel(level: number) {
   return Math.max(1, Math.round(MONSTER_NORMAL_LIFE_BASE * Math.pow(MONSTER_NORMAL_LIFE_GROWTH, Math.max(0, level - 1))));
 }
 
 function monsterNormalDamageForLevel(level: number) {
   return Math.max(0, Math.round(MONSTER_NORMAL_DAMAGE_BASE * Math.pow(MONSTER_NORMAL_DAMAGE_GROWTH, Math.max(0, level - 1))));
+}
+
+function monsterNormalAccuracyForLevel(level: number) {
+  return Math.max(1, Math.round(MONSTER_NORMAL_ACCURACY_BASE * Math.pow(MONSTER_NORMAL_ACCURACY_GROWTH, Math.max(0, level - 1))));
+}
+
+function monsterNormalArmorForLevel(level: number) {
+  return Math.max(0, Math.round(MONSTER_NORMAL_ARMOR_BASE * Math.pow(MONSTER_NORMAL_ARMOR_GROWTH, Math.max(0, level - 1))));
+}
+
+function monsterNormalEnergyShieldForLevel(level: number) {
+  if (MONSTER_NORMAL_ENERGY_SHIELD_BASE <= 0) return 0;
+  return Math.max(0, Math.round(MONSTER_NORMAL_ENERGY_SHIELD_BASE * Math.pow(MONSTER_NORMAL_ENERGY_SHIELD_GROWTH, Math.max(0, level - 1))));
+}
+
+function monsterAccuracyMultiplier(monsterType: MonsterType | undefined, rarity: ProceduralSpawnRarity | undefined) {
+  const typeMultiplier = monsterType === "assassin" ? 1.25
+    : monsterType === "charger" ? 1.1
+      : monsterType === "ranged" ? 1.05
+        : monsterType === "tank" ? 0.9
+          : monsterType === "minion" ? 0.9
+            : monsterType === "support" ? 0.95
+              : 1;
+  const rarityMultiplier = rarity === "supreme_boss" ? 1.45
+    : rarity === "legendary_boss" ? 1.35
+      : rarity === "rare" ? 1.25
+        : rarity === "magic" ? 1.12
+          : 1;
+  return typeMultiplier * rarityMultiplier;
+}
+
+function monsterAttackStats(
+  monsterType: MonsterType | undefined,
+  rarity: ProceduralSpawnRarity | undefined,
+  normalAccuracy: number,
+  damageType: string | undefined
+): Pick<Enemy,
+  "accuracy"
+  | "critChancePercent"
+  | "critDamagePercent"
+  | "doubleDamageChancePercent"
+  | "ignite_chance_percent"
+  | "chill_chance_percent"
+  | "freeze_chance_percent"
+  | "shock_chance_percent"
+  | "wither_chance_percent"
+  | "corrosion_ailment_chance_percent"
+  | "dot_damage_add_percent"
+  | "dot_duration_add_percent"
+  | "reap_damage_add_percent"
+  | "agony_damage_add_percent"
+> {
+  const typeCrit = monsterType === "assassin" ? 5
+    : monsterType === "ranged" ? 2
+      : monsterType === "charger" ? 1
+        : 0;
+  const rarityCrit = rarity === "supreme_boss" ? 10
+    : rarity === "legendary_boss" ? 8
+      : rarity === "rare" ? 5
+        : rarity === "magic" ? 2
+          : 0;
+  const typeCritDamage = monsterType === "assassin" ? 35
+    : monsterType === "charger" ? 20
+      : monsterType === "ranged" ? 15
+        : 0;
+  const rarityCritDamage = rarity === "supreme_boss" ? 50
+    : rarity === "legendary_boss" ? 40
+      : rarity === "rare" ? 25
+        : rarity === "magic" ? 10
+          : 0;
+  const doubleDamageChance = rarity === "supreme_boss" ? 8
+    : rarity === "legendary_boss" ? 6
+      : rarity === "rare" ? 3
+        : monsterType === "charger" ? 2
+          : monsterType === "assassin" ? 2
+            : 0;
+  const rarityAilmentChance = rarity === "supreme_boss" ? 12
+    : rarity === "legendary_boss" ? 10
+      : rarity === "rare" ? 6
+        : rarity === "magic" ? 3
+          : 0;
+  const typeAilmentChance = monsterType === "support" ? 4
+    : monsterType === "ranged" ? 3
+      : monsterType === "assassin" ? 2
+        : 0;
+  const ailmentChance = rarityAilmentChance + typeAilmentChance;
+  const isFire = damageType === "fire";
+  const isCold = damageType === "cold";
+  const isLightning = damageType === "lightning";
+  const isCorrosion = damageType === "chaos" || damageType === "corrosion" || damageType === "erosion";
+  const dotBonus = isFire || isCorrosion
+    ? (rarity === "supreme_boss" ? 30
+      : rarity === "legendary_boss" ? 24
+        : rarity === "rare" ? 14
+          : rarity === "magic" ? 8
+            : 0)
+    : 0;
+  return {
+    accuracy: Math.round(normalAccuracy * monsterAccuracyMultiplier(monsterType, rarity)),
+    critChancePercent: Math.min(95, 5 + typeCrit + rarityCrit),
+    critDamagePercent: 150 + typeCritDamage + rarityCritDamage,
+    doubleDamageChancePercent: Math.min(100, doubleDamageChance),
+    ignite_chance_percent: isFire ? ailmentChance : 0,
+    chill_chance_percent: isCold ? Math.max(0, Math.round(ailmentChance * 0.8)) : 0,
+    freeze_chance_percent: isCold ? Math.max(0, Math.round(ailmentChance * 0.45)) : 0,
+    shock_chance_percent: isLightning ? ailmentChance : 0,
+    wither_chance_percent: isCorrosion ? ailmentChance : 0,
+    corrosion_ailment_chance_percent: isCorrosion ? Math.max(0, Math.round(ailmentChance * 0.8)) : 0,
+    dot_damage_add_percent: dotBonus,
+    dot_duration_add_percent: dotBonus > 0 ? Math.round(dotBonus * 0.5) : 0,
+    reap_damage_add_percent: isCorrosion ? Math.round(dotBonus * 0.5) : 0,
+    agony_damage_add_percent: isCorrosion ? Math.round(dotBonus * 0.5) : 0
+  };
+}
+
+function monsterDefenseStats(
+  monsterType: MonsterType | undefined,
+  rarity: ProceduralSpawnRarity | undefined,
+  normalArmor: number,
+  normalEnergyShield: number
+): Pick<Enemy,
+  "armor"
+  | "fire_resistance_percent"
+  | "cold_resistance_percent"
+  | "lightning_resistance_percent"
+  | "chaos_resistance_percent"
+  | "damage_mitigation_final_percent"
+  | "damage_avoidance_percent"
+  | "block_chance_percent"
+  | "block_damage_reduction_percent"
+  | "control_resistance_percent"
+  | "knockback_resistance_percent"
+  | "freeze_resistance_percent"
+  | "stun_resistance_percent"
+  | "ailment_resistance_percent"
+  | "elemental_ailment_resistance_percent"
+  | "currentEnergyShield"
+  | "maxEnergyShield"
+> {
+  const typeArmorMultiplier = monsterType === "tank" ? 1.65
+    : monsterType === "charger" ? 1.15
+      : monsterType === "minion" ? 0.75
+        : monsterType === "ranged" ? 0.8
+          : monsterType === "assassin" ? 0.7
+            : monsterType === "support" ? 0.9
+              : 1;
+  const rarityArmorMultiplier = rarity === "supreme_boss" ? 4.0
+    : rarity === "legendary_boss" ? 3.2
+      : rarity === "rare" ? 2.0
+        : rarity === "magic" ? 1.35
+          : 1;
+  const rarityResistanceBonus = rarity === "supreme_boss" ? 30
+    : rarity === "legendary_boss" ? 25
+      : rarity === "rare" ? 16
+        : rarity === "magic" ? 8
+          : 0;
+  const typeResistanceBonus = monsterType === "support" ? 8
+    : monsterType === "tank" ? 6
+      : monsterType === "ranged" ? 4
+        : 0;
+  const avoidance = monsterType === "assassin" ? 8
+    : monsterType === "charger" ? 4
+      : rarity === "supreme_boss" ? 6
+        : rarity === "legendary_boss" ? 4
+          : 0;
+  const blockChance = monsterType === "tank" ? 14
+    : monsterType === "support" ? 8
+      : rarity === "supreme_boss" ? 10
+        : rarity === "legendary_boss" ? 8
+          : 0;
+  const blockReduction = blockChance > 0 ? (monsterType === "tank" ? 45 : 35) : 0;
+  const mitigation = rarity === "supreme_boss" ? 10
+    : rarity === "legendary_boss" ? 8
+      : rarity === "rare" ? 5
+        : 0;
+  const energyShieldMultiplier = monsterType === "support" ? 1.2
+    : monsterType === "ranged" ? 0.8
+      : 0;
+  const rarityEnergyShieldBonus = rarity === "supreme_boss" ? 0.18
+    : rarity === "legendary_boss" ? 0.12
+      : rarity === "rare" ? 0.08
+        : rarity === "magic" ? 0.04
+          : 0;
+  const maxEnergyShield = Math.round(normalEnergyShield * energyShieldMultiplier + normalArmor * rarityEnergyShieldBonus);
+  const resistance = Math.min(75, rarityResistanceBonus + typeResistanceBonus);
+  const controlResistance = rarity === "supreme_boss" ? 45
+    : rarity === "legendary_boss" ? 38
+      : rarity === "rare" ? 24
+        : rarity === "magic" ? 12
+          : 0;
+  const typeControlResistance = monsterType === "tank" ? 18
+    : monsterType === "charger" ? 12
+      : monsterType === "support" ? 8
+        : 0;
+  const ailmentResistance = rarity === "supreme_boss" ? 35
+    : rarity === "legendary_boss" ? 30
+      : rarity === "rare" ? 18
+        : rarity === "magic" ? 8
+          : 0;
+  return {
+    armor: Math.round(normalArmor * typeArmorMultiplier * rarityArmorMultiplier),
+    fire_resistance_percent: resistance,
+    cold_resistance_percent: resistance,
+    lightning_resistance_percent: resistance,
+    chaos_resistance_percent: Math.min(75, resistance + (monsterType === "support" ? 4 : 0)),
+    damage_mitigation_final_percent: mitigation,
+    damage_avoidance_percent: Math.min(75, avoidance),
+    block_chance_percent: Math.min(75, blockChance),
+    block_damage_reduction_percent: Math.min(90, blockReduction),
+    control_resistance_percent: Math.min(90, controlResistance + typeControlResistance),
+    knockback_resistance_percent: Math.min(90, typeControlResistance + (monsterType === "tank" ? 22 : 0)),
+    freeze_resistance_percent: Math.min(90, controlResistance + (monsterType === "tank" ? 12 : 0)),
+    stun_resistance_percent: Math.min(90, controlResistance + typeControlResistance),
+    ailment_resistance_percent: Math.min(90, ailmentResistance),
+    elemental_ailment_resistance_percent: Math.min(90, ailmentResistance + (monsterType === "support" ? 10 : 0)),
+    currentEnergyShield: maxEnergyShield,
+    maxEnergyShield
+  };
 }
 
 function shapeEffectsFromUnknown(value: unknown): ShapeEffectPreview[] {
@@ -15664,6 +16476,10 @@ function resetEnemyEngagement(enemy: Enemy): Enemy {
   };
 }
 
+function isEnemyNemesis(enemy: Enemy) {
+  return enemy.nemesis === true || isNemesisRarity(enemy.spawnRarity);
+}
+
 function monsterAttackRange(enemy: Enemy) {
   const configuredRange = Math.max(1, enemy.attackRange ?? ENEMY_MELEE_ATTACK_DISTANCE);
   return Math.max(configuredRange, meleeContactAttackRange(enemy));
@@ -15698,6 +16514,7 @@ function monsterOutgoingDamage(enemy: Enemy) {
   const hitKind = enemy.hitKind ?? "attack";
   const baseDamage = Math.max(0, Number(enemy.baseDamage ?? 8));
   const damageMultiplier = Math.max(0, Number(enemy.damageMultiplier ?? 1));
+  const skillMultiplier = Math.max(0, Number(enemy.monsterSkillDamageMultiplierBonus ?? 1));
   const additivePercent =
     monsterOffenseModifier(enemy, "damage_add_percent")
     + monsterOffenseModifier(enemy, "all_damage_type_add_percent")
@@ -15710,8 +16527,28 @@ function monsterOutgoingDamage(enemy: Enemy) {
     + monsterOffenseModifier(enemy, "hit_damage_final_percent");
   return baseDamage
     * damageMultiplier
+    * skillMultiplier
     * Math.max(0, 1 + additivePercent / 100)
     * Math.max(0, 1 + finalPercent / 100);
+}
+
+function monsterAccuracy(enemy: Enemy) {
+  const baseAccuracy = Math.max(1, Number(enemy.accuracy ?? MONSTER_NORMAL_ACCURACY_BASE));
+  const additivePercent =
+    monsterOffenseModifier(enemy, "accuracy_add_percent")
+    + monsterOffenseModifier(enemy, "hit_accuracy_add_percent");
+  const finalPercent = monsterOffenseModifier(enemy, "accuracy_final_percent");
+  return baseAccuracy
+    * Math.max(0, 1 + additivePercent / 100)
+    * Math.max(0, 1 + finalPercent / 100);
+}
+
+function playerEvasionChanceAgainstMonster(enemy: Enemy, stats: AppState["player_stats"] | undefined) {
+  const evasion = statNumber(stats?.evasion, 0);
+  const evasionAddPercent = statNumber(stats?.evasion_add_percent, 0);
+  const effectiveEvasion = Math.max(0, evasion * (1 + evasionAddPercent / 100));
+  if (effectiveEvasion <= 0) return 0;
+  return Math.min(0.95, effectiveEvasion / (effectiveEvasion + monsterAccuracy(enemy)));
 }
 
 function resolveMonsterHitAgainstPlayer(enemy: Enemy, player: PlayerRuntimeState, stats: AppState["player_stats"] | undefined, blocked = false, timestampMs = 0) {
@@ -15727,11 +16564,11 @@ function resolveMonsterHitAgainstPlayer(enemy: Enemy, player: PlayerRuntimeState
     const critExtraMultiplier = Math.max(0, critDamagePercent / 100 - 1);
     incoming *= 1 + critExtraMultiplier * (1 - critDamageTakenReductionPercent / 100);
   }
-  const evasion = statNumber(stats?.evasion, 0);
-  const evasionAddPercent = statNumber(stats?.evasion_add_percent, 0);
-  const effectiveEvasion = Math.max(0, evasion * (1 + evasionAddPercent / 100));
-  const evasionChance = effectiveEvasion > 0 ? Math.min(0.95, effectiveEvasion / (effectiveEvasion + 1000)) : 0;
-  incoming *= 1 - evasionChance;
+  const doubleDamageChancePercent = monsterDoubleDamageChancePercent(enemy);
+  const isDoubleDamage = doubleDamageChancePercent > 0 && stablePercent(`monster:${enemy.id}:double_damage:${Math.round(timestampMs)}`) < doubleDamageChancePercent;
+  if (isDoubleDamage) incoming *= 2;
+  const inflictedAilments = monsterOutgoingAilments(enemy, stats, timestampMs);
+  incoming *= 1 - playerEvasionChanceAgainstMonster(enemy, stats);
 
   if (blocked) {
     const blockReduction = clamp(statNumber(stats?.block_damage_reduction_percent, 0), 0, 100) / 100;
@@ -15757,6 +16594,9 @@ function resolveMonsterHitAgainstPlayer(enemy: Enemy, player: PlayerRuntimeState
     critChancePercent,
     critDamagePercent,
     critDamageTakenReductionPercent,
+    doubleDamageChancePercent,
+    isDoubleDamage,
+    inflictedAilments,
     totalDamage,
     shieldDamage,
     lifeDamage,
@@ -15766,7 +16606,8 @@ function resolveMonsterHitAgainstPlayer(enemy: Enemy, player: PlayerRuntimeState
 
 function monsterCritChancePercent(enemy: Enemy) {
   return clamp(
-    monsterOffenseModifier(enemy, "crit_chance_percent")
+    Number(enemy.critChancePercent ?? 5)
+    + monsterOffenseModifier(enemy, "crit_chance_percent")
     + monsterOffenseModifier(enemy, "critical_chance_percent"),
     0,
     95
@@ -15775,7 +16616,7 @@ function monsterCritChancePercent(enemy: Enemy) {
 
 function monsterCritDamagePercent(enemy: Enemy) {
   const explicitBase = enemy.offenseModifiers?.crit_damage_percent ?? enemy.offenseModifiers?.critical_damage_percent;
-  const basePercent = Number(explicitBase ?? 150);
+  const basePercent = Number(explicitBase ?? enemy.critDamagePercent ?? 150);
   const addPercent =
     monsterOffenseModifier(enemy, "crit_damage_add_percent")
     + monsterOffenseModifier(enemy, "critical_damage_add_percent");
@@ -15783,6 +16624,78 @@ function monsterCritDamagePercent(enemy: Enemy) {
     monsterOffenseModifier(enemy, "crit_damage_final_percent")
     + monsterOffenseModifier(enemy, "critical_damage_final_percent");
   return Math.max(100, (basePercent + addPercent) * Math.max(0, 1 + finalPercent / 100));
+}
+
+function monsterDoubleDamageChancePercent(enemy: Enemy) {
+  return clamp(
+    Number(enemy.doubleDamageChancePercent ?? 0)
+    + monsterOffenseModifier(enemy, "double_damage_chance_percent"),
+    0,
+    100
+  );
+}
+
+function monsterOutgoingAilments(enemy: Enemy, stats: AppState["player_stats"] | undefined, timestampMs: number) {
+  const entries = [
+    { statusType: "ignite", chance: enemyNumericStat(enemy, "ignite_chance_percent"), durationMs: 4000, damageType: "fire" },
+    { statusType: "chill", chance: enemyNumericStat(enemy, "chill_chance_percent"), durationMs: 2000, damageType: "cold" },
+    { statusType: "frozen", chance: enemyNumericStat(enemy, "freeze_chance_percent"), durationMs: 1000, damageType: "cold" },
+    { statusType: "shock", chance: enemyNumericStat(enemy, "shock_chance_percent"), durationMs: 2500, damageType: "lightning" },
+    { statusType: "wilt", chance: enemyNumericStat(enemy, "wither_chance_percent"), durationMs: 3500, damageType: "chaos" },
+    { statusType: "rot", chance: enemyNumericStat(enemy, "corrosion_ailment_chance_percent"), durationMs: 3500, damageType: "corrosion" }
+  ];
+  return entries.flatMap((entry) => {
+    const chance = monsterOutgoingAilmentChanceAgainstPlayer(entry.statusType, entry.chance, stats);
+    if (chance <= 0) return [];
+    if (stablePercent(`monster:${enemy.id}:ailment:${entry.statusType}:${Math.round(timestampMs)}`) >= chance) return [];
+    return [{
+      statusType: entry.statusType,
+      chancePercent: chance,
+      durationMs: Math.round(entry.durationMs * Math.max(0, 1 + enemyNumericStat(enemy, "dot_duration_add_percent") / 100)),
+      damageType: entry.damageType,
+      dotDamageAddPercent: enemyNumericStat(enemy, "dot_damage_add_percent")
+    }];
+  });
+}
+
+function monsterOutgoingAilmentChanceAgainstPlayer(statusType: string, chancePercent: number, stats: AppState["player_stats"] | undefined) {
+  let chance = Math.max(0, chancePercent);
+  for (const stat of frontendPlayerStatusImmunityStats(statusType)) {
+    const value = stats?.[stat]?.value;
+    if (value === true || (typeof value === "number" && value > 0)) return 0;
+  }
+  if (frontendElementalAilmentTypes().has(statusType)) {
+    const prevention = stats?.prevent_elemental_ailments?.value;
+    if (prevention === true || (typeof prevention === "number" && prevention > 0)) return 0;
+    chance *= Math.max(0, 1 - statNumber(stats?.avoid_elemental_ailments_percent, 0) / 100);
+  }
+  return clamp(chance, 0, 100);
+}
+
+function enemyStatusApplyResistancePercent(enemy: Enemy, statusType: string) {
+  let resistance = enemyNumericStat(enemy, "ailment_resistance_percent");
+  if (frontendElementalAilmentTypes().has(statusType)) {
+    resistance += enemyNumericStat(enemy, "elemental_ailment_resistance_percent");
+  }
+  if (enemyControlStatusTypes().has(statusType)) {
+    resistance += enemyNumericStat(enemy, "control_resistance_percent");
+  }
+  if (statusType === "frozen" || statusType === "freeze") resistance += enemyNumericStat(enemy, "freeze_resistance_percent");
+  if (statusType === "stun" || statusType === "stunned") resistance += enemyNumericStat(enemy, "stun_resistance_percent");
+  if (statusType === "knockback") resistance += enemyNumericStat(enemy, "knockback_resistance_percent");
+  return clamp(resistance, 0, 100);
+}
+
+function enemyStatusDurationMultiplier(enemy: Enemy, statusType: string) {
+  let resistance = enemyNumericStat(enemy, "ailment_resistance_percent");
+  if (enemyControlStatusTypes().has(statusType)) {
+    resistance += enemyNumericStat(enemy, "control_resistance_percent");
+  }
+  return Math.max(0, 1 - clamp(resistance, 0, 100) / 100);
+}
+
+function enemyControlStatusTypes() {
+  return new Set(["frozen", "freeze", "stun", "stunned", "knockback", "numbed", "chill"]);
 }
 
 function playerResistancePercent(stats: AppState["player_stats"] | undefined, damageType: string, penetrationPercent: number) {
@@ -15894,7 +16807,8 @@ function moveEnemyTowardPlayer(
   const dx = approachTarget.x - enemy.x;
   const dy = approachTarget.y - enemy.y;
   const length = Math.hypot(dx, dy);
-  const speed = enemy.boss ? BOSS_CHASE_SPEED : MONSTER_CHASE_SPEED;
+  const baseSpeed = isEnemyNemesis(enemy) ? BOSS_CHASE_SPEED : MONSTER_CHASE_SPEED;
+  const speed = baseSpeed * Math.max(0.1, enemy.movementSpeedMultiplier ?? 1);
   const playerDistance = distance(enemy, player);
   const attackRange = monsterAttackRange(enemy);
   if (playerDistance <= attackRange) {
@@ -16137,10 +17051,10 @@ function damageEventAmountAgainstEnemy(event: SkillEvent, enemy: Enemy) {
   const armorReductionPenetrationPercent = Number(event.payload?.armor_reduction_penetration_percent ?? 0);
   if (components && typeof components === "object" && !Array.isArray(components)) {
     return Object.entries(components as Record<string, unknown>).reduce((total, [damageType, value]) => {
-      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent);
+      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, event.event_id);
     }, 0) * multiplier * doubleDamageMultiplier;
   }
-  return scaledDamageAgainstEnemy(event.damage_type, Number(event.amount ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent) * multiplier * doubleDamageMultiplier;
+  return scaledDamageAgainstEnemy(event.damage_type, Number(event.amount ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, event.event_id) * multiplier * doubleDamageMultiplier;
 }
 
 function doubleDamageEventMultiplier(event: SkillEvent) {
@@ -16158,9 +17072,14 @@ function damageOverTimeAggravationMultiplier(event: SkillEvent, enemy: Enemy) {
   return 1 + bonusPercent / 100;
 }
 
-function scaledDamageAgainstEnemy(damageType: string, amount: number, enemy: Enemy, resistancePenetrationPercent = 0, armorReductionPenetrationPercent = 0) {
+function scaledDamageAgainstEnemy(damageType: string, amount: number, enemy: Enemy, resistancePenetrationPercent = 0, armorReductionPenetrationPercent = 0, rollKey = "") {
   if (amount <= 0) return Math.max(0, amount);
   let scaledAmount = Math.max(0, amount);
+  if (damageType === "true") return scaledAmount;
+  if (monsterDamageAvoided(enemy, rollKey)) return 0;
+  if (monsterDamageBlocked(enemy, rollKey)) {
+    scaledAmount *= 1 - monsterBlockDamageReduction(enemy) / 100;
+  }
   if (damageType === "physical") {
     const armor = enemyNumericStat(enemy, "armor");
     if (armor > 0) {
@@ -16172,6 +17091,7 @@ function scaledDamageAgainstEnemy(damageType: string, amount: number, enemy: Ene
   if (resistancePercent > 0) {
     scaledAmount *= 1 - Math.min(0.9, resistancePercent / 100);
   }
+  scaledAmount *= 1 - Math.min(0.9, Math.max(0, enemyNumericStat(enemy, "damage_mitigation_final_percent")) / 100);
   const takenIncrease = (enemy.activeBuffs ?? [])
     .filter((buff) => (
       buff.polarity === "negative"
@@ -16182,11 +17102,44 @@ function scaledDamageAgainstEnemy(damageType: string, amount: number, enemy: Ene
   return scaledAmount * (1 + takenIncrease / 100);
 }
 
+function monsterDamageAvoided(enemy: Enemy, rollKey: string) {
+  const chance = Math.min(75, Math.max(0, enemyNumericStat(enemy, "damage_avoidance_percent")));
+  if (chance <= 0) return false;
+  return stablePercent(`${rollKey || `enemy:${enemy.id}`}:monster_damage_avoid`) < chance;
+}
+
+function monsterDamageBlocked(enemy: Enemy, rollKey: string) {
+  const chance = Math.min(75, Math.max(0, enemyNumericStat(enemy, "block_chance_percent")));
+  if (chance <= 0) return false;
+  return stablePercent(`${rollKey || `enemy:${enemy.id}`}:monster_block`) < chance;
+}
+
+function monsterBlockDamageReduction(enemy: Enemy) {
+  return Math.min(90, Math.max(0, enemyNumericStat(enemy, "block_damage_reduction_percent")));
+}
+
+function applyDamageToEnemyResources(enemy: Enemy, damage: number): Pick<Enemy, "hp" | "currentEnergyShield"> {
+  const incoming = Math.max(0, damage);
+  if (incoming <= 0) return { hp: enemy.hp, currentEnergyShield: enemy.currentEnergyShield };
+  const currentShield = Math.max(0, Number(enemy.currentEnergyShield ?? 0));
+  if (currentShield <= 0) return { hp: enemy.hp - incoming, currentEnergyShield: enemy.currentEnergyShield };
+  const shieldDamage = Math.min(currentShield, incoming);
+  const lifeDamage = Math.max(0, incoming - shieldDamage);
+  return {
+    hp: enemy.hp - lifeDamage,
+    currentEnergyShield: currentShield - shieldDamage
+  };
+}
+
 function enemyResistancePercent(enemy: Enemy, damageType: string) {
   if (damageType === "fire") return enemyNumericStat(enemy, "fire_resistance_percent") + enemyNumericStat(enemy, "elemental_resistance_percent");
   if (damageType === "cold") return enemyNumericStat(enemy, "cold_resistance_percent") + enemyNumericStat(enemy, "elemental_resistance_percent");
   if (damageType === "lightning") return enemyNumericStat(enemy, "lightning_resistance_percent") + enemyNumericStat(enemy, "elemental_resistance_percent");
-  if (damageType === "chaos") return enemyNumericStat(enemy, "chaos_resistance_percent");
+  if (damageType === "chaos" || damageType === "corrosion" || damageType === "erosion") {
+    return enemyNumericStat(enemy, "chaos_resistance_percent")
+      + enemyNumericStat(enemy, "corrosion_resistance_percent")
+      + enemyNumericStat(enemy, "erosion_resistance_percent");
+  }
   return 0;
 }
 
@@ -16856,11 +17809,11 @@ function inventoryItemById(state: AppState, instanceId: string | null | undefine
 }
 
 function isGemItem(item: Gem) {
-  return item.item_kind !== "ordinary" && item.tags.some((tag) => tag.id === "gem");
+  return item.item_kind === "gem" || item.tags.some((tag) => tag.id === "gem");
 }
 
 function canPlaceItemInEquipmentSlot(item: Gem, slot: typeof EQUIPMENT_SLOT_SPECS[number]) {
-  if (isGemItem(item)) return false;
+  if (item.item_kind !== "equipment" || isGemItem(item)) return false;
   const sourceSlot = equipmentSourceSlotId(item);
   if (sourceSlot) {
     if (sourceSlot === "ring") return slot.id === "ring_1" || slot.id === "ring_2";
@@ -16950,16 +17903,7 @@ function isWeaponItem(item: Gem) {
 
 function isTwoHandedWeapon(item: Gem) {
   const source = equipmentSourceText(item);
-  if ([
-    "\u53cc\u624b\u5251",
-    "\u53cc\u624b\u65a7",
-    "\u53cc\u624b\u9524",
-    "\u5f13",
-    "\u5f29",
-    "\u6cd5\u6756",
-    "\u706b\u70ae"
-  ].some((keyword) => source.includes(keyword))) return true;
-  if (["双手剑", "双手斧", "双手锤", "弓", "弩", "法杖", "火炮"].some((keyword) => source.includes(keyword))) return true;
+  if (isTwoHandedEquipmentSource(source)) return true;
   const searchable = equipmentSearchText(item);
   return [
     "two_handed",
@@ -16979,6 +17923,25 @@ function isTwoHandedWeapon(item: Gem) {
     "长弓",
     "法杖"
   ].some((keyword) => searchable.includes(keyword));
+}
+
+function isTwoHandedEquipmentSource(source: string) {
+  return [
+    "\u53cc\u624b\u5251",
+    "\u53cc\u624b\u65a7",
+    "\u53cc\u624b\u9524",
+    "\u5f13",
+    "\u5f29",
+    "\u6cd5\u6756",
+    "\u706b\u70ae",
+    "双手剑",
+    "双手斧",
+    "双手锤",
+    "弓",
+    "弩",
+    "法杖",
+    "火炮"
+  ].some((keyword) => source.includes(keyword));
 }
 
 function equipmentSourceSlotId(item: Gem): string {
@@ -17275,11 +18238,13 @@ function renderBattleRenderItem(item: BattleRenderItem, depthIndex: number, anim
 
 function BossHealthBar({ enemy }: { enemy: Enemy }) {
   const ratio = clamp(enemy.hp / Math.max(1, enemy.maxHp), 0, 1);
+  const rarity = isNemesisRarity(enemy.spawnRarity) ? enemy.spawnRarity : "legendary_boss";
+  const rarityVisual = MONSTER_RARITY_VISUALS[rarity];
   return (
-    <section className="boss-health-bar" aria-label="传奇怪物生命值">
+    <section className={`boss-health-bar ${rarityVisual.healthClass}`} aria-label={`${bossHealthName(enemy)}生命值`}>
       <div className="boss-health-frame">
         <span className="boss-health-title">{bossHealthName(enemy)}</span>
-        <span className="boss-health-level">传奇</span>
+        <span className="boss-health-level">{rarityVisual.labelText}</span>
         <div className="boss-health-track">
           <span style={{ width: `${ratio * 100}%` }} />
         </div>
@@ -17290,13 +18255,16 @@ function BossHealthBar({ enemy }: { enemy: Enemy }) {
 
 function bossHealthName(enemy: Enemy) {
   const visual = resolveMonsterGeometryVisual(enemy.monsterId);
-  if (visual?.tier === "boss") return `传奇怪物 ${bossMarkerLabel(enemy.monsterId)}`;
-  return "传奇怪物";
+  const rarity = isNemesisRarity(enemy.spawnRarity) ? enemy.spawnRarity : visual?.tier;
+  const baseName = rarity === "supreme_boss" ? "至高首领" : "传奇首领";
+  const marker = bossMarkerLabel(enemy.monsterId);
+  return marker ? `${baseName} ${marker}` : baseName;
 }
 
 function bossMarkerLabel(monsterId?: string) {
-  const numericId = monsterId?.match(/^mon_4001(\d{2})$/)?.[1];
-  return numericId ? `B-${numericId}` : "";
+  const match = monsterId?.match(/^mon_(400|500)0(\d{2})$/);
+  if (!match) return "";
+  return `${match[1] === "500" ? "S" : "B"}-${match[2]}`;
 }
 
 function shouldRenderLegacyBattleItem(item: BattleRenderItem) {
@@ -17859,21 +18827,73 @@ function TooltipSection({ children }: { title: string; children: ReactNode }) {
   );
 }
 
+const sudokuGemIconSprites: Record<number, string> = {
+  1: new URL("./assets/gems/sudoku-gem-1.png", import.meta.url).href,
+  2: new URL("./assets/gems/sudoku-gem-2.png", import.meta.url).href,
+  3: new URL("./assets/gems/sudoku-gem-3.png", import.meta.url).href,
+  4: new URL("./assets/gems/sudoku-gem-4.png", import.meta.url).href,
+  5: new URL("./assets/gems/sudoku-gem-5.png", import.meta.url).href,
+  6: new URL("./assets/gems/sudoku-gem-6.png", import.meta.url).href,
+  7: new URL("./assets/gems/sudoku-gem-7.png", import.meta.url).href,
+  8: new URL("./assets/gems/sudoku-gem-8.png", import.meta.url).href,
+  9: new URL("./assets/gems/sudoku-gem-9.png", import.meta.url).href,
+};
+
+function gemSudokuDigit(gem: Gem) {
+  return gem.sudoku_digit ?? gem.gem_type?.number ?? Number((gem.gem_type?.id ?? gem.tags.find((tag) => tag.id?.startsWith("gem_type_"))?.id ?? "").split("_").pop());
+}
+
+function gemIconSprite(gem: Gem) {
+  return sudokuGemIconSprites[gemSudokuDigit(gem)] ?? "";
+}
+
+function romanGemLevel(level: number) {
+  const clamped = Math.max(1, Math.min(20, Math.floor(Number(level) || 1)));
+  const romanByLevel: Record<number, string> = {
+    1: "I",
+    2: "II",
+    3: "III",
+    4: "IV",
+    5: "V",
+    6: "VI",
+    7: "VII",
+    8: "VIII",
+    9: "IX",
+    10: "X",
+    11: "XI",
+    12: "XII",
+    13: "XIII",
+    14: "XIV",
+    15: "XV",
+    16: "XVI",
+    17: "XVII",
+    18: "XVIII",
+    19: "XIX",
+    20: "XX",
+  };
+  return romanByLevel[clamped] ?? "I";
+}
+
 function GemOrb({ gem }: { gem: Gem }) {
-  const sprite = gem.tooltip_view?.icon_sprite;
-  const className = !isGemItem(gem)
+  const isGem = isGemItem(gem);
+  const sprite = gem.tooltip_view?.icon_sprite
+    || (isGem ? gemIconSprite(gem) : "")
+    || (gem.item_kind === "equipment" ? frontendEquipmentIconSprite(gem.gem_type?.id ?? gem.gem_type?.display_text ?? gem.category_text) : "");
+  const className = !isGem
     ? "item-orb"
     : `gem-orb-color-${gem.tooltip_view?.icon_color_key ?? gemColorKey(gem)}`;
   const style = sprite ? ({ "--gem-icon-sprite": `url(${sprite})` } as React.CSSProperties) : undefined;
+  const level = isGem ? Math.max(1, Math.floor(Number(gem.level ?? 1))) : 0;
   return (
     <span className={`gem-orb ${className} ${sprite ? "gem-orb-sprite" : ""}`} style={style}>
       {sprite ? <span className="gem-orb-label">{gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}</span> : gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}
+      {level > 0 ? <span className="gem-orb-roman-level">{romanGemLevel(level)}</span> : null}
     </span>
   );
 }
 
 function gemColorKey(gem: Gem) {
-  const number = gem.sudoku_digit ?? gem.gem_type?.number ?? Number((gem.gem_type?.id ?? gem.tags.find((tag) => tag.id?.startsWith("gem_type_"))?.id ?? "").split("_").pop());
+  const number = gemSudokuDigit(gem);
   const colorByType: Record<number, string> = {
     1: "red",
     2: "blue",
@@ -19547,16 +20567,14 @@ function createRuntimeDebugCornerEnemies(
     { x: 104, y: 142 },
     { x: 0, y: 164 }
   ];
-  const monsterIds = [
-    "mon_100103",
-    "mon_200103",
-    "mon_300102",
-    "mon_400101",
-    "enemy_imp",
-    "enemy_brute"
-  ];
+  const prefersSupremeBoss = new URLSearchParams(window.location.search).get("debugSupremeBoss") === "1";
+  const monsterIds = prefersSupremeBoss
+    ? ["mon_500001", "mon_100103", "mon_200103", "mon_300102", "enemy_imp", "enemy_brute"]
+    : ["mon_100103", "mon_200103", "mon_300102", "mon_400001", "enemy_imp", "enemy_brute"];
   return fallbackOffsets.map((offset, index) => {
     const spawn = candidates[index]?.point ?? nearestRuntimeWalkablePoint(map, { x: player.x + offset.x, y: player.y + offset.y });
+    const visual = resolveMonsterGeometryVisual(monsterIds[index % monsterIds.length]);
+    const spawnRarity = visual?.tier ?? (monsterIds[index % monsterIds.length] === "enemy_brute" ? "rare" : "normal");
     return {
       id: 90_000 + index,
       x: spawn.x,
@@ -19564,6 +20582,12 @@ function createRuntimeDebugCornerEnemies(
       hp: 32,
       maxHp: 32,
       monsterId: monsterIds[index % monsterIds.length],
+      boss: isNemesisRarity(spawnRarity),
+      spawnRarity,
+      monsterType: visual?.monsterType,
+      movementSpeedMultiplier: 1,
+      skillShape: isNemesisRarity(spawnRarity) ? "boss" : undefined,
+      nemesis: isNemesisRarity(spawnRarity),
       ...encounterMonsterPaletteFields(palette),
       ...offense,
       aggroLocked: true,

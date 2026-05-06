@@ -1,6 +1,7 @@
 import type { UnitVisualType } from "./unitAssets";
+import type { MonsterRarity, MonsterType } from "./mapSpawnRuntime";
 
-export type MonsterGeometryTier = "normal" | "magic" | "rare" | "boss";
+export type MonsterGeometryTier = MonsterRarity;
 
 export type MonsterGeometryShape =
   | "circle_ring"
@@ -39,11 +40,26 @@ export type MonsterGeometryShape =
 export type MonsterGeometryVisual = {
   id: string;
   tier: MonsterGeometryTier;
+  monsterType: MonsterType;
   shape: MonsterGeometryShape;
   primaryColor: string;
   accentColor: string;
   sizePx: number;
   fallbackUnitVisual: UnitVisualType;
+};
+
+export type MonsterRarityVisual = {
+  healthClass: string;
+  accentColor: string;
+  labelText: string;
+};
+
+export const MONSTER_RARITY_VISUALS: Record<MonsterRarity, MonsterRarityVisual> = {
+  normal: { healthClass: "monster-rarity-normal", accentColor: "#d9dde1", labelText: "普通" },
+  magic: { healthClass: "monster-rarity-magic", accentColor: "#61c6e8", labelText: "魔法" },
+  rare: { healthClass: "monster-rarity-rare", accentColor: "#f2b84b", labelText: "稀有" },
+  legendary_boss: { healthClass: "monster-rarity-legendary-boss", accentColor: "#8e5af7", labelText: "传奇" },
+  supreme_boss: { healthClass: "monster-rarity-supreme-boss", accentColor: "#ff5f6d", labelText: "至高" }
 };
 
 export const MONSTER_GEOMETRY_VISUALS: Record<string, MonsterGeometryVisual> = {
@@ -71,14 +87,22 @@ export const MONSTER_GEOMETRY_VISUALS: Record<string, MonsterGeometryVisual> = {
   mon_300106: visual("mon_300106", "rare", "double_ring_eye", "#F7F7F2", "#D9DDE1", 58, "enemy_brute"),
   mon_300107: visual("mon_300107", "rare", "obelisk", "#F7F7F2", "#D9DDE1", 58, "enemy_brute"),
   mon_300108: visual("mon_300108", "rare", "twin_shadow", "#F7F7F2", "#D9DDE1", 58, "enemy_brute"),
-  mon_400101: visual("mon_400101", "boss", "boss_king", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400102: visual("mon_400102", "boss", "boss_void", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400103: visual("mon_400103", "boss", "boss_pinwheel", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400104: visual("mon_400104", "boss", "boss_star_mother", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400105: visual("mon_400105", "boss", "boss_judicator", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400106: visual("mon_400106", "boss", "boss_eclipse", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400107: visual("mon_400107", "boss", "boss_mirror", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
-  mon_400108: visual("mon_400108", "boss", "boss_triad", "#F7F7F2", "#D9DDE1", 82, "enemy_brute")
+  mon_400001: visual("mon_400001", "legendary_boss", "boss_king", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400002: visual("mon_400002", "legendary_boss", "boss_void", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400003: visual("mon_400003", "legendary_boss", "boss_pinwheel", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400004: visual("mon_400004", "legendary_boss", "boss_star_mother", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400005: visual("mon_400005", "legendary_boss", "boss_judicator", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_500001: visual("mon_500001", "supreme_boss", "boss_eclipse", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400006: visual("mon_400006", "legendary_boss", "boss_mirror", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_500002: visual("mon_500002", "supreme_boss", "boss_triad", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400007: visual("mon_400007", "legendary_boss", "boss_king", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400008: visual("mon_400008", "legendary_boss", "boss_void", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400009: visual("mon_400009", "legendary_boss", "boss_pinwheel", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_400010: visual("mon_400010", "legendary_boss", "boss_star_mother", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_500003: visual("mon_500003", "supreme_boss", "boss_judicator", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_500004: visual("mon_500004", "supreme_boss", "boss_eclipse", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_500005: visual("mon_500005", "supreme_boss", "boss_mirror", "#F7F7F2", "#D9DDE1", 82, "enemy_brute"),
+  mon_500006: visual("mon_500006", "supreme_boss", "boss_triad", "#F7F7F2", "#D9DDE1", 82, "enemy_brute")
 };
 
 export function resolveMonsterGeometryVisual(monsterId?: string) {
@@ -99,5 +123,15 @@ function visual(
   sizePx: number,
   fallbackUnitVisual: UnitVisualType
 ): MonsterGeometryVisual {
-  return { id, tier, shape, primaryColor, accentColor, sizePx, fallbackUnitVisual };
+  return { id, tier, monsterType: monsterTypeForShape(shape), shape, primaryColor, accentColor, sizePx, fallbackUnitVisual };
+}
+
+function monsterTypeForShape(shape: MonsterGeometryShape): MonsterType {
+  if (shape === "circle_ring" || shape === "triangle" || shape === "cluster") return "minion";
+  if (shape === "diamond_tail" || shape === "double_triangle" || shape === "tri_crown" || shape === "boss_king") return "melee";
+  if (shape === "hex_eye" || shape === "crystal_cross" || shape === "circle_square" || shape === "hex_core" || shape === "tri_in_tri" || shape === "double_ring_eye" || shape === "boss_judicator" || shape === "boss_eclipse") return "ranged";
+  if (shape === "broken_ring_bolt" || shape === "wind_wheel" || shape === "boss_pinwheel") return "charger";
+  if (shape === "square_dot" || shape === "ring_square_corners" || shape === "square_spikes" || shape === "obelisk" || shape === "square_invtri" || shape === "hex_tri_layers" || shape === "boss_void") return "tank";
+  if (shape === "needle_ghost" || shape === "twin_shadow" || shape === "boss_mirror") return "assassin";
+  return "support";
 }

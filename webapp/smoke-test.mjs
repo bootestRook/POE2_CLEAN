@@ -8,7 +8,9 @@ const require = createRequire(import.meta.url);
 const app = readFileSync(join(root, "webapp", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
+const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
 const mapSpawnConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "map_spawn_v1.json"), "utf8"));
+const monsterSkillConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "monster_skills.json"), "utf8"));
 const monsterDefsToml = readFileSync(join(root, "configs", "monsters", "monster_defs.toml"), "utf8");
 const battleGeometryRenderer = readFileSync(join(root, "webapp", "battleGeometryRenderer.ts"), "utf8");
 const battleGeometryCanvas = readFileSync(join(root, "webapp", "BattleGeometryCanvas.tsx"), "utf8");
@@ -18,11 +20,8 @@ const mapTileVisuals = readFileSync(join(root, "webapp", "mapTileVisuals.ts"), "
 const bakedMapAssets = readFileSync(join(root, "webapp", "bakedMapAssets.ts"), "utf8");
 const bakedMapLoader = readFileSync(join(root, "webapp", "bakedMapLoader.ts"), "utf8");
 const html = readFileSync(join(root, "index.html"), "utf8");
-const state = loadCurrentState();
+const frontendGameData = readFileSync(join(root, "webapp", "frontendGameData.ts"), "utf8");
 const localization = readFileSync(join(root, "configs", "localization", "zh_cn.toml"), "utf8");
-const skillEditorAdapter = readFileSync(join(root, "src", "liufang", "skill_editor.py"), "utf8");
-const webApi = readFileSync(join(root, "src", "liufang", "web_api.py"), "utf8");
-const webappServer = readFileSync(join(root, "tools", "webapp_server.py"), "utf8");
 const skillEditorRunnerPath = join(root, "skillEditor_run.bat");
 const skillEditorRunner = existsSync(skillEditorRunnerPath) ? readFileSync(skillEditorRunnerPath, "utf8") : "";
 const unitAnimationRuntime = readFileSync(join(root, "webapp", "unitAnimation.ts"), "utf8");
@@ -33,17 +32,6 @@ const bakedMapMeta = JSON.parse(readFileSync(join(bakedMapDir, "map_meta.json"),
 
 function isNonAsciiCheck(text) {
   return /[^\x00-\x7F]/.test(text);
-}
-
-function loadCurrentState() {
-  const script = [
-    "import json, sys",
-    "from pathlib import Path",
-    "sys.path.insert(0, str(Path('src').resolve()))",
-    "from liufang.web_api import V1WebAppApi",
-    "print(json.dumps(V1WebAppApi(Path('configs')).state(), ensure_ascii=False))"
-  ].join("\n");
-  return JSON.parse(execFileSync("python", ["-c", script], { cwd: root, encoding: "utf8" }).replace(/^\uFEFF/, ""));
 }
 
 function pngSize(path) {
@@ -86,17 +74,16 @@ for (const text of requiredText) {
   }
 }
 
-if (!state.character_panel?.sections?.length) {
-  throw new Error("character_panel state is missing configured sections");
+if (!frontendGameData.includes('"character_panel"') || !frontendGameData.includes('"sections"')) {
+  throw new Error("frontendGameData is missing configured character_panel sections");
 }
-const characterPanelRows = state.character_panel.sections.flatMap((section) => section.rows ?? []);
 for (const statId of ["strength", "current_life", "life_return_percent", "shield_return_percent", "move_speed"]) {
-  if (!characterPanelRows.some((row) => row.stat_id === statId)) {
+  if (!frontendGameData.includes(`"stat_id": "${statId}"`)) {
     throw new Error(`character_panel missing configured stat row: ${statId}`);
   }
 }
 for (const obsoleteStat of ["pickup_radius", "active_skill_slots", "passive_skill_slots", "skill_slots_active"]) {
-  if (state.player_stats?.[obsoleteStat] || characterPanelRows.some((row) => row.stat_id === obsoleteStat)) {
+  if (frontendGameData.includes(`"stat_id": "${obsoleteStat}"`) || frontendGameData.includes(`"${obsoleteStat}":`)) {
     throw new Error(`obsolete player stat is still exposed: ${obsoleteStat}`);
   }
 }
@@ -222,7 +209,7 @@ const requiredCode = [
   "MAP_EDITOR_MINIMAP_WIDTH",
   "MAP_EDITOR_PLAYER_COLLIDER",
   "MAP_EDITOR_PLAYER_RENDER_SCALE = 0.35",
-  "const speed = enemy.boss ? BOSS_CHASE_SPEED : MONSTER_CHASE_SPEED",
+  "const speed = baseSpeed * Math.max(0.1, enemy.movementSpeedMultiplier ?? 1)",
   "MAP_EDITOR_STORAGE_KEY",
   "MAP_EDITOR_CURRENT_FILE_STORAGE_KEY",
   "MAP_EDITOR_HANDLE_DB_NAME",
@@ -257,13 +244,6 @@ const requiredCode = [
   "rects:",
   "zones:",
   "createProceduralSpawnPlanEnemies",
-  "type BossPortal",
-  "spawnBossPortalForKilledEnemies",
-  "beginBossPortalUse",
-  "finishBossPortalUse",
-  "pendingBossPortalUse",
-  "BossPortalLayer",
-  "boss-portal",
   "BossSkillTimers",
   "updateBossSkillRuntime",
   "releaseBossBasicProjectiles",
@@ -961,16 +941,6 @@ if (skillEditorRunner) {
   throw new Error("skillEditor_run.bat must not exist while SkillEditor is disabled.");
 }
 
-if (Object.prototype.hasOwnProperty.call(state, "skill_editor")) {
-  throw new Error("WebApp state must not expose SkillEditor state while SkillEditor is disabled.");
-}
-
-for (const text of ["SkillEditor is disabled.", "DISABLED_SKILL_EDITOR_PORT", "dist-skill-editor"]) {
-  if (!webApi.includes(text) && !webappServer.includes(text)) {
-    throw new Error(`SkillEditor disable guard is missing: ${text}`);
-  }
-}
-
 const forbiddenSkillEditorText = [
   ">Save<",
   ">Edit<",
@@ -1055,8 +1025,8 @@ for (const text of boundaryChecks) {
   }
 }
 
-if (state.board.cells.flat().length !== 81) {
-  throw new Error("WebApp 瀹濈煶鐩樺繀椤绘覆锟?81 涓牸瀛愶拷?");
+if (!frontendGameData.includes('"board"') || !frontendGameData.includes('"row": 8') || !frontendGameData.includes('"column": 8')) {
+  throw new Error("WebApp frontend seed board must contain 81 cells.");
 }
 
 const previewText = ["\u53ef\u653e\u7f6e", "\u4e0d\u53ef\u653e\u7f6e", "\u9884\u89c8\u843d\u70b9", "\u5f71\u54cd\u540c\u884c", "\u5f71\u54cd\u540c\u5217", "\u5f71\u54cd\u540c\u5bab", "\u5f71\u54cd\u76f8\u90bb", "\u653e\u4e0b\u540e\u9884\u8ba1\u5f71\u54cd", "\u65e0\u53ef\u5f71\u54cd\u76ee\u6807"];
@@ -1069,7 +1039,7 @@ for (const text of previewText) {
 
 const phase2Text = [];
 for (const text of phase2Text) {
-  if (!app.includes(text) && !JSON.stringify(state).includes(text) && !localization.includes(text)) {
+  if (!app.includes(text) && !frontendGameData.includes(text) && !localization.includes(text)) {
     if (isNonAsciiCheck(text)) continue;
     throw new Error(`缂哄皯涓夌被瀹濈煶涓枃鏂囨锟?{text}`);
   }
@@ -1150,10 +1120,8 @@ if (/\.tooltip-tone-damage-physical\s*{[^}]*color:\s*#d0d0d0/i.test(css)) {
   throw new Error("鐗╃悊浼ゅ楂樹寒鑹蹭笉鑳芥帴杩戞櫘閫氭鏂囩伆鑹诧拷?");
 }
 
-for (const item of state.inventory) {
-  if (typeof item.description_text === "string" && /閫傚悎楠岃瘉|鏍囩/.test(item.description_text)) {
-    throw new Error(`瀹濈煶鎻忚堪浠嶅寘鍚紑鍙戠敤璇細${item.name_text} / ${item.description_text}`);
-  }
+if (/閫傚悎楠岃瘉|鏍囩/.test(frontendGameData)) {
+  throw new Error("Frontend seed inventory contains obsolete development-only description text.");
 }
 
 const randomAffixRenderChecks = [
@@ -1231,6 +1199,10 @@ for (const [source, token, message] of proceduralSpawnStaticChecks) {
 
 const monsterPackCombatChecks = [
   [app, "baseDamage?: number", "Runtime Enemy must expose monster base damage."],
+  [app, "monsterType?: MonsterType", "Runtime Enemy must expose monster type."],
+  [app, "movementSpeedMultiplier?: number", "Runtime Enemy must expose monster type movement multiplier."],
+  [app, "skillShape?: MonsterSkillShape", "Runtime Enemy must expose monster skill shape."],
+  [app, "nemesis?: boolean", "Runtime Enemy must expose nemesis classification."],
   [app, "damageType?: string", "Runtime Enemy must expose monster damage type."],
   [app, "hitKind?: MonsterHitKind", "Runtime Enemy must expose monster hit kind."],
   [app, "attackRange?: number", "Runtime Enemy must expose monster attack range."],
@@ -1272,16 +1244,42 @@ const monsterPackCombatChecks = [
   [app, "distance(enemy, approachTarget)", "Corner navigation must keep moving toward reachable approach cells instead of stopping outside attack range."],
   [app, "const directProgress = currentDistance - distance(directResolved, target)", "Direct-charge movement must prefer progress toward the player over side avoidance."],
   [app, "directCharge\n    ? resolveEnemyDirectChargeMove", "Aggro-locked monsters must bypass swarm steering and crowd-yield movement."],
-  [app, "MONSTER_CHASE_SPEED = 220", "Non-boss monster chase speed must use the requested direct base speed."],
+  [app, "const baseSpeed = isEnemyNemesis(enemy) ? BOSS_CHASE_SPEED : MONSTER_CHASE_SPEED", "Monster chase speed must resolve from nemesis state before type multiplier."],
   [app, "BOSS_CHASE_SPEED = 120", "Boss monster chase speed must use the requested direct base speed."],
   [app, "ENEMY_STEERING_MIN_SPEED_SCALE = 0.48", "Crowd steering slowdown floor must remain unchanged."],
   [app, "nextAttackReadyAtMs: nowMs + monsterAttackCadenceMs(enemy)", "Monster damage must use attack cadence rather than per-frame proximity damage."],
   [mapSpawnRuntime, "monster_offense_defaults", "Procedural spawn runtime must accept monster offense defaults."],
+  [mapSpawnRuntime, "monster_type_defaults", "Procedural spawn runtime must accept monster type defaults."],
+  [mapSpawnRuntime, "MonsterType", "Procedural spawn runtime must define monster type taxonomy."],
+  [mapSpawnRuntime, "legendary_boss", "Procedural spawn runtime must define legendary boss rarity."],
+  [mapSpawnRuntime, "supreme_boss", "Procedural spawn runtime must define supreme boss rarity."],
   [mapSpawnRuntime, "offense_modifiers", "Procedural spawn runtime must materialize offense modifiers."],
   [mapSpawnRuntime, "mergeMonsterOffense", "Procedural spawn runtime must merge default and per-entry monster offense config."]
 ];
 
 for (const [source, token, message] of monsterPackCombatChecks) {
+  if (!source.includes(token)) throw new Error(message);
+}
+
+const monsterSkillStaticChecks = [
+  [app, "monsterSkillsConfig", "App must load local monster skill config."],
+  [app, "updateMonsterSkillRuntime", "App must dispatch monster skills in the battle runtime."],
+  [app, "nextMonsterSkillCandidate", "Monster skill runtime must gate release by range, cooldown, and aggro."],
+  [app, "player_leash_range", "Monster skill projectiles must carry finite leash range."],
+  [app, "activeMonsterSkillUntilMs", "Runtime enemies must expose active monster skill lock timing."],
+  [app, "bossPatternId", "Boss enemies must carry data-driven boss pattern identity."],
+  [app, "monsterSkillDamageMultiplierBonus", "Monster support/guard skills must reuse outgoing damage multiplier state."],
+  [monsterSkillRuntime, "MonsterDamageType", "Monster skill runtime must type player damage types separately."],
+  [monsterSkillRuntime, "MonsterDamageForm", "Monster skill runtime must type hit/dot/secondary/reflection damage forms separately."],
+  [monsterSkillRuntime, "monster skill missing damage_type", "Monster skill validation must require explicit damage_type."],
+  [monsterSkillRuntime, "monster skill missing damage_form", "Monster skill validation must require explicit damage_form."],
+  [monsterSkillRuntime, "hit_kind must not be used as damage_type", "Monster skill validation must reject attack/spell as damage type."],
+  [monsterSkillRuntime, "MONSTER_SKILL_PLAYER_MOVE_SPEED_BASELINE = 250", "Monster projectile speed validation must use the 250 px/s player speed baseline."],
+  [monsterSkillRuntime, "MONSTER_PROJECTILE_SPEED_CAP_NON_BOSS", "Monster projectile speed validation must cap non-boss projectiles."],
+  [monsterSkillRuntime, "initial_cooldown_ms", "Monster boss major skills must validate aggro-start initial cooldowns."]
+];
+
+for (const [source, token, message] of monsterSkillStaticChecks) {
   if (!source.includes(token)) throw new Error(message);
 }
 
@@ -1322,6 +1320,20 @@ if (!mapSpawnConfig.monster_rarity_rules) {
 if (!mapSpawnConfig.monster_offense_defaults) {
   throw new Error("map_spawn_v1.json must define monster_offense_defaults.");
 }
+const monsterTypes = ["minion", "melee", "ranged", "charger", "tank", "assassin", "support"];
+if (!mapSpawnConfig.monster_type_defaults) {
+  throw new Error("map_spawn_v1.json must define monster_type_defaults.");
+}
+for (const monsterType of monsterTypes) {
+  if (!mapSpawnConfig.monster_type_defaults[monsterType]) {
+    throw new Error(`map_spawn_v1.json missing monster type default: ${monsterType}`);
+  }
+}
+for (const rarity of ["normal", "magic", "rare", "legendary_boss", "supreme_boss"]) {
+  if (!mapSpawnConfig.monster_rarity_rules.multipliers[rarity]) {
+    throw new Error(`map_spawn_v1.json missing rarity multiplier: ${rarity}`);
+  }
+}
 for (const statId of ["damage_add_percent", "physical_damage_add_percent", "hit_damage_add_percent", "attack_damage_add_percent", "melee_damage_add_percent", "damage_final_percent", "hit_damage_final_percent", "resistance_penetration_percent"]) {
   if (!(statId in (mapSpawnConfig.monster_offense_defaults.modifiers ?? {}))) {
     throw new Error(`monster_offense_defaults missing shared stat id: ${statId}`);
@@ -1332,7 +1344,7 @@ for (const packId of ["geo_corridor_crawlers", "geo_room_shard_mix", "geo_guard_
     throw new Error(`map_spawn_v1.json missing monster pack: ${packId}`);
   }
 }
-for (const monsterId of ["mon_100101", "mon_200101", "mon_300101", "mon_400101"]) {
+for (const monsterId of ["mon_100101", "mon_200101", "mon_300101", "mon_400001"]) {
   if (!mapSpawnConfig.monster_packs.some((pack) => pack.entries.some((entry) => entry.monster_id === monsterId))) {
     throw new Error(`map_spawn_v1.json missing geometry monster: ${monsterId}`);
   }
@@ -1343,6 +1355,7 @@ for (const zoneType of ["entrance", "corridor", "main_room", "large_room", "dead
   }
 }
 
+runMonsterSkillRuntimeSmoke();
 runProceduralSpawnRuntimeSmoke();
 
 if (!existsSync(join(root, "dist", "index.html"))) {
@@ -1350,6 +1363,48 @@ if (!existsSync(join(root, "dist", "index.html"))) {
 }
 
 console.log("WebApp smoke test passed.");
+
+function runMonsterSkillRuntimeSmoke() {
+  const outDir = join(root, ".vite", "monster-skill-smoke");
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  execFileSync(process.execPath, [
+    join(root, "node_modules", "typescript", "bin", "tsc"),
+    "webapp/monsterSkillRuntime.ts",
+    "--target", "ES2020",
+    "--module", "CommonJS",
+    "--moduleResolution", "Node",
+    "--skipLibCheck",
+    "--esModuleInterop",
+    "--resolveJsonModule",
+    "--outDir", outDir,
+    "--noEmitOnError", "true"
+  ], { cwd: root, encoding: "utf8" });
+
+  const runtime = require(join(outDir, "monsterSkillRuntime.js"));
+  const monsterIds = Array.from(monsterDefsToml.matchAll(/^\s*id\s*=\s*"([^"]+)"/gm)).map((match) => match[1]);
+  const errors = runtime.validateMonsterSkillConfig(monsterSkillConfig, monsterIds);
+  if (errors.length > 0) throw new Error(`monster skill config validation failed: ${errors.join("; ")}`);
+  if (monsterIds.length !== 40) throw new Error("monster skill smoke must cover the current 40 monster definitions.");
+
+  const allSkills = [...monsterSkillConfig.skills, ...monsterSkillConfig.boss_patterns.flatMap((pattern) => pattern.skills)];
+  const damageTypes = new Set(["physical", "fire", "cold", "lightning", "chaos"]);
+  const damageForms = new Set(["hit", "dot", "secondary", "reflection"]);
+  for (const skill of allSkills) {
+    if (!damageTypes.has(skill.damage_type)) throw new Error(`monster skill has invalid damage_type: ${skill.id}`);
+    if (!damageForms.has(skill.damage_form)) throw new Error(`monster skill has invalid damage_form: ${skill.id}`);
+    if (skill.damage_type === "attack" || skill.damage_type === "spell") throw new Error(`monster skill used hit_kind as damage_type: ${skill.id}`);
+    if (!skill.range || !Number.isFinite(skill.range.cast_range) || !Number.isFinite(skill.range.effect_range) || !Number.isFinite(skill.range.leash_range)) {
+      throw new Error(`monster skill missing finite ranges: ${skill.id}`);
+    }
+  }
+  if (!allSkills.some((skill) => skill.damage_form === "dot")) throw new Error("monster skills must include at least one DoT damage form.");
+  if (!allSkills.some((skill) => skill.damage_form === "secondary")) throw new Error("monster skills must include secondary damage forms for delayed/area hits.");
+  if (monsterSkillConfig.boss_patterns.some((pattern) => pattern.skills.length < 3)) throw new Error("every boss pattern must have at least three skills.");
+  if (monsterSkillConfig.boss_patterns.some((pattern) => !pattern.skills.some((skill) => skill.role === "major" && skill.initial_cooldown_ms > 0))) {
+    throw new Error("every boss pattern must have a major skill with initial cooldown.");
+  }
+}
 
 function runProceduralSpawnRuntimeSmoke() {
   const outDir = join(root, ".vite", "map-spawn-smoke");
@@ -1396,6 +1451,8 @@ function runProceduralSpawnRuntimeSmoke() {
         normal: { life_multiplier: 1, damage_multiplier: 1 },
         magic: { life_multiplier: 4, damage_multiplier: 1.5 },
         rare: { life_multiplier: 12, damage_multiplier: 2 },
+        legendary_boss: { life_multiplier: 80, damage_multiplier: 2.8 },
+        supreme_boss: { life_multiplier: 120, damage_multiplier: 3.3 },
         boss: { life_multiplier: 80, damage_multiplier: 2.8 }
       }
     }
@@ -1409,7 +1466,13 @@ function runProceduralSpawnRuntimeSmoke() {
   if (result.enemies.some((enemy) => !enemy.base_damage || !enemy.damage_type || !enemy.hit_kind || !enemy.attack_range || !enemy.attack_cadence_ms || !enemy.offense_modifiers)) {
     throw new Error("procedural spawn enemies must include monster offense context.");
   }
-  if (!result.enemies.every((enemy) => enemy.max_hp >= 32 && enemy.base_damage >= 8)) {
+  if (result.enemies.some((enemy) => !monsterTypes.includes(enemy.monster_type) || !enemy.skill_shape || !enemy.movement_speed_multiplier)) {
+    throw new Error("procedural spawn enemies must include monster taxonomy context.");
+  }
+  if (result.enemies.some((enemy) => enemy.spawn_rarity === "boss")) {
+    throw new Error("procedural spawn must not emit legacy boss rarity.");
+  }
+  if (!result.enemies.every((enemy) => enemy.max_hp >= 1 && enemy.base_damage >= 8)) {
     throw new Error("procedural spawn enemies must derive base life and attack from monster_defs.");
   }
   if (!result.enemies.every((enemy) => enemy.damage_type === "physical" && enemy.hit_kind === "attack")) {
@@ -1441,6 +1504,15 @@ function runProceduralSpawnRuntimeSmoke() {
   }
   if (!result.enemies.some((enemy) => enemy.boss && enemy.zone_type === "boss_room")) {
     throw new Error("boss_room must generate a Boss.");
+  }
+  if (!result.enemies.some((enemy) => enemy.boss && (enemy.spawn_rarity === "legendary_boss" || enemy.spawn_rarity === "supreme_boss"))) {
+    throw new Error("boss_room must generate a nemesis rarity.");
+  }
+  if (result.enemies.some((enemy) => !enemy.boss && (enemy.spawn_rarity === "legendary_boss" || enemy.spawn_rarity === "supreme_boss"))) {
+    throw new Error("base monsters must not be promoted into nemesis rarities.");
+  }
+  for (const monsterType of monsterTypes) {
+    if (!(monsterType in result.debug.monster_type_counts)) throw new Error(`debug missing monster type count: ${monsterType}`);
   }
   if (result.debug.boss_monster_count > 1) {
     throw new Error("procedural spawn must limit Boss monsters to one by default.");

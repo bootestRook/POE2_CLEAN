@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920" role="img" aria-labelledby="title desc">
+  <title id="title">Monster taxonomy visual concept sheet</title>
+  <desc id="desc">Concept sheet for seven monster types and two boss rarity presentations.</desc>
+  <rect width="1440" height="920" fill="#101216"/>
+  <text x="64" y="72" fill="#f7f7f2" font-family="Arial, sans-serif" font-size="34">Monster Taxonomy Visual Concept</text>
+  <text x="64" y="108" fill="#b7bdc6" font-family="Arial, sans-serif" font-size="18">Type controls silhouette. Rarity controls overlays, health bars, and nemesis presentation.</text>
+
+  <g font-family="Arial, sans-serif" font-size="18" fill="#f7f7f2">
+    <g transform="translate(70 175)">
+      <text x="0" y="-32">minion</text>
+      <circle cx="70" cy="70" r="34" fill="none" stroke="#d9dde1" stroke-width="5"/>
+      <circle cx="70" cy="70" r="10" fill="#d9dde1"/>
+      <path d="M42 128 H98" stroke="#7c858f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(250 175)">
+      <text x="0" y="-32">melee</text>
+      <path d="M70 18 L124 122 L70 96 L16 122 Z" fill="none" stroke="#d9dde1" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M70 42 L95 98 L70 85 L45 98 Z" fill="#d9dde1"/>
+      <path d="M42 128 H98" stroke="#7c858f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(430 175)">
+      <text x="0" y="-32">ranged</text>
+      <polygon points="70,16 116,43 116,97 70,124 24,97 24,43" fill="none" stroke="#d9dde1" stroke-width="6"/>
+      <circle cx="70" cy="70" r="18" fill="#d9dde1"/>
+      <path d="M70 20 V2 M70 138 V120 M20 70 H2 M138 70 H120" stroke="#61c6e8" stroke-width="5" stroke-linecap="round"/>
+      <path d="M42 128 H98" stroke="#7c858f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(610 175)">
+      <text x="0" y="-32">charger</text>
+      <path d="M18 70 H94" stroke="#d9dde1" stroke-width="12" stroke-linecap="round"/>
+      <path d="M84 22 L132 70 L84 118" fill="none" stroke="#d9dde1" stroke-width="9" stroke-linejoin="round"/>
+      <path d="M48 42 L68 70 L48 98" fill="none" stroke="#61c6e8" stroke-width="5"/>
+      <path d="M42 128 H98" stroke="#7c858f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(790 175)">
+      <text x="0" y="-32">tank</text>
+      <rect x="24" y="26" width="92" height="92" rx="4" fill="none" stroke="#d9dde1" stroke-width="8"/>
+      <polygon points="70,42 98,70 70,98 42,70" fill="#d9dde1"/>
+      <path d="M34 128 H106" stroke="#7c858f" stroke-width="7" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(970 175)">
+      <text x="0" y="-32">assassin</text>
+      <path d="M72 14 L100 70 L72 126 L44 70 Z" fill="none" stroke="#d9dde1" stroke-width="5"/>
+      <path d="M43 28 L62 70 L43 112" fill="none" stroke="#61c6e8" stroke-width="4" opacity="0.7"/>
+      <path d="M101 28 L82 70 L101 112" fill="none" stroke="#61c6e8" stroke-width="4" opacity="0.7"/>
+      <path d="M42 128 H98" stroke="#7c858f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(1150 175)">
+      <text x="0" y="-32">support</text>
+      <circle cx="70" cy="70" r="46" fill="none" stroke="#d9dde1" stroke-width="5"/>
+      <circle cx="70" cy="70" r="13" fill="#d9dde1"/>
+      <circle cx="35" cy="70" r="8" fill="#61c6e8"/>
+      <circle cx="105" cy="70" r="8" fill="#61c6e8"/>
+      <circle cx="70" cy="35" r="8" fill="#61c6e8"/>
+      <circle cx="70" cy="105" r="8" fill="#61c6e8"/>
+      <path d="M42 128 H98" stroke="#7c858f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g font-family="Arial, sans-serif" fill="#f7f7f2">
+    <text x="64" y="435" font-size="26">Rarity Overlay Ladder</text>
+    <g transform="translate(70 500)">
+      <text x="0" y="-24" font-size="18">normal</text>
+      <circle cx="48" cy="48" r="28" fill="none" stroke="#d9dde1" stroke-width="5"/>
+      <rect x="8" y="94" width="80" height="8" rx="4" fill="#6f7780"/>
+    </g>
+    <g transform="translate(235 500)">
+      <text x="0" y="-24" font-size="18">magic</text>
+      <circle cx="48" cy="48" r="28" fill="none" stroke="#d9dde1" stroke-width="5"/>
+      <circle cx="48" cy="48" r="38" fill="none" stroke="#61c6e8" stroke-width="3"/>
+      <rect x="8" y="94" width="80" height="8" rx="4" fill="#61c6e8"/>
+    </g>
+    <g transform="translate(400 500)">
+      <text x="0" y="-24" font-size="18">rare</text>
+      <circle cx="48" cy="48" r="28" fill="none" stroke="#d9dde1" stroke-width="5"/>
+      <path d="M18 22 A40 40 0 0 1 78 22" fill="none" stroke="#f2b84b" stroke-width="5"/>
+      <path d="M18 74 A40 40 0 0 0 78 74" fill="none" stroke="#f2b84b" stroke-width="5"/>
+      <rect x="8" y="94" width="80" height="8" rx="4" fill="#f2b84b"/>
+    </g>
+    <g transform="translate(620 475)">
+      <text x="0" y="-24" font-size="18">legendary boss</text>
+      <polygon points="70,10 130,44 130,112 70,146 10,112 10,44" fill="none" stroke="#f7f7f2" stroke-width="7"/>
+      <path d="M30 155 H110" stroke="#d9dde1" stroke-width="8" stroke-linecap="round"/>
+      <rect x="-6" y="174" width="152" height="14" rx="7" fill="#8e5af7"/>
+    </g>
+    <g transform="translate(880 475)">
+      <text x="0" y="-24" font-size="18">supreme boss</text>
+      <circle cx="70" cy="78" r="66" fill="none" stroke="#f7f7f2" stroke-width="7"/>
+      <path d="M70 12 L88 58 L136 58 L98 88 L112 136 L70 108 L28 136 L42 88 L4 58 L52 58 Z" fill="none" stroke="#ff5f6d" stroke-width="5"/>
+      <rect x="-10" y="174" width="160" height="16" rx="8" fill="#ff5f6d"/>
+      <path d="M-10 174 H150" stroke="#f2b84b" stroke-width="3"/>
+    </g>
+  </g>
+
+  <g font-family="Arial, sans-serif" fill="#b7bdc6" font-size="17">
+    <text x="64" y="760">Implementation note: this SVG is a proposal-stage concept artifact. Final runtime visuals must be verified in the playable WebApp battle view.</text>
+    <text x="64" y="790">Boss pool rule: base monsters may become normal, magic, or rare only. Legendary and supreme bosses use authored boss identities.</text>
+  </g>
+</svg>

@@ -233,8 +233,9 @@ function drawEnemyMarker(context: CanvasRenderingContext2D, enemy: BattleGeometr
   const scale = screenStableScale(snapshot);
   const visual = resolveMonsterGeometryVisual(enemy.monsterId);
   const tier = resolveEnemyGeometryTier(enemy);
-  const elite = tier === "rare" || enemy.monsterId === "enemy_brute" || enemy.boss;
-  const radius = visual ? visual.sizePx * 0.5 * scale : (enemy.boss ? tokens.geometry.bossRadius : elite ? tokens.geometry.eliteRadius : tokens.geometry.enemyRadius) * scale;
+  const nemesis = tier === "legendary_boss" || tier === "supreme_boss" || enemy.boss;
+  const elite = tier === "rare" || enemy.monsterId === "enemy_brute" || nemesis;
+  const radius = visual ? visual.sizePx * 0.5 * scale : (nemesis ? tokens.geometry.bossRadius : elite ? tokens.geometry.eliteRadius : tokens.geometry.enemyRadius) * scale;
   const baseFill = enemy.visualPrimaryColor ?? visual?.primaryColor ?? (elite ? tokens.color.orange : tokens.color.gray);
   const damageFlash = enemyDamageFlash(snapshot, enemy);
   const fill = damageFlash > 0 ? mixColor(baseFill, "#FFFFFF", damageFlash) : baseFill;
@@ -266,7 +267,7 @@ function drawEnemyMarker(context: CanvasRenderingContext2D, enemy: BattleGeometr
   }
   context.restore();
 
-  if (tier !== "boss") {
+  if (!nemesis) {
     drawHealthArc(context, enemy.x, enemy.y, radius + 6 * scale, enemy.hp, enemy.maxHp, tier, rarityColor, 0.92, scale);
   }
 }
@@ -274,7 +275,7 @@ function drawEnemyMarker(context: CanvasRenderingContext2D, enemy: BattleGeometr
 function resolveEnemyGeometryTier(enemy: BattleGeometryEnemy): MonsterGeometryTier {
   if (enemy.spawnRarity) return enemy.spawnRarity;
   const visual = resolveMonsterGeometryVisual(enemy.monsterId);
-  return visual?.tier ?? (enemy.boss ? "boss" : enemy.monsterId === "enemy_brute" ? "rare" : "normal");
+  return visual?.tier ?? (enemy.boss ? "legendary_boss" : enemy.monsterId === "enemy_brute" ? "rare" : "normal");
 }
 
 function enemyDamageFlash(snapshot: BattleGeometrySnapshot, enemy: BattleGeometryEnemy) {
@@ -312,7 +313,8 @@ function parseHexColor(color: string) {
 
 function monsterRarityColor(tier: MonsterGeometryTier) {
   const tokens = GEOMETRIC_VISUAL_TOKENS;
-  if (tier === "boss") return tokens.color.danger;
+  if (tier === "supreme_boss") return "#ff5f6d";
+  if (tier === "legendary_boss") return tokens.color.danger;
   if (tier === "rare") return tokens.color.orange;
   if (tier === "magic") return tokens.color.blue;
   return tokens.color.gray;
@@ -2696,7 +2698,8 @@ function drawMonsterRarityPedestal(
     normal: { opacity: 0.16, scale: 0.72, width: 1, shape: "shadow" },
     magic: { opacity: 0.82, scale: 0.82, width: 2.4, shape: "diamond" },
     rare: { opacity: 0.9, scale: 0.95, width: 3.2, shape: "hexagon" },
-    boss: { opacity: 0.92, scale: 1.15, width: 4, shape: "hexagon" }
+    legendary_boss: { opacity: 0.92, scale: 1.15, width: 4, shape: "hexagon" },
+    supreme_boss: { opacity: 0.98, scale: 1.28, width: 5, shape: "hexagon" }
   };
   const rule = rules[tier];
   const pedestalX = radius * rule.scale;
@@ -2720,10 +2723,10 @@ function drawMonsterRarityPedestal(
     context.closePath();
     context.stroke();
   } else {
-    const outer = tier === "boss" ? 1.18 : 1;
+    const outer = tier === "legendary_boss" || tier === "supreme_boss" ? 1.18 : 1;
     flatHexPath(context, x, baseY, pedestalX * outer, pedestalY * outer);
     context.stroke();
-    if (tier === "boss") {
+    if (tier === "legendary_boss" || tier === "supreme_boss") {
       context.globalAlpha = alpha * 0.22;
       flatHexPath(context, x, baseY, pedestalX * 1.38, pedestalY * 1.38);
       context.stroke();
@@ -2764,7 +2767,8 @@ function entityRarityRank(entity: { kind: "enemy"; enemy: BattleGeometryEnemy } 
 
 function enemyRarityRank(enemy: BattleGeometryEnemy) {
   const tier = resolveEnemyGeometryTier(enemy);
-  if (tier === "boss") return 4;
+  if (tier === "supreme_boss") return 5;
+  if (tier === "legendary_boss") return 4;
   if (tier === "rare") return 3;
   if (tier === "magic") return 1;
   return 0;

@@ -2,6 +2,8 @@
 id = "monster_group_1001"
 numeric_id = 1001
 tier = "normal"
+group_role = "base_monsters"
+allowed_spawn_rarities = ["normal", "magic", "rare"]
 name_key = "monster_group.1001.name"
 selection_policy = "uniform"
 member_ids = [
@@ -19,6 +21,8 @@ member_ids = [
 id = "monster_group_2001"
 numeric_id = 2001
 tier = "magic"
+group_role = "base_monsters"
+allowed_spawn_rarities = ["normal", "magic", "rare"]
 name_key = "monster_group.2001.name"
 selection_policy = "uniform"
 member_ids = [
@@ -36,6 +40,8 @@ member_ids = [
 id = "monster_group_3001"
 numeric_id = 3001
 tier = "rare"
+group_role = "base_monsters"
+allowed_spawn_rarities = ["normal", "magic", "rare"]
 name_key = "monster_group.3001.name"
 selection_policy = "uniform"
 member_ids = [
@@ -53,15 +59,36 @@ member_ids = [
 id = "monster_group_4001"
 numeric_id = 4001
 tier = "boss"
+group_role = "boss_pool"
+allowed_spawn_rarities = ["legendary_boss"]
 name_key = "monster_group.4001.name"
 selection_policy = "uniform"
 member_ids = [
-  "mon_400101",
-  "mon_400102",
-  "mon_400103",
-  "mon_400104",
-  "mon_400105",
-  "mon_400106",
-  "mon_400107",
-  "mon_400108",
+  "mon_400001",
+  "mon_400002",
+  "mon_400003",
+  "mon_400004",
+  "mon_400005",
+  "mon_400006",
+  "mon_400007",
+  "mon_400008",
+  "mon_400009",
+  "mon_400010",
+]
+
+[[monster_groups]]
+id = "monster_group_5001"
+numeric_id = 5001
+tier = "boss"
+group_role = "boss_pool"
+allowed_spawn_rarities = ["supreme_boss"]
+name_key = "monster_group.5001.name"
+selection_policy = "uniform"
+member_ids = [
+  "mon_500001",
+  "mon_500002",
+  "mon_500003",
+  "mon_500004",
+  "mon_500005",
+  "mon_500006",
 ]

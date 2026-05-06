@@ -10,13 +10,6 @@ echo MapEditor one-click runner
 echo ========================================
 echo.
 
-where python >nul 2>nul
-if errorlevel 1 (
-  echo Python was not found. Please install Python 3.11+ and add it to PATH.
-  pause
-  exit /b 1
-)
-
 where node >nul 2>nul
 if errorlevel 1 (
   echo Node.js was not found. Please install Node.js and add it to PATH.
@@ -49,7 +42,7 @@ if /I "%~1"=="--check" (
 )
 
 echo Stopping stale MapEditor server on port %PORT%...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$targets = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -like '*tools\webapp_server.py --port %PORT%*' }; foreach ($p in $targets) { Stop-Process -Id $p.ProcessId -Force }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$portPids = @(Get-NetTCPConnection -State Listen -LocalPort %PORT% -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique); $targets = Get-CimInstance Win32_Process | Where-Object { ($portPids -contains $_.ProcessId) -and $_.Name -eq 'node.exe' }; foreach ($p in $targets) { Stop-Process -Id $p.ProcessId -Force }"
 if errorlevel 1 (
   echo Failed to stop stale MapEditor server.
   pause
@@ -61,6 +54,6 @@ set "CACHE_BUST=%RANDOM%%RANDOM%"
 set "BROWSER_URL=http://127.0.0.1:%PORT%/map-editor?clear_cache=1&v=%CACHE_BUST%"
 echo Browser URL: "%BROWSER_URL%"
 start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 2; Start-Process '%BROWSER_URL%'"
-python tools\webapp_server.py --port %PORT% --dist-dir "%DIST_DIR%"
+call npm.cmd exec -- vite preview --host 127.0.0.1 --port %PORT%
 
 endlocal

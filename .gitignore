@@ -74,6 +74,7 @@ tools/release_host/
 /release/
 /package/
 /packages/
+push_remote_and_commit.ps1
 
 # ===== Package manager cache =====
 .pnpm-store/

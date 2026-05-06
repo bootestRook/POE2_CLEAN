@@ -64,6 +64,27 @@ const DEFINITIONS = (equipmentData as { definitions: FrontendEquipmentAffixDefin
 const DEFINITIONS_BY_ID = new Map(DEFINITIONS.map((definition) => [definition.affix_id, definition]));
 const SOURCE_OPTIONS = Array.from(new Set(DEFINITIONS.filter((definition) => definition.library === "base").map((definition) => definition.source))).sort();
 const FRONTEND_BASE_MOVE_SPEED = 250;
+const WEAPON_EQUIPMENT_SOURCE_KEYWORDS = [
+  "\u5315\u9996",
+  "\u5355\u624b\u5251",
+  "\u5355\u624b\u65a7",
+  "\u5355\u624b\u9524",
+  "\u53cc\u624b\u5251",
+  "\u53cc\u624b\u65a7",
+  "\u53cc\u624b\u9524",
+  "\u5f13",
+  "\u5f29",
+  "\u624b\u6756",
+  "\u624b\u67aa",
+  "\u6b66\u6756",
+  "\u6cd5\u6756",
+  "\u706b\u67aa",
+  "\u706b\u70ae",
+  "\u7075\u6756",
+  "\u722a",
+  "\u9521\u6756",
+  "\u9b54\u6756",
+];
 
 const RARITY_COUNTS: Record<string, [number, number]> = {
   white: [0, 0],
@@ -122,7 +143,17 @@ export function frontendEquipmentAffixOptions(source: string, level: number) {
 
 export function chooseFrontendEquipmentSource(seed: number) {
   if (SOURCE_OPTIONS.length === 0) return "装备";
-  return SOURCE_OPTIONS[Math.floor(seedRandom(seed).nextFloat() * SOURCE_OPTIONS.length) % SOURCE_OPTIONS.length];
+  const rng = seedRandom(seed);
+  const buckets = frontendEquipmentSourceDropBuckets().filter((bucket) => bucket.length > 0);
+  if (buckets.length === 0) return SOURCE_OPTIONS[Math.floor(rng.nextFloat() * SOURCE_OPTIONS.length) % SOURCE_OPTIONS.length];
+  const bucket = buckets[Math.floor(rng.nextFloat() * buckets.length) % buckets.length];
+  return bucket[Math.floor(rng.nextFloat() * bucket.length) % bucket.length];
+}
+
+export function frontendEquipmentSourceDropBuckets() {
+  const weaponSources = SOURCE_OPTIONS.filter(isWeaponEquipmentSource);
+  const otherSources = SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source));
+  return [weaponSources, otherSources];
 }
 
 export function generateFrontendEquipment(source: string, level: number, rarity: string, seed: number): FrontendEquipmentItem {
@@ -580,6 +611,10 @@ function frontendEquipmentAffixDefinitionText(definition: FrontendEquipmentAffix
 function frontendEquipmentAffixRollText(affix: FrontendEquipmentAffixRoll) {
   if (affix.library === "base") return affix.effect;
   return `${libraryText(affix.library)}${genText(affix.gen)} T${affix.tier}：${affix.effect}`;
+}
+
+function isWeaponEquipmentSource(source: string) {
+  return WEAPON_EQUIPMENT_SOURCE_KEYWORDS.some((keyword) => source.includes(keyword));
 }
 
 function libraryText(library: string) {

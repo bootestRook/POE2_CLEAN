@@ -239,9 +239,30 @@ def test_app_uses_map_instance_before_procedural_spawn_and_keeps_spawn_fallback(
 
     assert "const mapInstance = createRuntimeMapInstanceForStage(selectedStage)" in source
     assert "const spawnPlan = createProceduralSpawnPlanEnemies(mapInstance" in source
+    assert "stageBossPackIds(stage)" in source
+    assert '"stage_scope": "major_final"' in (ROOT / "webapp" / "frontendGameData.ts").read_text(encoding="utf-8")
+    assert '"boss_pack_pool": "mixed"' in (ROOT / "webapp" / "frontendGameData.ts").read_text(encoding="utf-8")
     assert "source.spawn ?? MAP_EDITOR_DEFAULT_SPAWN" in source
     assert "zone.zoneType === \"entrance\"" in source
     assert "requestState(\"/api/map/start\"" not in source
+
+
+def test_boss_pack_pools_are_explicit_and_balanced() -> None:
+    config = json.loads((ROOT / "configs" / "monsters" / "map_spawn_v1.json").read_text(encoding="utf-8"))
+    counts: dict[str, int] = {}
+    for pack in config["monster_packs"]:
+        if "boss" not in pack["tags"]:
+            continue
+        boss = next(entry for entry in pack["entries"] if entry.get("boss") is True)
+        key = f"{boss['boss_rarity']}:{boss['monster_id']}"
+        counts[key] = counts.get(key, 0) + 1
+
+    assert {key: value for key, value in counts.items() if key.startswith("legendary_boss:")} == {
+        f"legendary_boss:mon_400{index:03d}": 3 for index in range(1, 11)
+    }
+    assert {key: value for key, value in counts.items() if key.startswith("supreme_boss:")} == {
+        f"supreme_boss:mon_500{index:03d}": 3 for index in range(1, 7)
+    }
 
 
 def test_missing_debug_rotation_does_not_force_zero_degrees() -> None:

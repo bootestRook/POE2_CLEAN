@@ -259,7 +259,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400101", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_400001", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
         { "monster_id": "mon_200101", "count_min": 1, "count_max": 2 }
       ]
     },
@@ -269,7 +269,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400102", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_400002", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
         { "monster_id": "mon_200108", "count_min": 1, "count_max": 2 }
       ]
     },
@@ -279,7 +279,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400103", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_400003", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
         { "monster_id": "mon_100105", "count_min": 2, "count_max": 3 }
       ]
     },
@@ -289,7 +289,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400104", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_400004", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
         { "monster_id": "mon_100107", "count_min": 3, "count_max": 4 }
       ]
     },
@@ -299,7 +299,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400105", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_400005", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
         { "monster_id": "mon_300102", "count_min": 1, "count_max": 1 }
       ]
     },
@@ -309,7 +309,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400106", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_500001", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
         { "monster_id": "mon_200104", "count_min": 1, "count_max": 2 }
       ]
     },
@@ -319,7 +319,7 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400107", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_400006", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
         { "monster_id": "mon_200108", "count_min": 1, "count_max": 2 }
       ]
     },
@@ -329,12 +329,457 @@
       "weight": 1,
       "budget_cost": 5,
       "entries": [
-        { "monster_id": "mon_400108", "count_min": 1, "count_max": 1, "boss": true },
+        { "monster_id": "mon_500002", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
         { "monster_id": "mon_200102", "count_min": 1, "count_max": 1 },
         { "monster_id": "mon_200106", "count_min": 1, "count_max": 1 }
       ]
+    },
+    {
+      "pack_id": "geo_boss_crack_crown",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400007", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100104", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_null_bastion",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400008", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300104", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_razor_gyre",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400009", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_200107", "count_min": 1, "count_max": 2 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_orbit_matron",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400010", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100107", "count_min": 3, "count_max": 4 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_high_judicator",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500003", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300106", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_blood_eclipse",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500004", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_200104", "count_min": 1, "count_max": 2 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_shard_mirror",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500005", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_final_triad",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500006", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_300103", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_king_vanguard",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400001", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300101", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_100104", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_void_bulwark",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400002", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300107", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200106", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_tyrant_fangs",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400003", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100105", "count_min": 3, "count_max": 4 },
+        { "monster_id": "mon_200105", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_star_mother_swarm",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400004", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100107", "count_min": 4, "count_max": 5 },
+        { "monster_id": "mon_200103", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_judicator_court",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400005", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300106", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200102", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_mirror_shades",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400006", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100108", "count_min": 2, "count_max": 3 },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_crack_crown_sentinels",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400007", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300102", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_100101", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_null_bastion_prism",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400008", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300104", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200104", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_razor_gyre_winds",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400009", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_200107", "count_min": 2, "count_max": 2 },
+        { "monster_id": "mon_100102", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_orbit_matron_orbits",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400010", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_200107", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200103", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_king_crawlers",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400001", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100101", "count_min": 3, "count_max": 4 },
+        { "monster_id": "mon_200101", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_void_shades",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400002", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100106", "count_min": 2, "count_max": 3 },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_tyrant_chargers",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400003", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_200105", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200107", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_star_mother_casters",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400004", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_200101", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200103", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_100107", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_judicator_judges",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400005", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300106", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_300102", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_mirror_reflections",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400006", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300108", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_100108", "count_min": 2, "count_max": 2 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_crack_crown_hunters",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400007", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300103", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_100104", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_null_bastion_guards",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400008", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300104", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_300107", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_razor_gyre_assassins",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400009", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_300108", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_100105", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_orbit_matron_cluster",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_400010", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "legendary_boss" },
+        { "monster_id": "mon_100107", "count_min": 5, "count_max": 6 },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_eclipse_plague",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500001", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300104", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200104", "count_min": 1, "count_max": 2 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_triad_court",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500002", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300103", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_300106", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_high_judicator_guard",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500003", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300102", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200102", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_blood_eclipse_core",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500004", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300105", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200104", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_shard_mirror_twins",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500005", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300108", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_final_triad_hunters",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500006", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300103", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_300106", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_eclipse_sigil",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500001", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_200104", "count_min": 2, "count_max": 2 },
+        { "monster_id": "mon_100106", "count_min": 2, "count_max": 3 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_triad_blinkers",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500002", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_200102", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200105", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_high_judicator_obelisk",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500003", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_300107", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200106", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_blood_eclipse_fangs",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500004", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_100105", "count_min": 3, "count_max": 4 },
+        { "monster_id": "mon_200107", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_shard_mirror_shades",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500005", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_100108", "count_min": 2, "count_max": 3 },
+        { "monster_id": "mon_300108", "count_min": 1, "count_max": 1 }
+      ]
+    },
+    {
+      "pack_id": "geo_boss_final_triad_casters",
+      "tags": ["boss"],
+      "weight": 1,
+      "budget_cost": 5,
+      "entries": [
+        { "monster_id": "mon_500006", "count_min": 1, "count_max": 1, "boss": true, "boss_rarity": "supreme_boss" },
+        { "monster_id": "mon_200101", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200103", "count_min": 1, "count_max": 1 },
+        { "monster_id": "mon_200108", "count_min": 1, "count_max": 1 }
+      ]
     }
   ],
+  "monster_type_defaults": {
+    "minion": { "life_multiplier": 0.72, "damage_multiplier": 0.72, "movement_speed_multiplier": 1.06, "attack_range_multiplier": 0.95, "attack_cadence_multiplier": 0.92, "skill_shape": "melee" },
+    "melee": { "life_multiplier": 1.0, "damage_multiplier": 1.0, "movement_speed_multiplier": 1.0, "attack_range_multiplier": 1.0, "attack_cadence_multiplier": 1.0, "skill_shape": "melee" },
+    "ranged": { "life_multiplier": 0.82, "damage_multiplier": 0.9, "movement_speed_multiplier": 0.82, "attack_range_multiplier": 4.8, "attack_cadence_multiplier": 1.18, "skill_shape": "projectile" },
+    "charger": { "life_multiplier": 1.05, "damage_multiplier": 1.18, "movement_speed_multiplier": 1.34, "attack_range_multiplier": 1.22, "attack_cadence_multiplier": 1.08, "skill_shape": "charge" },
+    "tank": { "life_multiplier": 1.72, "damage_multiplier": 0.82, "movement_speed_multiplier": 0.66, "attack_range_multiplier": 1.05, "attack_cadence_multiplier": 1.28, "skill_shape": "guard" },
+    "assassin": { "life_multiplier": 0.86, "damage_multiplier": 1.28, "movement_speed_multiplier": 1.24, "attack_range_multiplier": 1.08, "attack_cadence_multiplier": 0.82, "skill_shape": "ambush" },
+    "support": { "life_multiplier": 0.92, "damage_multiplier": 0.68, "movement_speed_multiplier": 0.92, "attack_range_multiplier": 3.2, "attack_cadence_multiplier": 1.35, "skill_shape": "support" }
+  },
   "monster_offense_defaults": {
     "damage_type": "physical",
     "hit_kind": "attack",
@@ -364,6 +809,8 @@
       "normal": { "life_multiplier": 1.0, "damage_multiplier": 1.0 },
       "magic": { "life_multiplier": 4.0, "damage_multiplier": 1.5 },
       "rare": { "life_multiplier": 12.0, "damage_multiplier": 2.0 },
+      "legendary_boss": { "life_multiplier": 80.0, "damage_multiplier": 2.8 },
+      "supreme_boss": { "life_multiplier": 120.0, "damage_multiplier": 3.3 },
       "boss": { "life_multiplier": 80.0, "damage_multiplier": 2.8 }
     }
   }

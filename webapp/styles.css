@@ -4,9 +4,9 @@
   --panel-border: 2px;
   --board-grid-width: calc(var(--slot-size) * 9 + 4px);
   --bag-grid-width: calc(var(--slot-size) * 12 + 4px);
-  --equipment-slot-size: 78px;
+  --equipment-slot-size: 60px;
   --equipment-slot-column-gap: 16px;
-  --equipment-slot-row-gap: 37.5px;
+  --equipment-slot-row-gap: 60px;
   --equipment-grid-width: calc(var(--equipment-slot-size) * 2 + var(--equipment-slot-column-gap) + 2px);
   --equipment-grid-height: calc(var(--equipment-slot-size) * 5 + var(--equipment-slot-row-gap) * 4 + 2px);
   --right-frame-width: calc(var(--bag-grid-width) + 36px);
@@ -195,6 +195,38 @@ button {
   box-shadow:
     inset 0 1px 0 rgba(255, 214, 214, 0.32),
     inset 0 -3px 5px rgba(0, 0, 0, 0.34);
+}
+
+.boss-health-bar.monster-rarity-supreme-boss .boss-health-frame {
+  border-color: rgba(255, 95, 109, 0.98);
+  background:
+    linear-gradient(180deg, rgba(88, 24, 48, 0.96), rgba(20, 8, 15, 0.98) 28%, rgba(6, 4, 8, 0.98)),
+    #080406;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 210, 94, 0.3),
+    inset 0 1px 0 rgba(255, 172, 186, 0.26),
+    0 0 24px rgba(255, 95, 109, 0.28),
+    0 8px 26px rgba(0, 0, 0, 0.62);
+}
+
+.boss-health-bar.monster-rarity-supreme-boss .boss-health-frame::before,
+.boss-health-bar.monster-rarity-supreme-boss .boss-health-frame::after {
+  border-color: rgba(255, 95, 109, 0.98);
+  background:
+    radial-gradient(circle, rgba(255, 95, 109, 0.46), rgba(55, 16, 35, 0.95) 55%, rgba(5, 3, 5, 0.98));
+  box-shadow:
+    inset 0 0 0 4px rgba(12, 4, 9, 0.78),
+    0 0 0 1px rgba(255, 213, 93, 0.38);
+}
+
+.boss-health-bar.monster-rarity-supreme-boss .boss-health-level,
+.boss-health-bar.monster-rarity-supreme-boss .boss-health-title {
+  color: #ffd45d;
+}
+
+.boss-health-bar.monster-rarity-supreme-boss .boss-health-track span {
+  background:
+    linear-gradient(180deg, rgba(255, 171, 185, 0.92), rgba(255, 95, 109, 0.98) 46%, rgba(116, 20, 53, 0.98));
 }
 
 .baked-map-background {
@@ -887,100 +919,79 @@ button {
 .boss-portal-layer {
   position: fixed;
   inset: 0;
-  z-index: 7;
+  z-index: 9;
   pointer-events: none;
 }
 
 .boss-portal {
   position: absolute;
-  width: 128px;
-  height: 128px;
+  width: 116px;
+  height: 76px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #dffbff;
+  color: #f7f1d6;
   cursor: pointer;
   pointer-events: auto;
-  transform: translate(-50%, -70%);
+  transform: translate(-50%, -84%);
 }
 
 .boss-portal-label {
   position: absolute;
-  left: 45%;
+  left: 50%;
   top: 0;
-  z-index: 3;
   padding: 4px 9px;
-  border: 1px solid rgba(176, 244, 255, 0.8);
+  border: 1px solid rgba(247, 214, 137, 0.88);
   border-radius: 3px;
-  background: rgba(10, 18, 25, 0.88);
-  color: #e9fdff;
+  background: rgba(24, 20, 16, 0.92);
+  color: #fff0b5;
   font-size: 13px;
+  font-weight: 800;
   line-height: 1.15;
   white-space: nowrap;
   transform: translateX(-50%);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.58);
 }
 
-.boss-portal-ring,
-.boss-portal-core {
+.boss-portal-gate {
   position: absolute;
   left: 50%;
-  top: 72px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.boss-portal-ring {
-  width: 78px;
-  height: 78px;
-  border: 5px solid rgba(154, 237, 255, 0.88);
-  background:
-    radial-gradient(circle at center, transparent 0 38%, rgba(55, 206, 255, 0.2) 40% 56%, transparent 58%),
-    conic-gradient(from 0deg, rgba(209, 252, 255, 0.95), rgba(44, 156, 255, 0.28), rgba(129, 255, 218, 0.88), rgba(209, 252, 255, 0.95));
+  top: 29px;
+  width: 54px;
+  height: 42px;
+  border: 3px solid #d9c083;
+  border-bottom: 5px solid #8b6a35;
+  border-radius: 20px 20px 4px 4px;
+  background: linear-gradient(180deg, #5b4730 0%, #211915 100%);
+  transform: translateX(-50%);
   box-shadow:
-    0 0 20px rgba(73, 211, 255, 0.64),
-    inset 0 0 22px rgba(154, 237, 255, 0.38);
-  animation: boss-portal-spin 1.8s linear infinite;
+    0 0 0 2px rgba(10, 8, 7, 0.78),
+    0 7px 0 rgba(0, 0, 0, 0.36);
 }
 
-.boss-portal-core {
-  width: 44px;
-  height: 44px;
-  background:
-    radial-gradient(circle at center, rgba(242, 255, 255, 0.92) 0 12%, rgba(102, 238, 255, 0.42) 14% 44%, rgba(20, 60, 110, 0.72) 46% 100%);
-  box-shadow: 0 0 24px rgba(109, 236, 255, 0.7);
-  animation: boss-portal-pulse 0.9s ease-in-out infinite alternate;
+.boss-portal-door {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 30px;
+  height: 28px;
+  border: 1px solid rgba(255, 235, 170, 0.34);
+  border-bottom: 0;
+  border-radius: 14px 14px 2px 2px;
+  background: linear-gradient(180deg, #2a7a86 0%, #10212d 100%);
+  transform: translateX(-50%);
+  box-shadow: inset 0 0 12px rgba(123, 235, 255, 0.46);
 }
 
 .boss-portal:hover .boss-portal-label,
 .boss-portal:focus-visible .boss-portal-label {
-  border-color: rgba(233, 255, 255, 0.98);
-  background: rgba(20, 42, 54, 0.94);
-  color: #ffffff;
+  border-color: rgba(255, 241, 171, 1);
+  color: #fff8d0;
 }
 
-.boss-portal:hover .boss-portal-ring,
-.boss-portal:focus-visible .boss-portal-ring {
-  filter: brightness(1.18) drop-shadow(0 0 12px rgba(129, 234, 255, 0.78));
-}
-
-@keyframes boss-portal-spin {
-  to {
-    rotate: 360deg;
-  }
-}
-
-@keyframes boss-portal-pulse {
-  from {
-    transform: translate(-50%, -50%) scale(0.86);
-    opacity: 0.68;
-  }
-
-  to {
-    transform: translate(-50%, -50%) scale(1.05);
-    opacity: 1;
-  }
+.boss-portal:hover .boss-portal-gate,
+.boss-portal:focus-visible .boss-portal-gate {
+  filter: brightness(1.16) drop-shadow(0 0 8px rgba(255, 219, 120, 0.66));
 }
 
 .map-tile,
@@ -1170,6 +1181,44 @@ button {
   display: block;
   height: 100%;
   background: linear-gradient(90deg, #ff7676, #d82020);
+}
+
+.enemy-health.monster-rarity-magic {
+  border-color: rgba(97, 198, 232, 0.9);
+  box-shadow: 0 0 6px rgba(97, 198, 232, 0.32);
+}
+
+.enemy-health.monster-rarity-magic span {
+  background: linear-gradient(90deg, #8ee8ff, #279bd1);
+}
+
+.enemy-health.monster-rarity-rare {
+  width: 52px;
+  border-color: rgba(242, 184, 75, 0.96);
+  box-shadow: 0 0 7px rgba(242, 184, 75, 0.4);
+}
+
+.enemy-health.monster-rarity-rare span {
+  background: linear-gradient(90deg, #ffd36a, #d98a17);
+}
+
+.enemy-health.monster-rarity-legendary-boss,
+.enemy-health.monster-rarity-supreme-boss {
+  width: 64px;
+  height: 6px;
+}
+
+.enemy-health.monster-rarity-legendary-boss span {
+  background: linear-gradient(90deg, #b997ff, #7c4de4);
+}
+
+.enemy-health.monster-rarity-supreme-boss {
+  border-color: rgba(255, 95, 109, 0.98);
+  box-shadow: 0 0 9px rgba(255, 95, 109, 0.5);
+}
+
+.enemy-health.monster-rarity-supreme-boss span {
+  background: linear-gradient(90deg, #ffd45d, #ff5f6d);
 }
 
 .map-editor-screen {
@@ -4954,6 +5003,63 @@ button {
   background: rgba(255, 138, 42, 0.28);
 }
 
+.battle-pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 82;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 5, 6, 0.62);
+  backdrop-filter: blur(3px);
+}
+
+.battle-pause-dialog {
+  width: min(360px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid rgba(255, 196, 112, 0.72);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(255, 138, 42, 0.16), transparent 48%),
+    var(--geo-ui-bg-raised);
+  color: var(--geo-ui-text);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.58);
+  text-align: center;
+  text-shadow: none;
+}
+
+.battle-pause-dialog span {
+  color: #ffc470;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.battle-pause-dialog h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.battle-pause-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.battle-pause-actions button {
+  min-height: 40px;
+  border: 1px solid var(--geo-ui-accent);
+  border-radius: 4px;
+  background: rgba(255, 138, 42, 0.16);
+  color: var(--geo-ui-text);
+  cursor: pointer;
+}
+
+.battle-pause-actions button:hover {
+  background: rgba(255, 138, 42, 0.28);
+}
+
 .bottom-hud {
   position: absolute;
   left: 25%;
@@ -6728,16 +6834,102 @@ h3 {
     var(--gem-icon-sprite),
     linear-gradient(135deg, rgba(244, 247, 248, 0.78), rgba(42, 48, 54, 0.88));
   background-position: center;
-  background-size: 72%, cover;
+  background-size: 92%, cover;
   background-repeat: no-repeat;
+}
+
+.item-orb.gem-orb-sprite {
+  border: 0;
+  background-size: cover, cover;
+  box-shadow: none;
+}
+
+.bag-cell .item-orb.gem-orb-sprite {
+  width: calc(var(--slot-size) * 0.88);
+  height: calc(var(--slot-size) * 0.88);
+}
+
+.equipment-cell .item-orb.gem-orb-sprite {
+  width: calc(var(--equipment-slot-size) * 0.88);
+  height: calc(var(--equipment-slot-size) * 0.88);
 }
 
 .gem-orb-label {
   opacity: 0;
 }
 
+.gem-orb-roman-level {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  min-width: 22px;
+  max-width: calc(100% - 8px);
+  height: 17px;
+  padding: 0 4px;
+  display: inline-grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(244, 247, 248, 0.58);
+  border-radius: 999px;
+  background: rgba(8, 10, 13, 0.58);
+  color: #f4f7f8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .item-orb {
   background: linear-gradient(135deg, rgba(244, 247, 248, 0.38), rgba(255, 138, 42, 0.18));
+}
+
+.item-orb.gem-orb-sprite {
+  border: 0;
+  background-image: var(--gem-icon-sprite);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+
+.bag-cell .item-orb.gem-orb-sprite {
+  width: calc(var(--slot-size) * 0.88);
+  height: calc(var(--slot-size) * 0.88);
+}
+
+.equipment-cell .item-orb.gem-orb-sprite {
+  width: calc(var(--equipment-slot-size) * 0.88);
+  height: calc(var(--equipment-slot-size) * 0.88);
+}
+
+.bag-cell .gem-orb.gem-orb-sprite {
+  width: calc(var(--slot-size) * 0.88);
+  height: calc(var(--slot-size) * 0.88);
+  border: 0;
+  background-image: var(--gem-icon-sprite);
+  background-size: cover;
+  box-shadow: none;
+}
+
+.board-cell .gem-orb.gem-orb-sprite {
+  width: calc(var(--slot-size) * 0.88);
+  height: calc(var(--slot-size) * 0.88);
+  border: 0;
+  background-image: var(--gem-icon-sprite);
+  background-size: cover;
+  box-shadow: none;
+}
+
+.board-gem-drag-target {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
 
 .hover-self {

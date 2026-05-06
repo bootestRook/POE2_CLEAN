@@ -76,7 +76,7 @@ def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
     assert "createFrontendInitialAppState" in source
     assert "recalculateFrontendSkillPreview" in source
     assert "applyFrontendState" in source
-    assert "createProceduralSpawnPlanEnemies(battleMap" in source
+    assert "createProceduralSpawnPlanEnemies(mapInstance" in source
     assert "spawnFrontendDrops(killedEnemies)" in source
     assert "applyFrontendPickup(dropId, current)" in source
 

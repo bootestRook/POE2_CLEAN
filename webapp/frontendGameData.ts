@@ -158,6 +158,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 84.25,
+          "split_projectile_base_damage": 42.125,
           "mana_cost": 8,
           "release_interval_ms": 650
         },
@@ -242,7 +243,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=84.25, mana_cost=8, release_interval_ms=650"
+              "base_damage=84.25, mana_cost=8, release_interval_ms=650, split_projectile_base_damage=42.125"
             ]
           },
           "auto_release": {
@@ -425,6 +426,11 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 31.3,
+          "weapon_attack_percent": 31.3,
+          "hit_damage_component_physical": 31.3,
+          "secondary_hit_ice_cone_back_explosion_base_damage": 15.7,
+          "secondary_hit_ice_cone_back_explosion_damage_component_physical": 15.7,
+          "secondary_hit_ice_cone_back_explosion_weapon_attack_percent": 15.7,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -441,16 +447,12 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "icon_color_key": "red",
         "icon_sprite": "",
         "name_text": "寒冰射击",
-        "subtitle_text": "红色、宝石、弓、远程、攻击、冰霜、投射物、范围",
+        "subtitle_text": "红色、宝石、远程、攻击、冰霜、投射物、范围",
         "type_identity_text": "",
         "tags": [
           {
             "id": "gem",
             "text": "宝石"
-          },
-          {
-            "id": "bow",
-            "text": "弓"
           },
           {
             "id": "ranged",
@@ -517,7 +519,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=31.3, mana_cost=5, release_interval_ms=1000"
+              "base_damage=31.3, hit_damage_component_physical=31.3, mana_cost=5, release_interval_ms=1000, secondary_hit_ice_cone_back_explosion_base_damage=15.7, secondary_hit_ice_cone_back_explosion_damage_component_physical=15.7, secondary_hit_ice_cone_back_explosion_weapon_attack_percent=15.7, weapon_attack_percent=31.3"
             ]
           },
           "auto_release": {
@@ -2537,6 +2539,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 34.6,
+          "weapon_attack_percent": 34.6,
+          "hit_damage_component_physical": 34.6,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -2625,7 +2629,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=34.6, mana_cost=5, release_interval_ms=1000"
+              "base_damage=34.6, hit_damage_component_physical=34.6, mana_cost=5, release_interval_ms=1000, weapon_attack_percent=34.6"
             ]
           },
           "auto_release": {
@@ -2803,6 +2807,11 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 33.4,
+          "weapon_attack_percent": 33.4,
+          "hit_damage_component_physical": 33.4,
+          "secondary_hit_forked_lightning_base_damage": 33.4,
+          "secondary_hit_forked_lightning_damage_component_physical": 33.4,
+          "secondary_hit_forked_lightning_weapon_attack_percent": 33.4,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -2819,16 +2828,12 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "icon_color_key": "red",
         "icon_sprite": "",
         "name_text": "闪电射击",
-        "subtitle_text": "红色、宝石、弓、远程、攻击、闪电、投射物",
+        "subtitle_text": "红色、宝石、远程、攻击、闪电、投射物",
         "type_identity_text": "",
         "tags": [
           {
             "id": "gem",
             "text": "宝石"
-          },
-          {
-            "id": "bow",
-            "text": "弓"
           },
           {
             "id": "ranged",
@@ -2891,7 +2896,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=33.4, mana_cost=5, release_interval_ms=1000"
+              "base_damage=33.4, hit_damage_component_physical=33.4, mana_cost=5, release_interval_ms=1000, secondary_hit_forked_lightning_base_damage=33.4, secondary_hit_forked_lightning_damage_component_physical=33.4, secondary_hit_forked_lightning_weapon_attack_percent=33.4, weapon_attack_percent=33.4"
             ]
           },
           "auto_release": {
@@ -3092,6 +3097,10 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 9.5,
+          "weapon_attack_percent": 9.5,
+          "hit_damage_component_physical": 9.5,
+          "hit_ailment_wilt_base_damage_per_second": 0.57,
+          "module_corrosive_ground_damage_amount": 0.741,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -3108,7 +3117,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "icon_color_key": "red",
         "icon_sprite": "",
         "name_text": "侵蚀弹",
-        "subtitle_text": "红色、宝石、远程、攻击、投射物、范围、持续伤害、炮、混沌、敏捷、地面、枪",
+        "subtitle_text": "红色、宝石、远程、攻击、投射物、范围、持续伤害、混沌、敏捷、地面",
         "type_identity_text": "",
         "tags": [
           {
@@ -3136,10 +3145,6 @@ export const FRONTEND_INITIAL_APP_STATE = {
             "text": "持续伤害"
           },
           {
-            "id": "cannon",
-            "text": "炮"
-          },
-          {
             "id": "chaos",
             "text": "混沌"
           },
@@ -3150,10 +3155,6 @@ export const FRONTEND_INITIAL_APP_STATE = {
           {
             "id": "ground",
             "text": "地面"
-          },
-          {
-            "id": "gun",
-            "text": "枪"
           }
         ],
         "sections": {
@@ -3200,7 +3201,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=9.5, mana_cost=5, release_interval_ms=1000"
+              "base_damage=9.5, hit_ailment_wilt_base_damage_per_second=0.57, hit_damage_component_physical=9.5, mana_cost=5, module_corrosive_ground_damage_amount=0.741, release_interval_ms=1000, weapon_attack_percent=9.5"
             ]
           },
           "auto_release": {
@@ -3379,6 +3380,10 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 25.6,
+          "weapon_attack_percent": 25.6,
+          "hit_damage_component_physical": 25.6,
+          "hit_ailment_ignite_base_damage_per_second": 2.56,
+          "on_ignited_hit_indirect_fire_damage": 0.5,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -3395,16 +3400,12 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "icon_color_key": "red",
         "icon_sprite": "",
         "name_text": "燃烧射击",
-        "subtitle_text": "红色、宝石、弓、远程、攻击、火焰、投射物",
+        "subtitle_text": "红色、宝石、远程、攻击、火焰、投射物",
         "type_identity_text": "",
         "tags": [
           {
             "id": "gem",
             "text": "宝石"
-          },
-          {
-            "id": "bow",
-            "text": "弓"
           },
           {
             "id": "ranged",
@@ -3471,7 +3472,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=25.6, mana_cost=5, release_interval_ms=1000"
+              "base_damage=25.6, hit_ailment_ignite_base_damage_per_second=2.56, hit_damage_component_physical=25.6, mana_cost=5, on_ignited_hit_indirect_fire_damage=0.5, release_interval_ms=1000, weapon_attack_percent=25.6"
             ]
           },
           "auto_release": {
@@ -3653,6 +3654,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         },
         "level_values": {
           "base_damage": 13.4,
+          "weapon_attack_percent": 13.4,
+          "hit_damage_component_physical": 13.4,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -3669,16 +3672,12 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "icon_color_key": "red",
         "icon_sprite": "",
         "name_text": "箭雨",
-        "subtitle_text": "红色、宝石、弓、远程、攻击、物理、投射物、范围",
+        "subtitle_text": "红色、宝石、远程、攻击、物理、投射物、范围",
         "type_identity_text": "",
         "tags": [
           {
             "id": "gem",
             "text": "宝石"
-          },
-          {
-            "id": "bow",
-            "text": "弓"
           },
           {
             "id": "ranged",
@@ -3745,7 +3744,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=13.4, mana_cost=5, release_interval_ms=1000"
+              "base_damage=13.4, hit_damage_component_physical=13.4, mana_cost=5, release_interval_ms=1000, weapon_attack_percent=13.4"
             ]
           },
           "auto_release": {
@@ -5367,6 +5366,30 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "base": 0.0
       }
     },
+    "energy_shield_charge_speed_add_percent": {
+      "label_text": "护盾充能速度提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "energy_shield_charge_speed_final_percent": {
+      "label_text": "护盾充能速度额外提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
     "energy_shield_charge_delay_ms": {
       "label_text": "护盾充能延迟",
       "value": 2000,
@@ -5377,6 +5400,66 @@ export const FRONTEND_INITIAL_APP_STATE = {
       "affix_spawn_enabled_v1": false,
       "trace": {
         "base": 2000.0
+      }
+    },
+    "energy_shield_charge_interval_percent": {
+      "label_text": "护盾充能间隔",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "energy_shield_charge_interval_add_percent": {
+      "label_text": "护盾充能间隔提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "energy_shield_charge_interval_final_percent": {
+      "label_text": "护盾充能间隔额外提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "energy_shield_charge_delay_add_percent": {
+      "label_text": "护盾充能延迟提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "energy_shield_charge_delay_final_percent": {
+      "label_text": "护盾充能延迟额外提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "energy_shield",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
       }
     },
     "shield_return_percent": {
@@ -5400,7 +5483,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
       "runtime_effective": true,
       "affix_spawn_enabled_v1": true,
       "trace": {
-        "base": 1.0
+        "base": 250.0
       }
     },
     "support_link_limit": {
@@ -6844,6 +6927,66 @@ export const FRONTEND_INITIAL_APP_STATE = {
       "trace": {
         "base": 0.0
       }
+    },
+    "channel_min_stacks_add": {
+      "label_text": "引导层数下限",
+      "value": 0,
+      "value_type": "integer",
+      "category": "behavior",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "knockback_chance_percent": {
+      "label_text": "击退几率",
+      "value": 0,
+      "value_type": "percent",
+      "category": "behavior",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "knockback_distance_add_percent": {
+      "label_text": "击退距离提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "behavior",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "deterioration_chance_add_percent": {
+      "label_text": "凋零几率提高",
+      "value": 0,
+      "value_type": "percent",
+      "category": "status",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
+    },
+    "deterioration_extra_stack_chance_percent": {
+      "label_text": "额外凋零层数几率",
+      "value": 0,
+      "value_type": "percent",
+      "category": "status",
+      "v1_status": "V1_ACTIVE",
+      "runtime_effective": true,
+      "affix_spawn_enabled_v1": false,
+      "trace": {
+        "base": 0.0
+      }
     }
   },
   "character_panel": {
@@ -7305,17 +7448,6 @@ export const FRONTEND_INITIAL_APP_STATE = {
             "id": "ailment_damage_add_percent",
             "stat_id": "ailment_damage_add_percent",
             "label_text": "异常伤害提高",
-            "value": 0,
-            "value_type": "percent",
-            "formatter": "percent",
-            "icon_text": "?",
-            "tone": "shadow",
-            "v1_status": "V1_ACTIVE"
-          },
-          {
-            "id": "ailment_damage_deepen_percent",
-            "stat_id": "ailment_damage_deepen_percent",
-            "label_text": "异常伤害加深",
             "value": 0,
             "value_type": "percent",
             "formatter": "percent",
@@ -7829,17 +7961,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
     null
   ],
   "map_progression": {
-    "selected_stage_id": "start_i",
+    "selected_stage_id": "start_i_01",
     "stages": [
       {
-        "id": "start_i",
-        "display_name": "起始区域 I",
+        "id": "start_i_01",
+        "display_name": "起始区域 I-01",
         "phase": "growth",
         "order": 1,
         "map_level_min": 1,
-        "map_level_max": 9,
-        "map_level_text": "1-9",
-        "monster_level": 5,
+        "map_level_max": 3,
+        "map_level_text": "1-3",
+        "monster_level": 1,
         "entry_cost": 0,
         "free_entry": true,
         "entry_count": 0,
@@ -7847,9 +7979,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": true,
         "selected": true,
         "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 1,
         "gem_level_max": 3,
-        "base_drop_chance": 0.10,
+        "base_drop_chance": 0.25,
+        "equipment_weight": 50,
+        "gem_weight": 40,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 760,
           "blue": 220,
@@ -7863,14 +8003,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "start_ii",
-        "display_name": "起始区域 II",
+        "id": "start_i_02",
+        "display_name": "起始区域 I-02",
         "phase": "growth",
         "order": 2,
-        "map_level_min": 10,
-        "map_level_max": 19,
-        "map_level_text": "10-19",
-        "monster_level": 15,
+        "map_level_min": 4,
+        "map_level_max": 6,
+        "map_level_text": "4-6",
+        "monster_level": 5,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -7878,9 +8018,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 1,
         "gem_level_max": 3,
-        "base_drop_chance": 0.10,
+        "base_drop_chance": 0.25,
+        "equipment_weight": 50,
+        "gem_weight": 40,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 760,
           "blue": 220,
@@ -7894,14 +8042,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "borderland",
-        "display_name": "边境区域",
+        "id": "start_i_03",
+        "display_name": "起始区域 I-03",
         "phase": "growth",
         "order": 3,
-        "map_level_min": 20,
-        "map_level_max": 29,
-        "map_level_text": "20-29",
-        "monster_level": 25,
+        "map_level_min": 7,
+        "map_level_max": 9,
+        "map_level_text": "7-9",
+        "monster_level": 9,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -7909,30 +8057,38 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
-        "gem_level_min": 3,
-        "gem_level_max": 7,
-        "base_drop_chance": 0.12,
+        "stage_scope": "major_final",
+        "boss_pack_pool": "supreme",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 1,
+        "gem_level_max": 3,
+        "base_drop_chance": 0.25,
+        "equipment_weight": 50,
+        "gem_weight": 40,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
-          "white": 700,
-          "blue": 260,
-          "purple": 38,
-          "pink": 2
+          "white": 760,
+          "blue": 220,
+          "purple": 20,
+          "pink": 0
         },
         "gem_rarity_weights": {
-          "normal": 760,
-          "magic": 190,
-          "rare": 50
+          "normal": 850,
+          "magic": 130,
+          "rare": 20
         }
       },
       {
-        "id": "depths",
-        "display_name": "深层区域",
+        "id": "start_ii_01",
+        "display_name": "起始区域 II-01",
         "phase": "growth",
         "order": 4,
-        "map_level_min": 30,
-        "map_level_max": 39,
-        "map_level_text": "30-39",
-        "monster_level": 35,
+        "map_level_min": 10,
+        "map_level_max": 13,
+        "map_level_text": "10-13",
+        "monster_level": 10,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -7940,9 +8096,134 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 1,
+        "gem_level_max": 3,
+        "base_drop_chance": 0.25,
+        "equipment_weight": 50,
+        "gem_weight": 40,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 760,
+          "blue": 220,
+          "purple": 20,
+          "pink": 0
+        },
+        "gem_rarity_weights": {
+          "normal": 850,
+          "magic": 130,
+          "rare": 20
+        }
+      },
+      {
+        "id": "start_ii_02",
+        "display_name": "起始区域 II-02",
+        "phase": "growth",
+        "order": 5,
+        "map_level_min": 14,
+        "map_level_max": 16,
+        "map_level_text": "14-16",
+        "monster_level": 14,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 1,
+        "gem_level_max": 3,
+        "base_drop_chance": 0.25,
+        "equipment_weight": 50,
+        "gem_weight": 40,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 760,
+          "blue": 220,
+          "purple": 20,
+          "pink": 0
+        },
+        "gem_rarity_weights": {
+          "normal": 850,
+          "magic": 130,
+          "rare": 20
+        }
+      },
+      {
+        "id": "start_ii_03",
+        "display_name": "起始区域 II-03",
+        "phase": "growth",
+        "order": 6,
+        "map_level_min": 17,
+        "map_level_max": 19,
+        "map_level_text": "17-19",
+        "monster_level": 19,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "major_final",
+        "boss_pack_pool": "supreme",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 1,
+        "gem_level_max": 3,
+        "base_drop_chance": 0.25,
+        "equipment_weight": 50,
+        "gem_weight": 40,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 760,
+          "blue": 220,
+          "purple": 20,
+          "pink": 0
+        },
+        "gem_rarity_weights": {
+          "normal": 850,
+          "magic": 130,
+          "rare": 20
+        }
+      },
+      {
+        "id": "borderland_01",
+        "display_name": "边境区域-01",
+        "phase": "growth",
+        "order": 7,
+        "map_level_min": 20,
+        "map_level_max": 23,
+        "map_level_text": "20-23",
+        "monster_level": 20,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 3,
         "gem_level_max": 7,
         "base_drop_chance": 0.12,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 700,
           "blue": 260,
@@ -7956,14 +8237,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "danger_i",
-        "display_name": "高危区域 I",
+        "id": "borderland_02",
+        "display_name": "边境区域-02",
         "phase": "growth",
-        "order": 5,
-        "map_level_min": 40,
-        "map_level_max": 49,
-        "map_level_text": "40-49",
-        "monster_level": 45,
+        "order": 8,
+        "map_level_min": 24,
+        "map_level_max": 26,
+        "map_level_text": "24-26",
+        "monster_level": 24,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -7971,9 +8252,212 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 3,
+        "gem_level_max": 7,
+        "base_drop_chance": 0.12,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 700,
+          "blue": 260,
+          "purple": 38,
+          "pink": 2
+        },
+        "gem_rarity_weights": {
+          "normal": 760,
+          "magic": 190,
+          "rare": 50
+        }
+      },
+      {
+        "id": "borderland_03",
+        "display_name": "边境区域-03",
+        "phase": "growth",
+        "order": 9,
+        "map_level_min": 27,
+        "map_level_max": 29,
+        "map_level_text": "27-29",
+        "monster_level": 29,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "major_final",
+        "boss_pack_pool": "supreme",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 3,
+        "gem_level_max": 7,
+        "base_drop_chance": 0.12,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 700,
+          "blue": 260,
+          "purple": 38,
+          "pink": 2
+        },
+        "gem_rarity_weights": {
+          "normal": 760,
+          "magic": 190,
+          "rare": 50
+        }
+      },
+      {
+        "id": "depths_01",
+        "display_name": "深层区域-01",
+        "phase": "growth",
+        "order": 10,
+        "map_level_min": 30,
+        "map_level_max": 33,
+        "map_level_text": "30-33",
+        "monster_level": 30,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 3,
+        "gem_level_max": 7,
+        "base_drop_chance": 0.12,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 700,
+          "blue": 260,
+          "purple": 38,
+          "pink": 2
+        },
+        "gem_rarity_weights": {
+          "normal": 760,
+          "magic": 190,
+          "rare": 50
+        }
+      },
+      {
+        "id": "depths_02",
+        "display_name": "深层区域-02",
+        "phase": "growth",
+        "order": 11,
+        "map_level_min": 34,
+        "map_level_max": 36,
+        "map_level_text": "34-36",
+        "monster_level": 34,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 3,
+        "gem_level_max": 7,
+        "base_drop_chance": 0.12,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 700,
+          "blue": 260,
+          "purple": 38,
+          "pink": 2
+        },
+        "gem_rarity_weights": {
+          "normal": 760,
+          "magic": 190,
+          "rare": 50
+        }
+      },
+      {
+        "id": "depths_03",
+        "display_name": "深层区域-03",
+        "phase": "growth",
+        "order": 12,
+        "map_level_min": 37,
+        "map_level_max": 39,
+        "map_level_text": "37-39",
+        "monster_level": 39,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "major_final",
+        "boss_pack_pool": "supreme",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 3,
+        "gem_level_max": 7,
+        "base_drop_chance": 0.12,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 700,
+          "blue": 260,
+          "purple": 38,
+          "pink": 2
+        },
+        "gem_rarity_weights": {
+          "normal": 760,
+          "magic": 190,
+          "rare": 50
+        }
+      },
+      {
+        "id": "danger_i_01",
+        "display_name": "高危区域 I-01",
+        "phase": "growth",
+        "order": 13,
+        "map_level_min": 40,
+        "map_level_max": 43,
+        "map_level_text": "40-43",
+        "monster_level": 40,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 6,
         "gem_level_max": 10,
         "base_drop_chance": 0.14,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 640,
           "blue": 290,
@@ -7987,14 +8471,170 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "danger_ii",
-        "display_name": "高危区域 II",
+        "id": "danger_i_02",
+        "display_name": "高危区域 I-02",
         "phase": "growth",
-        "order": 6,
+        "order": 14,
+        "map_level_min": 44,
+        "map_level_max": 46,
+        "map_level_text": "44-46",
+        "monster_level": 44,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 6,
+        "gem_level_max": 10,
+        "base_drop_chance": 0.14,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 640,
+          "blue": 290,
+          "purple": 65,
+          "pink": 5
+        },
+        "gem_rarity_weights": {
+          "normal": 640,
+          "magic": 270,
+          "rare": 90
+        }
+      },
+      {
+        "id": "danger_i_03",
+        "display_name": "高危区域 I-03",
+        "phase": "growth",
+        "order": 15,
+        "map_level_min": 47,
+        "map_level_max": 49,
+        "map_level_text": "47-49",
+        "monster_level": 49,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "major_final",
+        "boss_pack_pool": "supreme",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 6,
+        "gem_level_max": 10,
+        "base_drop_chance": 0.14,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 640,
+          "blue": 290,
+          "purple": 65,
+          "pink": 5
+        },
+        "gem_rarity_weights": {
+          "normal": 640,
+          "magic": 270,
+          "rare": 90
+        }
+      },
+      {
+        "id": "danger_ii_01",
+        "display_name": "高危区域 II-01",
+        "phase": "growth",
+        "order": 16,
         "map_level_min": 50,
+        "map_level_max": 53,
+        "map_level_text": "50-53",
+        "monster_level": 50,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 6,
+        "gem_level_max": 10,
+        "base_drop_chance": 0.14,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 640,
+          "blue": 290,
+          "purple": 65,
+          "pink": 5
+        },
+        "gem_rarity_weights": {
+          "normal": 640,
+          "magic": 270,
+          "rare": 90
+        }
+      },
+      {
+        "id": "danger_ii_02",
+        "display_name": "高危区域 II-02",
+        "phase": "growth",
+        "order": 17,
+        "map_level_min": 54,
+        "map_level_max": 56,
+        "map_level_text": "54-56",
+        "monster_level": 54,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "minor",
+        "boss_pack_pool": "legendary",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 6,
+        "gem_level_max": 10,
+        "base_drop_chance": 0.14,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 640,
+          "blue": 290,
+          "purple": 65,
+          "pink": 5
+        },
+        "gem_rarity_weights": {
+          "normal": 640,
+          "magic": 270,
+          "rare": 90
+        }
+      },
+      {
+        "id": "danger_ii_03",
+        "display_name": "高危区域 II-03",
+        "phase": "growth",
+        "order": 18,
+        "map_level_min": 57,
         "map_level_max": 59,
-        "map_level_text": "50-59",
-        "monster_level": 55,
+        "map_level_text": "57-59",
+        "monster_level": 59,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -8002,9 +8642,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": true,
+        "stage_scope": "major_final",
+        "boss_pack_pool": "supreme",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 6,
         "gem_level_max": 10,
         "base_drop_chance": 0.14,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 640,
           "blue": 290,
@@ -8018,14 +8666,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "timemark_1",
-        "display_name": "时刻 1",
+        "id": "timemark_1_01",
+        "display_name": "时刻 1-01",
         "phase": "timemark",
-        "order": 7,
+        "order": 19,
         "map_level_min": 60,
-        "map_level_max": 67,
-        "map_level_text": "60-67",
-        "monster_level": 64,
+        "map_level_max": 63,
+        "map_level_text": "60-63",
+        "monster_level": 60,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -8033,9 +8681,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 9,
         "gem_level_max": 12,
         "base_drop_chance": 0.16,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 590,
           "blue": 320,
@@ -8049,14 +8705,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "timemark_2",
-        "display_name": "时刻 2",
+        "id": "timemark_1_02",
+        "display_name": "时刻 1-02",
         "phase": "timemark",
-        "order": 8,
-        "map_level_min": 68,
-        "map_level_max": 72,
-        "map_level_text": "68-72",
-        "monster_level": 70,
+        "order": 20,
+        "map_level_min": 64,
+        "map_level_max": 67,
+        "map_level_text": "64-67",
+        "monster_level": 67,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -8064,9 +8720,56 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 9,
+        "gem_level_max": 12,
+        "base_drop_chance": 0.16,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 590,
+          "blue": 320,
+          "purple": 80,
+          "pink": 10
+        },
+        "gem_rarity_weights": {
+          "normal": 520,
+          "magic": 330,
+          "rare": 150
+        }
+      },
+      {
+        "id": "timemark_2_01",
+        "display_name": "时刻 2-01",
+        "phase": "timemark",
+        "order": 21,
+        "map_level_min": 68,
+        "map_level_max": 70,
+        "map_level_text": "68-70",
+        "monster_level": 68,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 11,
         "gem_level_max": 14,
         "base_drop_chance": 0.18,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 540,
           "blue": 340,
@@ -8080,14 +8783,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "timemark_3",
-        "display_name": "时刻 3",
+        "id": "timemark_2_02",
+        "display_name": "时刻 2-02",
         "phase": "timemark",
-        "order": 9,
-        "map_level_min": 73,
-        "map_level_max": 76,
-        "map_level_text": "73-76",
-        "monster_level": 75,
+        "order": 22,
+        "map_level_min": 71,
+        "map_level_max": 72,
+        "map_level_text": "71-72",
+        "monster_level": 72,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -8095,9 +8798,56 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 11,
+        "gem_level_max": 14,
+        "base_drop_chance": 0.18,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 540,
+          "blue": 340,
+          "purple": 100,
+          "pink": 20
+        },
+        "gem_rarity_weights": {
+          "normal": 450,
+          "magic": 350,
+          "rare": 200
+        }
+      },
+      {
+        "id": "timemark_3_01",
+        "display_name": "时刻 3-01",
+        "phase": "timemark",
+        "order": 23,
+        "map_level_min": 73,
+        "map_level_max": 74,
+        "map_level_text": "73-74",
+        "monster_level": 73,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 13,
         "gem_level_max": 15,
-        "base_drop_chance": 0.20,
+        "base_drop_chance": 0.2,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 500,
           "blue": 350,
@@ -8111,14 +8861,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "timemark_4",
-        "display_name": "时刻 4",
+        "id": "timemark_3_02",
+        "display_name": "时刻 3-02",
         "phase": "timemark",
-        "order": 10,
-        "map_level_min": 77,
-        "map_level_max": 79,
-        "map_level_text": "77-79",
-        "monster_level": 78,
+        "order": 24,
+        "map_level_min": 75,
+        "map_level_max": 76,
+        "map_level_text": "75-76",
+        "monster_level": 76,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -8126,9 +8876,56 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 13,
+        "gem_level_max": 15,
+        "base_drop_chance": 0.2,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 500,
+          "blue": 350,
+          "purple": 115,
+          "pink": 35
+        },
+        "gem_rarity_weights": {
+          "normal": 390,
+          "magic": 360,
+          "rare": 250
+        }
+      },
+      {
+        "id": "timemark_4_01",
+        "display_name": "时刻 4-01",
+        "phase": "timemark",
+        "order": 25,
+        "map_level_min": 77,
+        "map_level_max": 78,
+        "map_level_text": "77-78",
+        "monster_level": 77,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 14,
         "gem_level_max": 16,
         "base_drop_chance": 0.22,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 460,
           "blue": 360,
@@ -8142,14 +8939,14 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "timemark_5",
-        "display_name": "时刻 5",
+        "id": "timemark_4_02",
+        "display_name": "时刻 4-02",
         "phase": "timemark",
-        "order": 11,
-        "map_level_min": 80,
-        "map_level_max": 81,
-        "map_level_text": "80-81",
-        "monster_level": 81,
+        "order": 26,
+        "map_level_min": 79,
+        "map_level_max": 79,
+        "map_level_text": "79",
+        "monster_level": 79,
         "entry_cost": 1,
         "free_entry": false,
         "entry_count": 0,
@@ -8157,9 +8954,56 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 14,
+        "gem_level_max": 16,
+        "base_drop_chance": 0.22,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 460,
+          "blue": 360,
+          "purple": 130,
+          "pink": 50
+        },
+        "gem_rarity_weights": {
+          "normal": 340,
+          "magic": 360,
+          "rare": 300
+        }
+      },
+      {
+        "id": "timemark_5_01",
+        "display_name": "时刻 5-01",
+        "phase": "timemark",
+        "order": 27,
+        "map_level_min": 80,
+        "map_level_max": 80,
+        "map_level_text": "80",
+        "monster_level": 80,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 15,
         "gem_level_max": 17,
         "base_drop_chance": 0.24,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 420,
           "blue": 370,
@@ -8173,13 +9017,91 @@ export const FRONTEND_INITIAL_APP_STATE = {
         }
       },
       {
-        "id": "timemark_6",
-        "display_name": "时刻 6",
+        "id": "timemark_5_02",
+        "display_name": "时刻 5-02",
         "phase": "timemark",
-        "order": 12,
+        "order": 28,
+        "map_level_min": 81,
+        "map_level_max": 81,
+        "map_level_text": "81",
+        "monster_level": 81,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 15,
+        "gem_level_max": 17,
+        "base_drop_chance": 0.24,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 420,
+          "blue": 370,
+          "purple": 145,
+          "pink": 65
+        },
+        "gem_rarity_weights": {
+          "normal": 290,
+          "magic": 360,
+          "rare": 350
+        }
+      },
+      {
+        "id": "timemark_6_01",
+        "display_name": "时刻 6-01",
+        "phase": "timemark",
+        "order": 29,
         "map_level_min": 82,
+        "map_level_max": 82,
+        "map_level_text": "82",
+        "monster_level": 82,
+        "entry_cost": 1,
+        "free_entry": false,
+        "entry_count": 0,
+        "unlocked": false,
+        "enterable": false,
+        "selected": false,
+        "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
+        "gem_level_min": 16,
+        "gem_level_max": 18,
+        "base_drop_chance": 0.26,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
+        "equipment_rarity_weights": {
+          "white": 390,
+          "blue": 375,
+          "purple": 155,
+          "pink": 80
+        },
+        "gem_rarity_weights": {
+          "normal": 240,
+          "magic": 360,
+          "rare": 400
+        }
+      },
+      {
+        "id": "timemark_6_02",
+        "display_name": "时刻 6-02",
+        "phase": "timemark",
+        "order": 30,
+        "map_level_min": 83,
         "map_level_max": 83,
-        "map_level_text": "82-83",
+        "map_level_text": "83",
         "monster_level": 83,
         "entry_cost": 1,
         "free_entry": false,
@@ -8188,9 +9110,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": true,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 16,
         "gem_level_max": 18,
         "base_drop_chance": 0.26,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 390,
           "blue": 375,
@@ -8207,7 +9137,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "id": "timemark_7_1",
         "display_name": "时刻 7-1",
         "phase": "timemark",
-        "order": 13,
+        "order": 31,
         "map_level_min": 84,
         "map_level_max": 84,
         "map_level_text": "84",
@@ -8219,9 +9149,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 17,
         "gem_level_max": 19,
         "base_drop_chance": 0.28,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 360,
           "blue": 350,
@@ -8238,7 +9176,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "id": "timemark_7_2",
         "display_name": "时刻 7-2",
         "phase": "timemark",
-        "order": 14,
+        "order": 32,
         "map_level_min": 85,
         "map_level_max": 85,
         "map_level_text": "85",
@@ -8250,9 +9188,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": true,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 17,
         "gem_level_max": 19,
         "base_drop_chance": 0.28,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 360,
           "blue": 350,
@@ -8269,7 +9215,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "id": "timemark_8_1",
         "display_name": "时刻 8-1",
         "phase": "timemark",
-        "order": 15,
+        "order": 33,
         "map_level_min": 86,
         "map_level_max": 86,
         "map_level_text": "86",
@@ -8281,9 +9227,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 18,
         "gem_level_max": 20,
-        "base_drop_chance": 0.30,
+        "base_drop_chance": 0.3,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 340,
           "blue": 330,
@@ -8300,7 +9254,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "id": "timemark_8_2",
         "display_name": "时刻 8-2",
         "phase": "timemark",
-        "order": 16,
+        "order": 34,
         "map_level_min": 87,
         "map_level_max": 87,
         "map_level_text": "87",
@@ -8312,9 +9266,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 18,
         "gem_level_max": 20,
-        "base_drop_chance": 0.30,
+        "base_drop_chance": 0.3,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 340,
           "blue": 330,
@@ -8331,7 +9293,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "id": "timemark_8_3",
         "display_name": "时刻 8-3",
         "phase": "timemark",
-        "order": 17,
+        "order": 35,
         "map_level_min": 88,
         "map_level_max": 88,
         "map_level_text": "88",
@@ -8343,9 +9305,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": false,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 18,
         "gem_level_max": 20,
-        "base_drop_chance": 0.30,
+        "base_drop_chance": 0.3,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 340,
           "blue": 330,
@@ -8362,7 +9332,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "id": "timemark_8_4",
         "display_name": "时刻 8-4",
         "phase": "timemark",
-        "order": 18,
+        "order": 36,
         "map_level_min": 89,
         "map_level_max": 100,
         "map_level_text": "89-100",
@@ -8374,9 +9344,17 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "enterable": false,
         "selected": false,
         "boss_stage": true,
+        "stage_scope": "timemark",
+        "boss_pack_pool": "mixed",
+        "map_template_ids": [
+          "map_001"
+        ],
         "gem_level_min": 18,
         "gem_level_max": 20,
-        "base_drop_chance": 0.30,
+        "base_drop_chance": 0.3,
+        "equipment_weight": 70,
+        "gem_weight": 20,
+        "map_entry_weight": 10,
         "equipment_rarity_weights": {
           "white": 340,
           "blue": 330,
@@ -8396,10 +9374,10 @@ export const FRONTEND_INITIAL_APP_STATE = {
     "version": 1,
     "map_state": {
       "unlocked_stage_ids": [
-        "start_i"
+        "start_i_01"
       ],
       "map_entries": {},
-      "selected_stage_id": "start_i"
+      "selected_stage_id": "start_i_01"
     },
     "next_map_run_number": 1,
     "next_gm_item_index": 1,

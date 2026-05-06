@@ -7,7 +7,12 @@ export type ProceduralZoneType =
   | "boss_room"
   | "exit_area";
 
-export type ProceduralSpawnRarity = "normal" | "magic" | "rare" | "boss";
+export type MonsterRarity = "normal" | "magic" | "rare" | "legendary_boss" | "supreme_boss";
+export type MonsterNemesisRarity = "legendary_boss" | "supreme_boss";
+export type LegacyMonsterRarity = MonsterRarity | "boss";
+export type ProceduralSpawnRarity = MonsterRarity;
+export type MonsterType = "minion" | "melee" | "ranged" | "charger" | "tank" | "assassin" | "support";
+export type MonsterSkillShape = "melee" | "projectile" | "charge" | "guard" | "ambush" | "support" | "boss";
 
 export type ProceduralMonsterVisualId = string;
 
@@ -78,9 +83,13 @@ export type MonsterPackEntry = {
   count_max: number;
   life_multiplier?: number;
   damage_multiplier?: number;
+  movement_speed_multiplier?: number;
   life?: number;
   damage?: number;
   boss?: boolean;
+  boss_rarity?: MonsterNemesisRarity | "boss";
+  monster_type?: MonsterType;
+  skill_shape?: MonsterSkillShape;
   offense?: MonsterOffenseConfig;
 };
 
@@ -109,19 +118,33 @@ export type MonsterRarityRules = {
   max_magic_packs_per_map: number;
   magic_allowed_zone_types: ProceduralZoneType[];
   rare_allowed_zone_types: ProceduralZoneType[];
-  multipliers: Record<ProceduralSpawnRarity, { life_multiplier: number; damage_multiplier: number }>;
+  multipliers: Record<LegacyMonsterRarity, { life_multiplier: number; damage_multiplier: number }>;
 };
 
 export type MonsterDefinitionConfig = {
   id: ProceduralMonsterVisualId;
   base_life: number;
   base_attack: number;
+  monster_type: MonsterType;
+  skill_shape?: MonsterSkillShape;
+  boss_pool?: boolean;
+  boss_rarity?: MonsterNemesisRarity;
+};
+
+export type MonsterTypeDefaults = {
+  life_multiplier?: number;
+  damage_multiplier?: number;
+  movement_speed_multiplier?: number;
+  attack_range_multiplier?: number;
+  attack_cadence_multiplier?: number;
+  skill_shape?: MonsterSkillShape;
 };
 
 export type MapSpawnV1Config = {
   map_spawn_profiles: MapSpawnProfile[];
   monster_packs: MonsterPackDefinition[];
   monster_rarity_rules: MonsterRarityRules;
+  monster_type_defaults?: Record<MonsterType, MonsterTypeDefaults>;
   monster_offense_defaults?: MonsterOffenseConfig;
   monster_definitions?: MonsterDefinitionConfig[];
 };
@@ -164,7 +187,11 @@ export type ProceduralMonsterInstance = {
   offense_modifiers: Record<string, number>;
   damage_multiplier: number;
   life_multiplier: number;
+  movement_speed_multiplier: number;
+  monster_type: MonsterType;
+  skill_shape: MonsterSkillShape;
   boss: boolean;
+  nemesis: boolean;
   aggro_source_id: string;
 };
 
@@ -184,7 +211,10 @@ export type ProceduralSpawnDebugSummary = {
   normal_monster_count: number;
   magic_monster_count: number;
   rare_monster_count: number;
+  legendary_boss_monster_count: number;
+  supreme_boss_monster_count: number;
   boss_monster_count: number;
+  monster_type_counts: Record<MonsterType, number>;
   spawn_points: ProceduralSpawnPointDebug[];
   filtered_points: ProceduralSpawnPointDebug[];
 };
@@ -219,6 +249,18 @@ type MutableVarietyState = {
   bossPackCount: number;
 };
 
+const MONSTER_TYPES: MonsterType[] = ["minion", "melee", "ranged", "charger", "tank", "assassin", "support"];
+const DEFAULT_MONSTER_TYPE: MonsterType = "melee";
+const DEFAULT_MONSTER_TYPE_DEFAULTS: Record<MonsterType, Required<MonsterTypeDefaults>> = {
+  minion: { life_multiplier: 0.72, damage_multiplier: 0.72, movement_speed_multiplier: 1.06, attack_range_multiplier: 0.95, attack_cadence_multiplier: 0.92, skill_shape: "melee" },
+  melee: { life_multiplier: 1, damage_multiplier: 1, movement_speed_multiplier: 1, attack_range_multiplier: 1, attack_cadence_multiplier: 1, skill_shape: "melee" },
+  ranged: { life_multiplier: 0.82, damage_multiplier: 0.9, movement_speed_multiplier: 0.82, attack_range_multiplier: 4.8, attack_cadence_multiplier: 1.18, skill_shape: "projectile" },
+  charger: { life_multiplier: 1.05, damage_multiplier: 1.18, movement_speed_multiplier: 1.34, attack_range_multiplier: 1.22, attack_cadence_multiplier: 1.08, skill_shape: "charge" },
+  tank: { life_multiplier: 1.72, damage_multiplier: 0.82, movement_speed_multiplier: 0.66, attack_range_multiplier: 1.05, attack_cadence_multiplier: 1.28, skill_shape: "guard" },
+  assassin: { life_multiplier: 0.86, damage_multiplier: 1.28, movement_speed_multiplier: 1.24, attack_range_multiplier: 1.08, attack_cadence_multiplier: 0.82, skill_shape: "ambush" },
+  support: { life_multiplier: 0.92, damage_multiplier: 0.68, movement_speed_multiplier: 0.92, attack_range_multiplier: 3.2, attack_cadence_multiplier: 1.35, skill_shape: "support" }
+};
+
 const DEFAULT_AGGRO_RADIUS_CELLS = 7;
 const LARGE_ROOM_SAMPLE_RADIUS_CELLS = 3;
 const PACK_CENTER_CLEARANCE_CELLS = 1;
@@ -235,7 +277,8 @@ export function generateProceduralMonsterSpawns(
   const maxCandidatePoints = Math.max(12, Math.floor(options.maxCandidatePoints ?? 180));
   const candidates = collectSpawnCandidates(map, profile, maxCandidatePoints, rng);
   const packsById = new Map(config.monster_packs.map((pack) => [pack.pack_id, pack]));
-  const monsterBaseStats = resolveMonsterBaseStats(config);
+  const monsterDefinitions = resolveMonsterDefinitions(config);
+  const typeDefaults = resolveMonsterTypeDefaults(config);
   const mapMonsterLifeMultiplier = positiveMultiplier(map.map_modifiers?.monster_life_multiplier);
   const debugPoints: ProceduralSpawnPointDebug[] = [];
   const filteredPoints: ProceduralSpawnPointDebug[] = [];
@@ -279,7 +322,7 @@ export function generateProceduralMonsterSpawns(
     }
 
     const aggroSourceId = `proc_${acceptedPackCount + 1}_${candidate.zone_type}`;
-    const packMonsters = instantiatePack(candidate, pack, map, config.monster_rarity_rules, config.monster_offense_defaults, monsterBaseStats, mapMonsterLifeMultiplier, rarityState, varietyState, aggroSourceId, nextId, rng);
+    const packMonsters = instantiatePack(candidate, pack, map, config.monster_rarity_rules, typeDefaults, config.monster_offense_defaults, monsterDefinitions, mapMonsterLifeMultiplier, rarityState, varietyState, aggroSourceId, nextId, rng);
     if (packMonsters.length === 0) {
       const rejected: ProceduralSpawnPointDebug = { ...baseDebug, monster_pack_id: pack.pack_id, filter_reason: "不可行走" };
       debugPoints.push(rejected);
@@ -315,11 +358,18 @@ export function generateProceduralMonsterSpawns(
       normal_monster_count: enemies.filter((enemy) => enemy.spawn_rarity === "normal").length,
       magic_monster_count: enemies.filter((enemy) => enemy.spawn_rarity === "magic").length,
       rare_monster_count: enemies.filter((enemy) => enemy.spawn_rarity === "rare").length,
-      boss_monster_count: enemies.filter((enemy) => enemy.spawn_rarity === "boss" || enemy.boss).length,
+      legendary_boss_monster_count: enemies.filter((enemy) => enemy.spawn_rarity === "legendary_boss").length,
+      supreme_boss_monster_count: enemies.filter((enemy) => enemy.spawn_rarity === "supreme_boss").length,
+      boss_monster_count: enemies.filter((enemy) => isNemesisRarity(enemy.spawn_rarity) || enemy.boss).length,
+      monster_type_counts: monsterTypeCounts(enemies),
       spawn_points: debugPoints,
       filtered_points: filteredPoints
     }
   };
+}
+
+export function isNemesisRarity(rarity: string | undefined): rarity is MonsterNemesisRarity {
+  return rarity === "legendary_boss" || rarity === "supreme_boss";
 }
 
 export function selectSpawnProfile(config: MapSpawnV1Config, mapType?: string): MapSpawnProfile {
@@ -549,8 +599,9 @@ function instantiatePack(
   pack: MonsterPackDefinition,
   map: ProceduralBattleMapData,
   rarityRules: MonsterRarityRules,
+  typeDefaults: Record<MonsterType, Required<MonsterTypeDefaults>>,
   offenseDefaults: MonsterOffenseConfig | undefined,
-  monsterBaseStats: Map<string, { base_life: number; base_attack: number }>,
+  monsterDefinitions: Map<string, MonsterDefinitionConfig>,
   mapMonsterLifeMultiplier: number,
   rarityState: MutableRarityState,
   varietyState: MutableVarietyState,
@@ -569,19 +620,23 @@ function instantiatePack(
     for (let index = 0; index < count; index += 1) {
       const point = findPackMonsterPoint(map, center, monsterIndex, occupied, rng);
       if (!point) continue;
-      const rarity = chooseMonsterRarity(entry.monster_id, center.zone_type, entry.boss === true, packHasMagic, rarityRules, rarityState, rng);
+      const definition = monsterDefinitions.get(entry.monster_id);
+      const rarity = chooseMonsterRarity(entry, definition, center.zone_type, packHasMagic, rarityRules, rarityState, rng);
       if (rarity === "magic" && rarityState.magicCount >= maxMagicMonsters(rarityRules)) continue;
       if (rarity === "rare" && rarityState.rareCount >= rarityRules.max_rare_per_map) continue;
       if (rarity === "magic") packHasMagic = true;
       if (rarity === "magic") rarityState.magicCount += 1;
       if (rarity === "rare") rarityState.rareCount += 1;
-      const multiplier = rarityRules.multipliers[rarity] ?? rarityRules.multipliers.normal;
-      const baseStats = monsterBaseStats.get(entry.monster_id) ?? legacyMonsterBaseStats(entry);
+      const monsterType = resolveMonsterType(entry, definition);
+      const typeDefault = typeDefaults[monsterType];
+      const multiplier = rarityMultiplier(rarityRules, rarity);
+      const baseStats = definition ?? legacyMonsterBaseStats(entry);
       const entryLifeMultiplier = positiveMultiplier(entry.life_multiplier);
       const entryDamageMultiplier = positiveMultiplier(entry.damage_multiplier);
-      const lifeMultiplier = multiplier.life_multiplier * entryLifeMultiplier * mapMonsterLifeMultiplier;
-      const damageMultiplier = multiplier.damage_multiplier * entryDamageMultiplier;
-      const offense = mergeMonsterOffense(offenseDefaults, entry.offense);
+      const lifeMultiplier = multiplier.life_multiplier * typeDefault.life_multiplier * entryLifeMultiplier * mapMonsterLifeMultiplier;
+      const damageMultiplier = multiplier.damage_multiplier * typeDefault.damage_multiplier * entryDamageMultiplier;
+      const offense = mergeMonsterOffense(offenseDefaults, entry.offense, typeDefault);
+      const skillShape = entry.skill_shape ?? definition?.skill_shape ?? typeDefault.skill_shape;
       monsters.push({
         runtime_id: nextId++,
         monster_id: entry.monster_id,
@@ -600,7 +655,11 @@ function instantiatePack(
         offense_modifiers: offense.modifiers,
         damage_multiplier: damageMultiplier,
         life_multiplier: lifeMultiplier,
+        movement_speed_multiplier: typeDefault.movement_speed_multiplier * positiveMultiplier(entry.movement_speed_multiplier),
+        monster_type: monsterType,
+        skill_shape: skillShape,
         boss: entry.boss === true,
+        nemesis: isNemesisRarity(rarity),
         aggro_source_id: aggroSourceId
       });
       occupied.push(point);
@@ -611,12 +670,17 @@ function instantiatePack(
   return monsters;
 }
 
-function resolveMonsterBaseStats(config: MapSpawnV1Config) {
-  const result = new Map<string, { base_life: number; base_attack: number }>();
+function resolveMonsterDefinitions(config: MapSpawnV1Config) {
+  const result = new Map<string, MonsterDefinitionConfig>();
   for (const monster of config.monster_definitions ?? []) {
     result.set(monster.id, {
+      id: monster.id,
       base_life: Math.max(1, Number(monster.base_life)),
-      base_attack: Math.max(0, Number(monster.base_attack))
+      base_attack: Math.max(0, Number(monster.base_attack)),
+      monster_type: normalizeMonsterType(monster.monster_type),
+      skill_shape: normalizeSkillShape(monster.skill_shape),
+      boss_pool: monster.boss_pool === true,
+      boss_rarity: normalizeBossRarity(monster.boss_rarity)
     });
   }
   return result;
@@ -645,8 +709,20 @@ export function parseMonsterDefinitionsToml(source: string): MonsterDefinitionCo
     const id = tomlStringField(block, "id");
     const baseLife = tomlNumberField(block, "base_life");
     const baseAttack = tomlNumberField(block, "base_attack");
+    const monsterType = normalizeMonsterType(tomlStringField(block, "monster_type"));
+    const skillShape = normalizeSkillShape(tomlStringField(block, "skill_shape"));
+    const bossPool = tomlBooleanField(block, "boss_pool");
+    const bossRarity = normalizeBossRarity(tomlStringField(block, "boss_rarity"));
     if (id && baseLife !== null && baseAttack !== null) {
-      definitions.push({ id, base_life: baseLife, base_attack: baseAttack });
+      definitions.push({
+        id,
+        base_life: baseLife,
+        base_attack: baseAttack,
+        monster_type: monsterType,
+        skill_shape: skillShape,
+        boss_pool: bossPool,
+        boss_rarity: bossRarity
+      });
     }
   }
   return definitions;
@@ -662,12 +738,19 @@ function tomlNumberField(block: string, field: string) {
   return match ? Number(match[1]) : null;
 }
 
-function mergeMonsterOffense(defaults: MonsterOffenseConfig | undefined, override: MonsterOffenseConfig | undefined) {
+function tomlBooleanField(block: string, field: string) {
+  const match = block.match(new RegExp(`^${field}\\s*=\\s*(true|false)`, "m"));
+  return match ? match[1] === "true" : false;
+}
+
+function mergeMonsterOffense(defaults: MonsterOffenseConfig | undefined, override: MonsterOffenseConfig | undefined, typeDefault?: Required<MonsterTypeDefaults>) {
+  const baseRange = Number(override?.attack_range ?? defaults?.attack_range ?? 96);
+  const baseCadence = Number(override?.attack_cadence_ms ?? defaults?.attack_cadence_ms ?? 1160);
   return {
     damage_type: String(override?.damage_type ?? defaults?.damage_type ?? "physical"),
     hit_kind: (override?.hit_kind ?? defaults?.hit_kind ?? "attack") === "spell" ? "spell" as const : "attack" as const,
-    attack_range: Math.max(1, Number(override?.attack_range ?? defaults?.attack_range ?? 96)),
-    attack_cadence_ms: Math.max(120, Number(override?.attack_cadence_ms ?? defaults?.attack_cadence_ms ?? 1160)),
+    attack_range: Math.max(1, baseRange * positiveMultiplier(typeDefault?.attack_range_multiplier)),
+    attack_cadence_ms: Math.max(120, baseCadence * positiveMultiplier(typeDefault?.attack_cadence_multiplier)),
     modifiers: {
       ...(defaults?.modifiers ?? {}),
       ...(override?.modifiers ?? {})
@@ -676,24 +759,23 @@ function mergeMonsterOffense(defaults: MonsterOffenseConfig | undefined, overrid
 }
 
 function chooseMonsterRarity(
-  monsterId: string,
+  entry: MonsterPackEntry,
+  definition: MonsterDefinitionConfig | undefined,
   zoneType: ProceduralZoneType,
-  boss: boolean,
   packHasMagic: boolean,
   rules: MonsterRarityRules,
   rarityState: MutableRarityState,
   rng: () => number
 ): ProceduralSpawnRarity {
-  const configured = configuredMonsterRarity(monsterId, boss);
+  const configured = configuredMonsterRarity(entry, definition);
   if (configured) return configured;
-  return chooseRarity(zoneType, boss, packHasMagic, rules, rarityState, rng);
+  return chooseRarity(zoneType, false, packHasMagic, rules, rarityState, rng);
 }
 
-function configuredMonsterRarity(monsterId: string, boss: boolean): ProceduralSpawnRarity | null {
-  if (boss || /^mon_400\d{3}$/.test(monsterId)) return "boss";
-  if (/^mon_300\d{3}$/.test(monsterId)) return "rare";
-  if (/^mon_200\d{3}$/.test(monsterId)) return "magic";
-  if (/^mon_100\d{3}$/.test(monsterId)) return "normal";
+function configuredMonsterRarity(entry: MonsterPackEntry, definition: MonsterDefinitionConfig | undefined): ProceduralSpawnRarity | null {
+  if (entry.boss === true || definition?.boss_pool === true || /^mon_400\d{3}$/.test(entry.monster_id)) {
+    return normalizeBossRarity(entry.boss_rarity) ?? definition?.boss_rarity ?? "legendary_boss";
+  }
   return null;
 }
 
@@ -706,7 +788,7 @@ function chooseRarity(
   rng: () => number
 ): ProceduralSpawnRarity {
   if (boss) {
-    return "boss";
+    return "legendary_boss";
   }
   const rareAllowed = rules.rare_allowed_zone_types.includes(zoneType) && rarityState.rareCount < rules.max_rare_per_map;
   const magicAllowed = rules.magic_allowed_zone_types.includes(zoneType)
@@ -719,6 +801,53 @@ function chooseRarity(
   if (rareAllowed) choices.push({ rarity: "rare", weight: rules.rare_weight });
   const rarity = weightedChoice(choices, (choice) => choice.weight, rng).rarity;
   return rarity;
+}
+
+function rarityMultiplier(rules: MonsterRarityRules, rarity: ProceduralSpawnRarity) {
+  if (rules.multipliers[rarity]) return rules.multipliers[rarity];
+  if (isNemesisRarity(rarity)) return rules.multipliers.boss ?? rules.multipliers.legendary_boss ?? rules.multipliers.normal;
+  return rules.multipliers.normal;
+}
+
+function resolveMonsterType(entry: MonsterPackEntry, definition: MonsterDefinitionConfig | undefined): MonsterType {
+  return normalizeMonsterType(entry.monster_type ?? definition?.monster_type);
+}
+
+function normalizeMonsterType(value: string | undefined): MonsterType {
+  return MONSTER_TYPES.includes(value as MonsterType) ? value as MonsterType : DEFAULT_MONSTER_TYPE;
+}
+
+function normalizeBossRarity(value: string | undefined): MonsterNemesisRarity | undefined {
+  if (value === "supreme_boss") return "supreme_boss";
+  if (value === "legendary_boss" || value === "boss") return "legendary_boss";
+  return undefined;
+}
+
+function normalizeSkillShape(value: string | undefined): MonsterSkillShape | undefined {
+  if (value === "melee" || value === "projectile" || value === "charge" || value === "guard" || value === "ambush" || value === "support" || value === "boss") return value;
+  return undefined;
+}
+
+function resolveMonsterTypeDefaults(config: MapSpawnV1Config): Record<MonsterType, Required<MonsterTypeDefaults>> {
+  const configured = config.monster_type_defaults ?? {};
+  return Object.fromEntries(MONSTER_TYPES.map((type) => {
+    const base = DEFAULT_MONSTER_TYPE_DEFAULTS[type];
+    const override = configured[type] ?? {};
+    return [type, {
+      life_multiplier: positiveMultiplier(override.life_multiplier ?? base.life_multiplier),
+      damage_multiplier: positiveMultiplier(override.damage_multiplier ?? base.damage_multiplier),
+      movement_speed_multiplier: positiveMultiplier(override.movement_speed_multiplier ?? base.movement_speed_multiplier),
+      attack_range_multiplier: positiveMultiplier(override.attack_range_multiplier ?? base.attack_range_multiplier),
+      attack_cadence_multiplier: positiveMultiplier(override.attack_cadence_multiplier ?? base.attack_cadence_multiplier),
+      skill_shape: normalizeSkillShape(override.skill_shape) ?? base.skill_shape
+    }];
+  })) as Record<MonsterType, Required<MonsterTypeDefaults>>;
+}
+
+function monsterTypeCounts(enemies: ProceduralMonsterInstance[]) {
+  const counts = Object.fromEntries(MONSTER_TYPES.map((type) => [type, 0])) as Record<MonsterType, number>;
+  for (const enemy of enemies) counts[enemy.monster_type] += 1;
+  return counts;
 }
 
 function findPackMonsterPoint(map: ProceduralBattleMapData, center: CandidatePoint, monsterIndex: number, occupied: ProceduralMapPoint[], rng: () => number): ProceduralMapPoint | null {
