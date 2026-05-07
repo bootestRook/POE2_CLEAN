@@ -135,8 +135,214 @@ def test_thousand_needles_projectile_travel_is_extended() -> None:
 
     assert needle_events
     assert min(event["payload"]["projectile_range"] for event in needle_events) >= 620 * 8
-    assert min(event["payload"]["projectile_speed"] for event in needle_events) >= 700
+    spiral_events = [event for event in needle_events if event.get("vfx_key") == "supreme_insect_spiral_needle"]
+    assert spiral_events
+    assert {event["payload"]["projectile_speed"] for event in spiral_events} == {500}
     assert min(event["payload"]["lifetime_ms"] for event in needle_events) >= round(620 * 8 / 820 * 1000)
+
+
+def test_sudoku_orbit_config_loads() -> None:
+    report = _runtime_report()
+    skill = next(
+        item for item in report["config"]["skills"]
+        if item["id"] == "supreme_star_arbiter_sudoku_orbit"
+    )
+
+    assert skill["display_name"] == "九宫星轨"
+    assert skill["boss_id"] == "mon_500001"
+    assert skill["cast_duration_ms"] == 9000
+    assert skill["params"]["gate_count"] == 9
+    assert skill["params"]["show_full_9x9_grid"] is False
+    assert [phase["id"] for phase in skill["phases"]] == [
+        "cast",
+        "nine_star_gates",
+        "grid_to_orbit",
+        "nine_star_array",
+        "star_chain_warning",
+        "star_chain_gaps",
+        "palace_ring_warning",
+        "palace_rings",
+        "nine_star_return_warning",
+        "nine_star_return",
+        "end",
+    ]
+
+
+def test_sudoku_orbit_timeline_completes() -> None:
+    report = _runtime_report()
+    summary = next(
+        item for item in report["summaries"]
+        if item["skill_id"] == "supreme_star_arbiter_sudoku_orbit"
+    )
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    phases = {
+        event["payload"].get("phase")
+        for event in events
+        if event["type"] == "projectile_spawn"
+    }
+
+    assert summary["cast_duration_ms"] == 9000
+    assert summary["completed"]
+    assert summary["residual_after_end"] == 0
+    assert {
+        "阶段一：九星布阵",
+        "阶段二：星链缺口",
+        "阶段三：三宫开合",
+        "阶段四：九星归位",
+    }.issubset(phases)
+
+
+def test_nine_star_gate_count() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    gate_events = [
+        event for event in events
+        if event["payload"].get("emitter_kind") == "nine_star_gate"
+        and event["payload"].get("layout_state") in {"grid_3x3", "orbit"}
+    ]
+
+    assert len([event for event in gate_events if event["payload"]["layout_state"] == "grid_3x3"]) == 9
+    assert len([event for event in gate_events if event["payload"]["layout_state"] == "orbit"]) == 9
+
+
+def test_grid_to_orbit_transition() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    grid_gates = [
+        event for event in events
+        if event["payload"].get("emitter_kind") == "nine_star_gate"
+        and event["payload"].get("layout_state") == "grid_3x3"
+    ]
+    orbit_gates = [
+        event for event in events
+        if event["payload"].get("emitter_kind") == "nine_star_gate"
+        and event["payload"].get("layout_state") == "orbit"
+    ]
+
+    assert grid_gates and orbit_gates
+    assert max(event["delay_ms"] for event in grid_gates) == 250
+    assert min(event["delay_ms"] for event in orbit_gates) == 700
+    assert {event["payload"]["grid_position"]["row"] for event in grid_gates} == {1, 2, 3}
+    assert {event["payload"]["grid_position"]["column"] for event in grid_gates} == {1, 2, 3}
+
+
+def test_star_chain_has_gap() -> None:
+    report = _runtime_report()
+    skill = next(item for item in report["config"]["skills"] if item["id"] == "supreme_star_arbiter_sudoku_orbit")
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    chain_events = [
+        event for event in events
+        if event["payload"].get("phase") == "阶段二：星链缺口"
+    ]
+
+    assert chain_events
+    for event in chain_events:
+        inactive_count = event["payload"]["inactive_chain_count"]
+        assert skill["params"]["phase2_inactive_chain_count_min"] <= inactive_count <= skill["params"]["phase2_inactive_chain_count_max"]
+        assert len(event["payload"]["inactive_chains"]) == inactive_count
+
+
+def test_star_chain_gap_prefer_continuous() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    samples = [
+        event["payload"]["inactive_chains"]
+        for event in events
+        if event["payload"].get("phase") == "阶段二：星链缺口"
+    ]
+
+    assert samples
+    for gap in samples:
+        assert all(((gap[index] % 9) + 1) == gap[index + 1] for index in range(len(gap) - 1))
+
+
+def test_palace_ring_warning_before_damage() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    warnings = [
+        event for event in events
+        if event["vfx_key"] == "supreme_star_palace_ring_warning"
+    ]
+    ring_projectiles = [
+        event for event in events
+        if event["payload"].get("phase") == "阶段三：三宫开合"
+    ]
+
+    assert warnings and ring_projectiles
+    assert {event["delay_ms"] for event in warnings} == {4600}
+    assert min(event["delay_ms"] for event in ring_projectiles) == 5200
+    assert all(event["payload"]["warning_remaining_ms"] == 600 for event in warnings)
+
+
+def test_palace_ring_has_gap() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    ring_projectiles = [
+        event for event in events
+        if event["payload"].get("phase") == "阶段三：三宫开合"
+    ]
+    by_ring: dict[int, list[dict]] = {}
+    for event in ring_projectiles:
+        by_ring.setdefault(event["payload"]["ring_index"], []).append(event)
+
+    assert set(by_ring) == {1, 2, 3}
+    for ring_index, items in by_ring.items():
+        bullet_count = [24, 32, 40][ring_index - 1]
+        gap_count = items[0]["payload"]["gap_bullet_count"]
+        assert 0 < gap_count < bullet_count
+        assert len(items) == bullet_count - gap_count
+
+
+def test_palace_ring_gap_never_below_min() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    ring_events = [
+        event for event in events
+        if event["payload"].get("phase") == "阶段三：三宫开合"
+    ]
+
+    assert ring_events
+    for event in ring_events:
+        assert event["payload"]["gap_bullet_count"] >= event["payload"]["min_gap_bullet_count"]
+
+
+def test_nine_star_return_has_safe_band() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    safe_bands = [
+        event for event in events
+        if event["vfx_key"] == "supreme_star_safe_band"
+    ]
+
+    assert len(safe_bands) == 1
+    payload = safe_bands[0]["payload"]
+    assert payload["safe_band_inner_radius"] < payload["safe_band_outer_radius"]
+    assert payload["debug_label"] == "旋转安全带"
+
+
+def test_return_projectiles_do_not_home_to_player() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+    return_events = [
+        event for event in events
+        if event["payload"].get("phase") == "阶段四：九星归位"
+    ]
+
+    assert return_events
+    assert all(event["payload"].get("homing_target") != "player" for event in return_events)
+    assert {event["payload"]["return_phase"] for event in return_events} == {"outward", "inward"}
+
+
+def test_cleanup_after_sudoku_orbit_end() -> None:
+    report = _runtime_report()
+    events = report["events"]["supreme_star_arbiter_sudoku_orbit"]
+
+    assert all(event["delay_ms"] <= 9000 for event in events)
+    assert not any(
+        event["type"] in {"projectile_spawn", "damage_zone", "damage_zone_prime"}
+        and event["delay_ms"] > 9000
+        for event in events
+    )
 
 
 def test_final_converger_invulnerability_window() -> None:

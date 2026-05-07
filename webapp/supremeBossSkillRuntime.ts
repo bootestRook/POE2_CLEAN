@@ -210,52 +210,153 @@ function normalizeSupremeBossSkill(value: unknown): SupremeBossSkillDefinition {
 
 function buildSudokuOrbitEvents(skill: SupremeBossSkillDefinition, context: SupremeBossBuildContext) {
   const events: SupremeBossRuntimeEvent[] = [];
-  const params = skill.params;
-  const rows = numberParam(params, "grid_rows", 9);
-  const cols = numberParam(params, "grid_cols", 9);
-  const boxSize = numberParam(params, "box_size", 3);
-  const arena = arenaRect(context);
-  const cellW = arena.width / cols;
-  const cellH = arena.height / rows;
-  const dangerRows = chooseDistinctIndices(skill, context.sequence, "row", rows, numberParam(params, "row_warning_count", 3));
-  const dangerCols = chooseDistinctIndices(skill, context.sequence, "column", cols, numberParam(params, "column_warning_count", 3));
-  const dangerBoxes = chooseDistinctIndices(skill, context.sequence, "box", 9, numberParam(params, "box_warning_count", 3));
-  const safeBox = firstIndexNotIn(9, dangerBoxes, stableIndex(`${skill.id}:${context.sequence}:safe-box`, 9));
+  const p = skill.params;
+  const center = context.boss;
+  const gateCount = numberParam(p, "gate_count", 9);
+  const gridRadius = numberParam(p, "grid_outline_radius", 150);
+  const orbitRadius = numberParam(p, "orbit_radius", 210);
+  const phase1OrbitSpeed = numberParam(p, "phase1_orbit_speed_deg_per_sec", 72);
+  const phase2OrbitSpeed = numberParam(p, "phase2_orbit_speed_deg_per_sec", 48);
 
-  events.push(labelEvent(skill, context, 0, "九宫星轨", context.boss, "cast_start"));
-  events.push(rectEvent(skill, context, 200, context.boss, { x: 1, y: 0 }, arena.width, arena.height, 7600, "damage_zone_prime", "九宫网格", "supreme_star_grid", "lightning", { debug_label: "技能 ID supreme_star_arbiter_sudoku_orbit / 当前阶段 phase 九宫网格", grid_rows: rows, grid_cols: cols }));
-  events.push(...dangerRows.map((row) => {
-    const y = arena.y + (row + 0.5) * cellH;
-    return rectEvent(skill, context, 800, { x: arena.x + arena.width / 2, y }, { x: 1, y: 0 }, arena.width, cellH * 0.88, 800, "damage_zone_prime", "危险行", "supreme_star_row_warning", "lightning", { debug_label: "九宫星轨：行裁决 / 危险行", warning_remaining_ms: 800 });
-  }));
-  for (const row of dangerRows) {
-    const y = arena.y + (row + 0.5) * cellH;
-    events.push(projectileEvent(skill, context, 1600, { x: arena.x, y }, { x: 1, y: 0 }, arena.width, numberParam(params, "row_projectile_speed", 520), numberParam(params, "projectile_radius", 8), "supreme_star_projectile", "lightning", "危险行"));
+  events.push(labelEvent(skill, context, 0, "九宫星轨", center, "cast_start"));
+  events.push(circleEvent(skill, context, 0, center, 138, 9000, "damage_zone_prime", "九宫星盘", "supreme_star_palace_disk", "lightning", { debug_label: "九宫星轨", show_full_9x9_grid: false }));
+  events.push(rectEvent(skill, context, 250, center, { x: 1, y: 0 }, gridRadius * 2.1, gridRadius * 2.1, 620, "damage_zone_prime", "九宫轮廓", "supreme_star_palace_outline", "lightning", { debug_label: "九宫轮廓 / 九宫星门", grid_rows: 3, grid_cols: 3, show_full_9x9_grid: false, warning_remaining_ms: 450 }));
+
+  for (let gateIndex = 0; gateIndex < gateCount; gateIndex += 1) {
+    const gridGate = nineStarGridPosition(center, gridRadius, gateIndex);
+    events.push(circleEvent(skill, context, 250, gridGate, 20, 650, "damage_zone_prime", "九宫星门", "supreme_star_gate_portal", "lightning", { debug_label: `星门编号 ${gateIndex + 1}`, emitter_kind: "nine_star_gate", emitter_index: gateIndex + 1, emitter_count: gateCount, layout_state: "grid_3x3", grid_position: { row: Math.floor(gateIndex / 3) + 1, column: gateIndex % 3 + 1 } }));
   }
-  events.push(...dangerCols.map((col) => {
-    const x = arena.x + (col + 0.5) * cellW;
-    return rectEvent(skill, context, 2400, { x, y: arena.y + arena.height / 2 }, { x: 0, y: 1 }, arena.height, cellW * 0.88, 800, "damage_zone_prime", "危险列", "supreme_star_column_warning", "lightning", { debug_label: "九宫星轨：列裁决 / 危险列", warning_remaining_ms: 800 });
-  }));
-  for (const col of dangerCols) {
-    const x = arena.x + (col + 0.5) * cellW;
-    events.push(projectileEvent(skill, context, 3200, { x, y: arena.y }, { x: 0, y: 1 }, arena.height, numberParam(params, "column_projectile_speed", 520), numberParam(params, "projectile_radius", 8), "supreme_star_projectile", "lightning", "危险列"));
+
+  events.push(circleEvent(skill, context, 700, center, orbitRadius, 3000, "damage_zone_prime", "星门轨道", "supreme_star_gate_orbit", "lightning", { debug_label: "星门轨道 / 九星布阵", emitter_count: gateCount, warning_remaining_ms: 200 }));
+  for (let gateIndex = 0; gateIndex < gateCount; gateIndex += 1) {
+    const orbitGate = orbitCannonPosition(center, orbitRadius, gateIndex, gateCount, 0, 0);
+    events.push(circleEvent(skill, context, 700, orbitGate, 18, skill.cast_duration_ms - 700, "damage_zone_prime", "九宫星门", "supreme_star_gate_portal", "lightning", { debug_label: `九宫星门 ${gateIndex + 1}`, emitter_kind: "nine_star_gate", emitter_index: gateIndex + 1, emitter_count: gateCount, layout_state: "orbit", orbit_radius: orbitRadius }));
   }
-  for (const box of dangerBoxes) {
-    const boxCol = box % 3;
-    const boxRow = Math.floor(box / 3);
-    const center = { x: arena.x + (boxCol * boxSize + boxSize / 2) * cellW, y: arena.y + (boxRow * boxSize + boxSize / 2) * cellH };
-    events.push(rectEvent(skill, context, 4000, center, { x: 1, y: 0 }, boxSize * cellW, boxSize * cellH, 1000, "damage_zone_prime", "九宫星轨：宫裁决", "supreme_star_box_warning", "lightning", { debug_label: "九宫星轨：宫裁决", warning_remaining_ms: 1000 }));
-    events.push(circleEvent(skill, context, 5000, center, Math.min(cellW, cellH) * 0.92, 380, "damage_zone", "九宫星轨：宫裁决", "supreme_star_box_burst", "lightning", { damage_amount: 1, max_hits: 1 }));
+
+  const phase1Start = numberParam(p, "phase1_start_ms", 900);
+  const phase1End = numberParam(p, "phase1_end_ms", 2400);
+  const phase1Interval = numberParam(p, "phase1_wave_interval_ms", 200);
+  const phase1Speed = numberParam(p, "phase1_projectile_speed", 520);
+  const phase1Travel = phase1Speed * numberParam(p, "phase1_projectile_lifetime_ms", 3000) / 1000;
+  const phase1Spread = numberParam(p, "phase1_spread_deg", 12);
+  const phase1Step = numberParam(p, "phase1_global_angle_step_deg", 8);
+  for (let t = phase1Start, wave = 0; t <= phase1End; t += phase1Interval, wave += 1) {
+    const elapsedSec = (t - 700) / 1000;
+    for (let gateIndex = 0; gateIndex < gateCount; gateIndex += 1) {
+      const gate = orbitCannonPosition(center, orbitRadius, gateIndex, gateCount, elapsedSec, phase1OrbitSpeed);
+      const baseAngle = gateIndex * 360 / gateCount + elapsedSec * phase1OrbitSpeed + wave * phase1Step;
+      for (let bulletIndex = 0; bulletIndex < numberParam(p, "phase1_bullets_per_gate", 2); bulletIndex += 1) {
+        const offset = bulletIndex === 0 ? 0 : phase1Spread;
+        events.push(projectileEvent(skill, context, t, gate, angleVector(baseAngle + offset), phase1Travel, phase1Speed, numberParam(p, "phase1_projectile_radius", 5), "supreme_star_nine_gate_needle", "lightning", "阶段一：九星布阵", { phase: "阶段一：九星布阵", emitter_index: gateIndex + 1, projectile_shape: "star_needle", global_angle_step_deg: phase1Step }));
+      }
+    }
   }
-  const safeCenter = boxCenter(safeBox, arena, cellW, cellH, boxSize);
-  events.push(rectEvent(skill, context, 5800, safeCenter, { x: 1, y: 0 }, boxSize * cellW, boxSize * cellH, 1000, "damage_zone_prime", "安全宫", "supreme_safe_zone", "cold", { debug_label: "安全宫", safe_box: safeBox, warning_remaining_ms: 1000 }));
-  for (let box = 0; box < 9; box += 1) {
-    if (box === safeBox) continue;
-    const center = boxCenter(box, arena, cellW, cellH, boxSize);
-    const direction = normalized({ x: context.boss.x - center.x, y: context.boss.y - center.y });
-    events.push(projectileEvent(skill, context, 6800, center, direction, distance(center, context.boss), numberParam(params, "final_projectile_speed", 380), numberParam(params, "projectile_radius", 8), "supreme_star_converge", "lightning", "九宫星轨：终段收束", { safe_box: safeBox }));
+
+  const phase2Start = numberParam(p, "phase2_start_ms", 2900);
+  const phase2End = numberParam(p, "phase2_end_ms", 4600);
+  const phase2Interval = numberParam(p, "phase2_wave_interval_ms", 350);
+  const chainCount = numberParam(p, "phase2_chain_count", 9);
+  const phase2Speed = numberParam(p, "phase2_projectile_speed", 430);
+  const phase2Travel = phase2Speed * numberParam(p, "phase2_projectile_lifetime_ms", 3200) / 1000;
+  events.push(labelEvent(skill, context, 2400, "星链预警", { x: center.x, y: center.y - orbitRadius - 40 }, "debug"));
+  for (let chainIndex = 0; chainIndex < chainCount; chainIndex += 1) {
+    const a = orbitCannonPosition(center, orbitRadius, chainIndex, chainCount, (2400 - 700) / 1000, phase2OrbitSpeed);
+    const b = orbitCannonPosition(center, orbitRadius, (chainIndex + 1) % chainCount, chainCount, (2400 - 700) / 1000, phase2OrbitSpeed);
+    const chainCenter = { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
+    events.push(circleEvent(skill, context, 2400, chainCenter, 14, 500, "damage_zone_prime", "星链发射源", "supreme_star_chain_warning", "lightning", { debug_label: "星链发射源", chain_index: chainIndex + 1, chain_count: chainCount, warning_remaining_ms: 500, does_damage: false }));
   }
-  events.push(labelEvent(skill, context, 6800, "九宫星轨：终段收束 / 安全宫", safeCenter, "debug"));
+  for (let t = phase2Start, wave = 0; t <= phase2End; t += phase2Interval, wave += 1) {
+    const inactiveMin = numberParam(p, "phase2_inactive_chain_count_min", 2);
+    const inactiveMax = numberParam(p, "phase2_inactive_chain_count_max", 3);
+    const inactiveCount = Math.max(inactiveMin, Math.min(inactiveMax, inactiveMin + wave % Math.max(1, inactiveMax - inactiveMin + 1)));
+    const gapStart = (stableIndex(`${skill.id}:${context.sequence}:chain-gap:${wave}`, chainCount) + wave) % chainCount;
+    const inactiveChains = Array.from({ length: inactiveCount }, (_, index) => (gapStart + index) % chainCount);
+    const inactiveSet = new Set(inactiveChains);
+    const elapsedSec = (t - 700) / 1000;
+    events.push(labelEvent(skill, context, t, `本轮缺口：${inactiveChains.map((item) => item + 1).join("、")}`, { x: center.x, y: center.y - orbitRadius - 58 }, "debug"));
+    for (let chainIndex = 0; chainIndex < chainCount; chainIndex += 1) {
+      if (inactiveSet.has(chainIndex)) continue;
+      const a = orbitCannonPosition(center, orbitRadius, chainIndex, chainCount, elapsedSec, phase2OrbitSpeed);
+      const b = orbitCannonPosition(center, orbitRadius, (chainIndex + 1) % chainCount, chainCount, elapsedSec, phase2OrbitSpeed);
+      const outward = normalized({ x: (a.x + b.x) * 0.5 - center.x, y: (a.y + b.y) * 0.5 - center.y });
+      const side = { x: -outward.y, y: outward.x };
+      for (let bulletIndex = 0; bulletIndex < numberParam(p, "phase2_bullets_per_chain", 7); bulletIndex += 1) {
+        const along = bulletIndex - (numberParam(p, "phase2_bullets_per_chain", 7) - 1) * 0.5;
+        const spawn = { x: (a.x + b.x) * 0.5 + side.x * along * 16, y: (a.y + b.y) * 0.5 + side.y * along * 16 };
+        const direction = rotate(outward, wave * numberParam(p, "phase2_global_angle_step_deg", 10) * 0.2);
+        events.push(projectileEvent(skill, context, t + bulletIndex * 12, spawn, direction, phase2Travel, phase2Speed, numberParam(p, "phase2_projectile_radius", 7), "supreme_star_chain_star", "lightning", "阶段二：星链缺口", { phase: "阶段二：星链缺口", chain_index: chainIndex + 1, inactive_chains: inactiveChains.map((item) => item + 1), inactive_chain_count: inactiveCount, prefer_continuous_gap: true, projectile_shape: "chain_star" }));
+      }
+    }
+  }
+
+  const phase3Start = numberParam(p, "phase3_start_ms", 5200);
+  const phase3End = numberParam(p, "phase3_end_ms", 6900);
+  const phase3Warning = numberParam(p, "phase3_warning_ms", 600);
+  const ringRadii = arrayParam(p, "phase3_ring_radii", [150, 260, 370]);
+  const ringSpeeds = arrayParam(p, "phase3_rotation_speed_deg_per_sec", [80, -65, 50]);
+  const bulletsByRing = arrayParam(p, "phase3_bullets_per_ring", [24, 32, 40]);
+  const gapsByRing = arrayParam(p, "phase3_gap_bullet_count", [5, 6, 7]);
+  const minGapsByRing = arrayParam(p, "phase3_min_gap_bullet_count", [4, 5, 6]);
+  const maxGapsByRing = arrayParam(p, "phase3_max_gap_bullet_count", [7, 8, 9]);
+  const pulseInterval = numberParam(p, "phase3_gap_pulse_interval_ms", 550);
+  events.push(labelEvent(skill, context, phase3Start - phase3Warning, "三宫开合预警", { x: center.x, y: center.y - ringRadii[ringRadii.length - 1] - 38 }, "debug"));
+  ringRadii.forEach((ringRadius, ringIndex) => {
+    const bulletCount = Math.max(1, Math.round(bulletsByRing[ringIndex] ?? 24));
+    const minGap = Math.max(1, Math.round(minGapsByRing[ringIndex] ?? 4));
+    const maxGap = Math.max(minGap, Math.round(maxGapsByRing[ringIndex] ?? minGap + 2));
+    const baseGap = Math.max(minGap, Math.round(gapsByRing[ringIndex] ?? minGap));
+    const currentGap = Math.max(minGap, Math.min(maxGap, baseGap + (ringIndex % 2)));
+    const gapStart = stableIndex(`${skill.id}:${context.sequence}:palace-ring:${ringIndex}`, bulletCount);
+    const rotationSpeed = ringSpeeds[ringIndex] ?? 50;
+    const ringLifetime = Math.max(320, phase3End - phase3Start);
+    events.push(circleEvent(skill, context, phase3Start - phase3Warning, center, ringRadius, phase3Warning, "damage_zone_prime", "三宫开合预警", "supreme_star_palace_ring_warning", "lightning", { debug_label: "宫环缺口", ring_index: ringIndex + 1, gap_start: gapStart, gap_bullet_count: currentGap, min_gap_bullet_count: minGap, max_gap_bullet_count: maxGap, gap_pulse_interval_ms: pulseInterval, warning_remaining_ms: phase3Warning }));
+    events.push(labelEvent(skill, context, phase3Start, `缺口开合 / 第 ${ringIndex + 1} 宫环`, { x: center.x + ringRadius, y: center.y }, "debug"));
+    for (let bulletIndex = 0; bulletIndex < bulletCount; bulletIndex += 1) {
+      if (ringGapContains(bulletIndex, gapStart, currentGap, bulletCount)) continue;
+      const angle = bulletIndex * 360 / bulletCount + rotationSpeed * phase3Warning / 1000;
+      const radial = angleVector(angle);
+      const tangent = rotationSpeed >= 0 ? { x: -radial.y, y: radial.x } : { x: radial.y, y: -radial.x };
+      const spawn = { x: center.x + radial.x * ringRadius, y: center.y + radial.y * ringRadius };
+      events.push(projectileEvent(skill, context, phase3Start, spawn, tangent, Math.abs(rotationSpeed) * ringLifetime / 1000 * 2.7, Math.max(80, Math.abs(rotationSpeed) * 2.35), numberParam(p, "phase3_projectile_radius", 8), "supreme_star_palace_orb", "lightning", "阶段三：三宫开合", { phase: "阶段三：三宫开合", ring_index: ringIndex + 1, ring_radius: ringRadius, gap_start: gapStart, gap_bullet_count: currentGap, min_gap_bullet_count: minGap, max_gap_bullet_count: maxGap, gap_pulse_interval_ms: pulseInterval, rotation_speed_deg_per_sec: rotationSpeed, projectile_shape: "palace_orb" }));
+    }
+  });
+
+  const phase4Start = numberParam(p, "phase4_start_ms", 7300);
+  const phase4End = numberParam(p, "phase4_end_ms", 8500);
+  const safeInner = numberParam(p, "phase4_safe_band_inner_radius", 230);
+  const safeOuter = numberParam(p, "phase4_safe_band_outer_radius", 355);
+  const centerDanger = numberParam(p, "phase4_center_danger_radius", 145);
+  events.push(labelEvent(skill, context, 6900, "九星归位", { x: center.x, y: center.y - safeOuter - 40 }, "debug"));
+  events.push(circleEvent(skill, context, 6900, center, safeOuter, phase4End - 6900, "damage_zone_prime", "旋转安全带", "supreme_star_safe_band", "cold", { debug_label: "旋转安全带", safe_band_inner_radius: safeInner, safe_band_outer_radius: safeOuter, safe_band_rotation_speed_deg_per_sec: numberParam(p, "phase4_safe_band_rotation_speed_deg_per_sec", 36) }));
+  events.push(circleEvent(skill, context, 6900, center, centerDanger, 400, "damage_zone_prime", "中心危险区", "supreme_star_center_warning", "chaos", { debug_label: "中心危险区", warning_remaining_ms: 400 }));
+  events.push(circleEvent(skill, context, phase4Start, center, centerDanger, phase4End - phase4Start, "damage_zone", "中心危险区", "supreme_star_center_danger", "chaos", { debug_label: "中心危险区" }));
+  for (let gateIndex = 0; gateIndex < gateCount; gateIndex += 1) {
+    const gate = nineStarGridPosition(center, gridRadius, gateIndex);
+    events.push(circleEvent(skill, context, 6900, gate, 19, phase4End - 6900, "damage_zone_prime", "九宫星门", "supreme_star_gate_return", "lightning", { debug_label: `星门编号 ${gateIndex + 1}`, emitter_kind: "nine_star_gate", emitter_index: gateIndex + 1, layout_state: "grid_3x3_return" }));
+  }
+  const outwardSpeed = numberParam(p, "phase4_outward_speed", 460);
+  const returnSpeed = numberParam(p, "phase4_return_speed", 390);
+  const turnaroundRadius = numberParam(p, "phase4_turnaround_radius", 520);
+  const perGate = numberParam(p, "phase4_return_projectiles_per_gate", 6);
+  const flashInterval = numberParam(p, "phase4_gate_flash_interval_ms", 90);
+  for (let gateIndex = 0; gateIndex < gateCount; gateIndex += 1) {
+    const gate = nineStarGridPosition(center, gridRadius, gateIndex);
+    const baseDirection = normalized({ x: gate.x - center.x, y: gate.y - center.y });
+    const flashAt = phase4Start + gateIndex * flashInterval;
+    events.push(labelEvent(skill, context, flashAt, `星门编号 ${gateIndex + 1}`, gate, "debug"));
+    for (let bulletIndex = 0; bulletIndex < perGate; bulletIndex += 1) {
+      const spread = (bulletIndex - (perGate - 1) * 0.5) * 7;
+      const direction = rotate(baseDirection, spread);
+      const turnPoint = { x: center.x + direction.x * turnaroundRadius, y: center.y + direction.y * turnaroundRadius };
+      const outwardTravel = Math.max(1, distance(gate, turnPoint));
+      const outwardMs = Math.round(outwardTravel / outwardSpeed * 1000);
+      const returnId = `九星归位-${gateIndex + 1}-${bulletIndex + 1}`;
+      events.push(projectileEvent(skill, context, flashAt, gate, direction, outwardTravel, outwardSpeed, numberParam(p, "phase4_projectile_radius", 7), "supreme_star_return_star", "chaos", "阶段四：九星归位", { phase: "阶段四：九星归位", return_phase: "outward", return_id: returnId, emitter_index: gateIndex + 1, return_index: bulletIndex + 1, homing_target: "geometric_path", turnaround_point: turnPoint, debug_label: "回流路径" }));
+      events.push(circleEvent(skill, context, flashAt + outwardMs, turnPoint, 13, 160, "damage_zone_prime", "回流转向点", "supreme_star_return_turnaround", "lightning", { debug_label: "回流路径", return_id: returnId }));
+      events.push(projectileEvent(skill, context, flashAt + outwardMs, turnPoint, normalized({ x: center.x - turnPoint.x, y: center.y - turnPoint.y }), Math.max(1, turnaroundRadius - centerDanger - 18), returnSpeed, numberParam(p, "phase4_projectile_radius", 7), "supreme_star_return_star", "chaos", "阶段四：九星归位", { phase: "阶段四：九星归位", return_phase: "inward", return_id: returnId, emitter_index: gateIndex + 1, return_index: bulletIndex + 1, homing_target: "geometric_center", target_world_position: { x: center.x + normalized({ x: turnPoint.x - center.x, y: turnPoint.y - center.y }).x * (centerDanger + 18), y: center.y + normalized({ x: turnPoint.x - center.x, y: turnPoint.y - center.y }).y * (centerDanger + 18) }, debug_label: "回流路径" }));
+    }
+  }
+  events.push(circleEvent(skill, context, 8500, center, 50, 500, "damage_zone_prime", "九星归位结束", "supreme_star_final_point", "lightning", { debug_label: "九星归位结束" }));
   return withEndGuard(skill, events);
 }
 
@@ -676,12 +777,20 @@ function withEndGuard(skill: SupremeBossSkillDefinition, events: SupremeBossRunt
 }
 
 function sudokuOrbitHasSafeRoute(skill: SupremeBossSkillDefinition) {
-  const rows = numberParam(skill.params, "grid_rows", 9);
-  const cols = numberParam(skill.params, "grid_cols", 9);
-  const rowDanger = numberParam(skill.params, "row_warning_count", 3);
-  const colDanger = numberParam(skill.params, "column_warning_count", 3);
-  const boxDanger = numberParam(skill.params, "box_warning_count", 3);
-  return rows - rowDanger >= 1 && cols - colDanger >= 1 && 9 - boxDanger >= 1;
+  const p = skill.params;
+  const chainCount = numberParam(p, "phase2_chain_count", 9);
+  const inactiveMin = numberParam(p, "phase2_inactive_chain_count_min", 2);
+  const ringRadii = arrayParam(p, "phase3_ring_radii", [150, 260, 370]);
+  const minGaps = arrayParam(p, "phase3_min_gap_bullet_count", [4, 5, 6]);
+  const safeInner = numberParam(p, "phase4_safe_band_inner_radius", 230);
+  const safeOuter = numberParam(p, "phase4_safe_band_outer_radius", 355);
+  return numberParam(p, "gate_count", 9) === 9
+    && chainCount >= 9
+    && inactiveMin >= 2
+    && ringRadii.length >= 3
+    && minGaps.every((gap) => gap >= 3)
+    && safeInner > numberParam(p, "phase4_center_danger_radius", 145)
+    && safeInner < safeOuter;
 }
 
 function maxEventEndMs(events: SupremeBossRuntimeEvent[]) {
@@ -702,6 +811,12 @@ function boxCenter(box: number, arena: { x: number; y: number; width: number; he
   const boxCol = box % 3;
   const boxRow = Math.floor(box / 3);
   return { x: arena.x + (boxCol * boxSize + boxSize / 2) * cellW, y: arena.y + (boxRow * boxSize + boxSize / 2) * cellH };
+}
+
+function nineStarGridPosition(center: { x: number; y: number }, spacing: number, index: number) {
+  const column = index % 3 - 1;
+  const row = Math.floor(index / 3) - 1;
+  return { x: center.x + column * spacing, y: center.y + row * spacing };
 }
 
 function eggCenters(skill: SupremeBossSkillDefinition, context: SupremeBossBuildContext, waveIndex: number, count: number) {
