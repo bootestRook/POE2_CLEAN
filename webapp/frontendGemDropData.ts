@@ -15596,23 +15596,23 @@ export const FRONTEND_GEM_DROP_POOL = [
     "tags": [
       {
         "id": "gem",
-        "text": "??"
+        "text": "宝石"
       },
       {
         "id": "gem_type_8",
-        "text": "8???"
+        "text": "8号宝石"
       },
       {
         "id": "loot_gem",
-        "text": "?????"
+        "text": "可掉落宝石"
       },
       {
         "id": "support_gem",
-        "text": "????"
+        "text": "辅助宝石"
       },
       {
         "id": "support_utility",
-        "text": "????"
+        "text": "功能辅助"
       },
       {
         "id": "support_speed",
@@ -15624,7 +15624,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       }
     ],
     "base_effect": {
-      "title_text": "??????",
+      "title_text": "辅助基础效果",
       "modifiers": [
         {
           "stat": {
@@ -15653,10 +15653,10 @@ export const FRONTEND_GEM_DROP_POOL = [
       ]
     },
     "can_affect": {
-      "summary_text": "???????????????",
+      "summary_text": "按标签影响匹配的主动或被动技能",
       "target_kinds": [
-        "??????",
-        "??????"
+        "主动技能宝石",
+        "被动技能宝石"
       ],
       "tags_any": [
         {
@@ -15703,11 +15703,11 @@ export const FRONTEND_GEM_DROP_POOL = [
       "summary_lines": [
         [
           {
-            "text": "青色",
+            "text": "8号宝石",
             "tone": "color-cyan"
           },
           {
-            "text": " ? ",
+            "text": "、",
             "tone": "muted"
           },
           {
@@ -15822,23 +15822,23 @@ export const FRONTEND_GEM_DROP_POOL = [
     "tags": [
       {
         "id": "gem",
-        "text": "??"
+        "text": "宝石"
       },
       {
         "id": "gem_type_8",
-        "text": "8???"
+        "text": "8号宝石"
       },
       {
         "id": "loot_gem",
-        "text": "?????"
+        "text": "可掉落宝石"
       },
       {
         "id": "support_gem",
-        "text": "????"
+        "text": "辅助宝石"
       },
       {
         "id": "support_utility",
-        "text": "????"
+        "text": "功能辅助"
       },
       {
         "id": "support_cooldown",
@@ -15846,7 +15846,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       }
     ],
     "base_effect": {
-      "title_text": "??????",
+      "title_text": "辅助基础效果",
       "modifiers": [
         {
           "stat": {
@@ -15859,10 +15859,10 @@ export const FRONTEND_GEM_DROP_POOL = [
       ]
     },
     "can_affect": {
-      "summary_text": "???????????????",
+      "summary_text": "按标签影响匹配的主动或被动技能",
       "target_kinds": [
-        "??????",
-        "??????"
+        "主动技能宝石",
+        "被动技能宝石"
       ],
       "tags_any": [
         {
@@ -15931,11 +15931,11 @@ export const FRONTEND_GEM_DROP_POOL = [
       "summary_lines": [
         [
           {
-            "text": "青色",
+            "text": "8号宝石",
             "tone": "color-cyan"
           },
           {
-            "text": " ? ",
+            "text": "、",
             "tone": "muted"
           },
           {

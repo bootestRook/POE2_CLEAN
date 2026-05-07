@@ -1211,7 +1211,7 @@ button {
   text-align: center;
   cursor: pointer;
   pointer-events: auto;
-  transform: translateX(-50%);
+  transform: translate(-50%, -18px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -5036,7 +5036,7 @@ button {
   z-index: 4;
   min-width: 74px;
   padding: 5px 10px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -18px);
   border: 1px solid rgba(255, 196, 112, 0.72);
   border-radius: 5px;
   background: rgba(14, 16, 19, 0.9);
@@ -7741,6 +7741,24 @@ h3 {
   font-size: 14px;
 }
 
+.item-discard-skip {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 8px;
+  color: var(--geo-ui-muted);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.item-discard-skip input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--geo-ui-accent);
+  cursor: pointer;
+}
+
 .item-discard-actions {
   display: flex;
   justify-content: center;
@@ -7903,6 +7921,19 @@ h3 {
   background: var(--geo-ui-bg-raised);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   color: var(--geo-ui-text);
+}
+
+.equipment-compare-tooltip {
+  z-index: 89;
+}
+
+.equipment-compare-hint {
+  margin-top: 10px;
+  color: #b9b2a6;
+  font-size: 11px;
+  line-height: 1;
+  text-align: right;
+  letter-spacing: 0;
 }
 
 .drag-hint {

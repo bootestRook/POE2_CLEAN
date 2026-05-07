@@ -457,6 +457,26 @@ def test_frontend_self_centered_damage_zone_releases_after_event_validation() ->
     assert 'const direction = originTarget ? guideDirection(caster, originTarget) : { x: 1, y: 0 }' in damage_zone_body
 
 
+def test_frontend_channel_damage_zones_require_targets_and_scale_radius() -> None:
+    source = _app_source()
+    release_body = source.split("function releaseFrontendCanonicalSkill", 1)[1].split("function buildFrontendCanonicalSkillEvents", 1)[0]
+    loop_body = source.split("if (!consumedContinuousAttack && activeSkills.length > 0)", 1)[1].split("const projectileImpactEvents", 1)[0]
+    channel_body = source.split("function processChannelDamageZoneSkill", 1)[1].split("function processThundercloudChannel", 1)[0]
+    damage_zone_body = source.split("function buildFrontendDamageZoneSkillEvents", 1)[1].split("function buildFrontendMeleeArcSkillEvents", 1)[0]
+
+    assert "const damageZoneChannels = useRef" in source
+    assert "isFrontendChannelDamageZoneSkill(skill)" in loop_body
+    assert "hasLiveEnemyInCastRange(current, skill, playerStateRef.current)" in channel_body
+    no_target_body = channel_body.split("if (!hasChannelTarget)", 1)[1].split("return false;", 1)[0]
+    assert "channel.stacks = minStacks" in no_target_body
+    assert "channel.progressMs = 0" in no_target_body
+    assert "const isChannelDamageZone =" in release_body
+    assert "&& !isChannelDamageZone" in release_body
+    assert "current_channel_stack" in damage_zone_body
+    assert "channelRadiusScale" in damage_zone_body
+    assert "radius = Number(params.radius ?? skill.hit?.hit_radius ?? 120) * skill.area_multiplier * channelRadiusScale" in damage_zone_body
+
+
 def test_frontend_damage_zone_pull_events_survive_dynamic_tick_runtime() -> None:
     source = _app_source()
     damage_zone_body = source.split("function buildFrontendDamageZoneSkillEvents", 1)[1].split("function buildFrontendMeleeArcSkillEvents", 1)[0]

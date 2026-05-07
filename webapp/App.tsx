@@ -79,7 +79,7 @@ import {
   generateFrontendEquipment,
   prefixSuffixCapacity,
 } from "./frontendEquipmentRuntime";
-import type { FrontendEquipmentAffixRoll, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
+import type { FrontendEquipmentAffixRoll, FrontendEquipmentItem, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
 import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 
 type Gem = {
@@ -1127,6 +1127,7 @@ type Enemy = {
   attackUntilMs?: number;
   nextAttackReadyAtMs?: number;
   nextThinkAt?: number;
+  knockbackUntilMs?: number;
   engagementTier?: EnemyEngagementTier;
   engagementRing?: number;
   engagementSlot?: number;
@@ -1393,6 +1394,7 @@ type ThundercloudChannelRuntime = {
   progressMs: number;
   noChannelMs: number;
   lockedMs: number;
+  releaseCooldownMs?: number;
 };
 
 type ScheduledSkillEvent = {
@@ -1440,6 +1442,7 @@ type Tooltip = {
   left: number;
   top: number;
   transform: string;
+  comparisonGem?: Gem | null;
 };
 
 type FloatingOrigin =
@@ -1714,10 +1717,12 @@ const MAIN_WEAPON_SLOT_INDEX = 8;
 const OFF_WEAPON_SLOT_INDEX = 9;
 const WEAPON_SLOT_INDICES = [MAIN_WEAPON_SLOT_INDEX, OFF_WEAPON_SLOT_INDEX] as const;
 const TOOLTIP_WIDTH = 410;
+const TOOLTIP_COMPARISON_GAP = 0;
 const TOOLTIP_SCREEN_PADDING = 8;
 const FRONTEND_AUTOSAVE_STORAGE_KEY = "poe2.v1.frontend.autosave";
 const FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY = "poe2.v1.frontend.active_save_slot";
 const FRONTEND_SAVE_SLOT_KEY_PREFIX = "poe2.v1.frontend.save.slot.";
+const ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY = "poe2.v1.item_discard.skip_confirm";
 const FRONTEND_SAVE_SLOT_COUNT = 5;
 const FRONTEND_SAVE_VERSION = 1;
 const PACKAGED_RELEASE_HOSTNAME = "wangyang-adventure.local";
@@ -1733,6 +1738,38 @@ type FrontendSaveSlotSummary = {
 function cloneFrontendData<T>(value: T): T {
   if (typeof structuredClone === "function") return structuredClone(value);
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function loadItemDiscardSkipConfirmPreference() {
+  try {
+    const raw = window.localStorage.getItem(ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as { enabled?: unknown; date?: unknown };
+    const active = parsed.enabled === true && parsed.date === localDateKey();
+    if (!active) window.localStorage.removeItem(ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY);
+    return active;
+  } catch {
+    return false;
+  }
+}
+
+function saveItemDiscardSkipConfirmPreference(enabled: boolean) {
+  try {
+    if (!enabled) {
+      window.localStorage.removeItem(ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY, JSON.stringify({ enabled: true, date: localDateKey() }));
+  } catch {
+    // Ignore localStorage failures; the checkbox still works for the current dialog.
+  }
 }
 
 function createEmptyStashPages() {
@@ -1799,9 +1836,25 @@ function frontendEquippedEquipmentModifiers(state: AppState) {
   const equippedIds = new Set((state.equipment_slots ?? []).slice(0, EQUIPMENT_SLOT_COUNT).filter(Boolean) as string[]);
   const modifiers: FrontendEquipmentStatModifier[] = [];
   equippedIds.forEach((instanceId) => {
-    modifiers.push(...(byId.get(instanceId)?.equipment_stat_modifiers ?? []));
+    const item = byId.get(instanceId);
+    modifiers.push(...frontendEquipmentModifiersForInventoryItem(item));
   });
   return modifiers;
+}
+
+function frontendEquipmentModifiersForInventoryItem(item: Gem | undefined): FrontendEquipmentStatModifier[] {
+  if (!item || item.item_kind !== "equipment") return [];
+  const affixes = item.equipment_affixes ?? [];
+  if (affixes.length === 0) return item.equipment_stat_modifiers ?? [];
+  const equipmentItem: FrontendEquipmentItem = {
+    source: item.category_text,
+    level: Number(item.level ?? 1),
+    rarity: item.equipment_rarity ?? item.rarity_text,
+    base_affix: affixes.find((affix) => affix.gen === "base") ?? affixes[0],
+    prefix_affixes: affixes.filter((affix) => affix.gen === "prefix"),
+    suffix_affixes: affixes.filter((affix) => affix.gen === "suffix"),
+  };
+  return frontendEquipmentStatModifiers(equipmentItem);
 }
 
 function frontendMountedPassiveSelfStatModifiers(state: AppState): FrontendEquipmentStatModifier[] {
@@ -5959,9 +6012,11 @@ function GameApp() {
   const [hoveredBagSlot, setHoveredBagSlot] = useState<number | null>(null);
   const [hoveredEquipmentSlot, setHoveredEquipmentSlot] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const [compareModifierHeld, setCompareModifierHeld] = useState(false);
   const [floatingGem, setFloatingGem] = useState<FloatingGem | null>(null);
   const [placementPrompt, setPlacementPrompt] = useState<PlacementPrompt | null>(null);
   const [itemDiscardPrompt, setItemDiscardPrompt] = useState<ItemDiscardPrompt | null>(null);
+  const [skipItemDiscardConfirmToday, setSkipItemDiscardConfirmToday] = useState(loadItemDiscardSkipConfirmPreference);
   const [showPersistentSupportLines, setShowPersistentSupportLines] = useState(true);
   const [gmOpen, setGmOpen] = useState(false);
   const [gmOptions, setGmOptions] = useState<GmOptions | null>(null);
@@ -5987,6 +6042,7 @@ function GameApp() {
   const nextPromptId = useRef(1);
   const attackTimers = useRef<Record<string, number>>({});
   const thundercloudChannels = useRef<Record<string, ThundercloudChannelRuntime>>({});
+  const damageZoneChannels = useRef<Record<string, ThundercloudChannelRuntime>>({});
   const scheduledSkillEvents = useRef<ScheduledSkillEvent[]>([]);
   const continuousAttackRuntime = useRef<ContinuousAttackRuntime | null>(null);
   const activeDamageZones = useRef<ActiveDamageZoneRuntime[]>([]);
@@ -6010,6 +6066,19 @@ function GameApp() {
   const runtimePerfLastSync = useRef(0);
   const runtimeLastStepError = useRef<string | null>(null);
   const spawnTimer = useRef(0);
+
+  useEffect(() => {
+    const updateCompareModifier = (event: KeyboardEvent) => setCompareModifierHeld(event.ctrlKey);
+    const clearCompareModifier = () => setCompareModifierHeld(false);
+    window.addEventListener("keydown", updateCompareModifier);
+    window.addEventListener("keyup", updateCompareModifier);
+    window.addEventListener("blur", clearCompareModifier);
+    return () => {
+      window.removeEventListener("keydown", updateCompareModifier);
+      window.removeEventListener("keyup", updateCompareModifier);
+      window.removeEventListener("blur", clearCompareModifier);
+    };
+  }, []);
   const playerVisual = useRef<UnitVisualRuntime>({ direction: "down", movementVector: { x: 0, y: 0 } });
   const enemyVisuals = useRef(new Map<number, EnemyVisualRuntime>());
   const exploredMinimapCellsRef = useRef<Set<string>>(new Set());
@@ -6633,10 +6702,8 @@ function GameApp() {
           return;
         }
         if (!playing && entryStep === "rest" && !skillEditorMode && !monsterTestMode) {
-          setRestAreaInteractionTarget(null);
-          setEntryStep("title");
-          refreshFrontendSaveSlots();
-          setNotice("已返回主菜单。");
+          setBattlePauseOpen(true);
+          setNotice("已打开菜单。");
           return;
         }
         if (playableBattleActive) {
@@ -6890,9 +6957,16 @@ function GameApp() {
       for (const timerId of Object.keys(thundercloudChannels.current)) {
         if (!activeIds.has(timerId)) delete thundercloudChannels.current[timerId];
       }
+      for (const timerId of Object.keys(damageZoneChannels.current)) {
+        if (!activeIds.has(timerId)) delete damageZoneChannels.current[timerId];
+      }
       for (const skill of activeSkills) {
         if (isThundercloudSkill(skill)) {
           processThundercloudChannel(skill, dt, enemiesStateRef.current);
+          continue;
+        }
+        if (isFrontendChannelDamageZoneSkill(skill)) {
+          processChannelDamageZoneSkill(skill, dt, enemiesStateRef.current);
           continue;
         }
         const timerId = skill.active_gem_instance_id;
@@ -8195,6 +8269,73 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     return { maxStacks, timePerStackMs, cloudDurationMs, cooldownMs };
   }
 
+  function isFrontendChannelDamageZoneSkill(skill: SkillPreview) {
+    const behavior = skill.behavior_template ?? skill.behavior_type;
+    if (behavior !== "damage_zone") return false;
+    if (isThundercloudSkill(skill)) return false;
+    const tags = frontendSkillTags(skill);
+    const params = skill.runtime_params ?? {};
+    return (tags.has("channel") || Number(params.channel_max_stacks ?? 0) > 0 || Boolean(params.channel_tick_during_channel))
+      && Number(params.channel_max_stacks ?? 0) > 0;
+  }
+
+  function channelDamageZoneParams(skill: SkillPreview) {
+    const params = skill.runtime_params ?? {};
+    const maxStacks = Math.max(1, Math.round(Number(params.channel_max_stacks ?? 1)));
+    const minStacks = Math.max(0, Math.min(maxStacks, Math.round(Number(params.channel_min_stacks ?? 0))));
+    const timePerStackMs = Math.max(1, Number(params.channel_time_per_stack_ms ?? skill.actual_interval_ms ?? 500));
+    const releaseIntervalMs = Math.max(160, Number(skill.actual_interval_ms ?? skill.final_cooldown_ms ?? 980));
+    return { maxStacks, minStacks, timePerStackMs, releaseIntervalMs };
+  }
+
+  function skillWithFrontendChannelStack(skill: SkillPreview, stack: number) {
+    return {
+      ...skill,
+      runtime_params: {
+        ...(skill.runtime_params ?? {}),
+        current_channel_stack: stack
+      }
+    };
+  }
+
+  function processChannelDamageZoneSkill(skill: SkillPreview, dt: number, current: Enemy[]) {
+    const timerId = skill.active_gem_instance_id;
+    const channel = damageZoneChannels.current[timerId] ?? {
+      stacks: 0,
+      progressMs: 0,
+      noChannelMs: 0,
+      lockedMs: 0,
+      releaseCooldownMs: 0
+    };
+    damageZoneChannels.current[timerId] = channel;
+    const { maxStacks, minStacks, timePerStackMs, releaseIntervalMs } = channelDamageZoneParams(skill);
+    const deltaMs = Math.max(0, dt * 1000);
+    const hasChannelTarget = current.length > 0 && hasLiveEnemyInCastRange(current, skill, playerStateRef.current);
+    if (!hasChannelTarget) {
+      channel.stacks = minStacks;
+      channel.progressMs = 0;
+      channel.noChannelMs = 0;
+      channel.releaseCooldownMs = 0;
+      return false;
+    }
+
+    channel.noChannelMs = 0;
+    channel.progressMs += deltaMs;
+    channel.releaseCooldownMs = Math.max(0, (channel.releaseCooldownMs ?? 0) - deltaMs);
+    while (channel.progressMs >= timePerStackMs && channel.stacks < maxStacks) {
+      channel.stacks += 1;
+      channel.progressMs -= timePerStackMs;
+    }
+    const releaseStack = Math.max(1, Math.min(maxStacks, channel.stacks));
+    if (releaseStack <= minStacks || (channel.releaseCooldownMs ?? 0) > 0) return false;
+    if (!trySpendSkillMana(skill)) return false;
+    const released = releaseFrontendCanonicalSkill(skillWithFrontendChannelStack(skill, releaseStack), current, {
+      manaAlreadySpent: true
+    });
+    channel.releaseCooldownMs = released ? releaseIntervalMs : 50;
+    return released;
+  }
+
   function processThundercloudChannel(skill: SkillPreview, dt: number, current: Enemy[]) {
     const timerId = skill.active_gem_instance_id;
     const channel = thundercloudChannels.current[timerId] ?? {
@@ -8247,8 +8388,17 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
 
   function frontendSkillTags(skill: SkillPreview) {
     const rawTags = skill.runtime_params?.frontend_skill_tags;
-    if (!Array.isArray(rawTags)) return new Set<string>();
-    return new Set(rawTags.map(String));
+    const tags = new Set<string>();
+    if (Array.isArray(rawTags)) {
+      for (const tag of rawTags) tags.add(String(tag));
+    }
+    if (Array.isArray(skill.tags)) {
+      for (const tag of skill.tags) {
+        if (tag.id) tags.add(String(tag.id));
+        if (tag.text) tags.add(String(tag.text));
+      }
+    }
+    return tags;
   }
 
   function isFrontendContinuousAttackEligible(skill: SkillPreview) {
@@ -8863,7 +9013,8 @@ function frontendDamageEventsForTarget(
     const events = [
       frontendSkillEvent(skill, "damage", target, position, direction, eventAmount, damageType, damagePayload, 0, delayMs),
       frontendSkillEvent(skill, "floating_text", target, { x: position.x, y: position.y - 28 }, direction, eventAmount, damageType, damagePayload, 800, delayMs),
-      ...frontendStatusEventsForTarget(skill, target, position, direction, hitConfig, delayMs)
+      ...frontendStatusEventsForTarget(skill, target, position, direction, hitConfig, delayMs),
+      ...frontendKnockbackEventsForTarget(skill, target, position, direction, damagePayload, delayMs)
     ];
     if (emitHitVfx) {
       events.push(frontendSkillEvent(skill, "hit_vfx", target, position, direction, amount, damageType, {
@@ -8874,6 +9025,45 @@ function frontendDamageEventsForTarget(
       }, 360, delayMs));
     }
     return events;
+  }
+
+  function frontendKnockbackEventsForTarget(
+    skill: SkillPreview,
+    target: Enemy,
+    position: { x: number; y: number },
+    direction: { x: number; y: number },
+    payload: Record<string, unknown>,
+    delayMs = 0
+  ) {
+    const chancePercent = clamp(statValue(skill.skill_stats, "knockback_chance_percent"), 0, 100);
+    if (chancePercent <= 0) return [];
+    const hitMarker = payload.projectile_id
+      ?? payload.secondary_hit_id
+      ?? payload.area_id
+      ?? payload.tick_time_ms
+      ?? payload.tick_index
+      ?? payload.flame_wave_index
+      ?? "hit";
+    const rollSeed = `${skill.active_gem_instance_id}:${target.id}:${Math.round(elapsedRef.current * 1000)}:${hitMarker}:knockback`;
+    if (stablePercent(rollSeed) > chancePercent) return [];
+    const distanceAddPercent = statValue(skill.skill_stats, "knockback_distance_add_percent");
+    const movementDistance = FRONTEND_BASE_KNOCKBACK_DISTANCE * Math.max(0, 1 + distanceAddPercent / 100);
+    if (movementDistance <= 0) return [];
+    const knockbackPayload = {
+      ...payload,
+      movement_policy: "push_along_direction",
+      movement_distance: movementDistance,
+      knockback_chance_percent: chancePercent,
+      knockback_distance_add_percent: distanceAddPercent,
+      knockback_lock_ms: FRONTEND_KNOCKBACK_LOCK_MS
+    };
+    return [
+      frontendSkillEvent(skill, "forced_movement", target, position, direction, movementDistance, skill.damage_type, knockbackPayload, 0, delayMs),
+      frontendSkillEvent(skill, "floating_text", target, { x: position.x, y: position.y - 52 }, direction, 0, skill.damage_type, {
+        ...knockbackPayload,
+        text: "击退"
+      }, 650, delayMs)
+    ];
   }
 
   function frontendFloatingDamageComponentPayload(components: Record<string, number>, source: string) {
@@ -8949,7 +9139,12 @@ function frontendDamageEventsForTarget(
     const behavior = runtimeSkill.behavior_template ?? runtimeSkill.behavior_type;
     const range = frontendRuntimeRange(runtimeSkill, 520);
     const targets = frontendNearestSkillTargets(current, caster, range, Math.max(1, runtimeSkill.projectile_count));
+    const runtimeTags = frontendSkillTags(runtimeSkill);
+    const isChannelDamageZone = runtimeTags.has("channel")
+      || Number(runtimeSkill.runtime_params?.channel_max_stacks ?? 0) > 0
+      || Boolean(runtimeSkill.runtime_params?.channel_tick_during_channel);
     const canReleaseWithoutEnemyTarget = behavior === "damage_zone"
+      && !isChannelDamageZone
       && (
         runtimeSkill.cast?.target_selector === "self"
         || String(runtimeSkill.runtime_params?.origin_policy ?? "") === "caster"
@@ -9450,7 +9645,18 @@ function frontendDamageEventsForTarget(
     if (!originTarget && originPolicy !== "caster") return [];
     const origin = originPolicy === "caster" ? caster : { x: originTarget.x, y: originTarget.y };
     const direction = originTarget ? guideDirection(caster, originTarget) : { x: 1, y: 0 };
-    const radius = Number(params.radius ?? skill.hit?.hit_radius ?? 120) * skill.area_multiplier;
+    const channelMaxStacks = Math.max(1, Math.round(Number(params.channel_max_stacks ?? 1)));
+    const channelStack = Math.max(
+      1,
+      Math.min(
+        channelMaxStacks,
+        Math.round(Number(params.current_channel_stack ?? Number(params.channel_min_stacks ?? 0) + 1))
+      )
+    );
+    const channelRadiusScale = channelMaxStacks > 1
+      ? 1 + ((channelStack - 1) / Math.max(1, channelMaxStacks - 1)) * 0.45
+      : 1;
+    const radius = Number(params.radius ?? skill.hit?.hit_radius ?? 120) * skill.area_multiplier * channelRadiusScale;
     const waveCount = Math.max(1, Math.round(Number(params.wave_count ?? 1)));
     const tickIntervalMs = Math.max(0, Number(params.tick_interval_ms ?? 0));
     const durationMs = Math.max(Number(params.duration_ms ?? params.hit_at_ms ?? 240), tickIntervalMs || 1);
@@ -9488,10 +9694,14 @@ function frontendDamageEventsForTarget(
         dynamic_tick_hit_vfx: isThundercloudSkill(skill),
         damage_amount: tickDamageAmount,
         damage_components: damagePayloadComponents(skill, tickDamageAmount, skill.damage_type, skill.hit as Record<string, unknown>),
+        knockback_chance_percent: statValue(skill.skill_stats, "knockback_chance_percent"),
+        knockback_distance_add_percent: statValue(skill.skill_stats, "knockback_distance_add_percent"),
+        knockback_lock_ms: FRONTEND_KNOCKBACK_LOCK_MS,
         max_hits: Number(params.max_hits ?? Number.MAX_SAFE_INTEGER),
         max_hits_per_target: Number(params.max_hits_per_target ?? Number.MAX_SAFE_INTEGER),
-        channel_stack: Number(params.channel_min_stacks ?? 0) + 1,
+        channel_stack: channelStack,
         channel_max_stacks: params.channel_max_stacks,
+        channel_radius_scale: channelRadiusScale,
         channel_move_speed_multiplier: params.channel_move_speed_multiplier,
         knockback_policy: params.knockback_policy,
         knockback_interval_ms: params.knockback_interval_ms,
@@ -10052,6 +10262,43 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
         amount: damageAmount,
         payload: { ...basePayload, text: damageNumberText(damageAmount) }
       });
+      const knockbackChancePercent = clamp(Number(zone.payload.knockback_chance_percent ?? 0), 0, 100);
+      const knockbackDistanceAddPercent = Number(zone.payload.knockback_distance_add_percent ?? 0);
+      const knockbackDistance = FRONTEND_BASE_KNOCKBACK_DISTANCE * Math.max(0, 1 + knockbackDistanceAddPercent / 100);
+      if (knockbackChancePercent > 0 && knockbackDistance > 0 && stablePercent(`${baseId}.knockback`) <= knockbackChancePercent) {
+        const knockbackPayload = {
+          ...basePayload,
+          movement_policy: "push_along_direction",
+          movement_distance: knockbackDistance,
+          knockback_chance_percent: knockbackChancePercent,
+          knockback_distance_add_percent: knockbackDistanceAddPercent,
+          knockback_lock_ms: Number(zone.payload.knockback_lock_ms ?? FRONTEND_KNOCKBACK_LOCK_MS)
+        };
+        events.push({
+          ...zone.event,
+          event_id: `${baseId}.forced_movement`,
+          type: "forced_movement",
+          target_entity: String(target.id),
+          position,
+          direction,
+          delay_ms: 0,
+          duration_ms: 0,
+          amount: knockbackDistance,
+          payload: knockbackPayload
+        });
+        events.push({
+          ...zone.event,
+          event_id: `${baseId}.knockback_text`,
+          type: "floating_text",
+          target_entity: String(target.id),
+          position: { x: position.x, y: position.y - 52 },
+          direction,
+          delay_ms: 0,
+          duration_ms: 650,
+          amount: 0,
+          payload: { ...knockbackPayload, text: "\u51fb\u9000" }
+        });
+      }
       const dynamicBuffApply = typeof zone.payload.dynamic_buff_apply === "object" && zone.payload.dynamic_buff_apply
         ? zone.payload.dynamic_buff_apply as Record<string, unknown>
         : null;
@@ -10821,33 +11068,42 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     const movementScope = String(payload.movement_scope ?? "");
     const movementDistance = Math.max(0, Number(payload.movement_distance ?? event.amount ?? 0));
     if (!Number.isFinite(targetId) && !(movementPolicy === "pull_to_origin" && movementScope === "damage_zone" && origin && movementDistance > 0)) return;
-    setEnemies((current) => {
-      const next = current.map((enemy) => {
-        if (enemy.hp <= 0) return enemy;
-        if (Number.isFinite(targetId) && enemy.id !== targetId) return enemy;
-        let destination = fallbackDestination;
-        if (movementPolicy === "pull_to_origin" && origin && movementDistance > 0) {
-          const dx = origin.x - enemy.x;
-          const dy = origin.y - enemy.y;
-          const length = Math.hypot(dx, dy);
-          const radius = Math.max(0, Number(payload.radius ?? 0));
-          if (!Number.isFinite(targetId) && (radius <= 0 || length > radius)) return enemy;
-          if (length > 0) {
-            const distance = Math.min(movementDistance, length);
-            destination = {
-              x: enemy.x + dx / length * distance,
-              y: enemy.y + dy / length * distance
-            };
-          } else {
-            destination = origin;
-          }
+    const next = enemiesStateRef.current.map((enemy) => {
+      if (enemy.hp <= 0) return enemy;
+      if (Number.isFinite(targetId) && enemy.id !== targetId) return enemy;
+      let destination = fallbackDestination;
+      if (movementPolicy === "pull_to_origin" && origin && movementDistance > 0) {
+        const dx = origin.x - enemy.x;
+        const dy = origin.y - enemy.y;
+        const length = Math.hypot(dx, dy);
+        const radius = Math.max(0, Number(payload.radius ?? 0));
+        if (!Number.isFinite(targetId) && (radius <= 0 || length > radius)) return enemy;
+        if (length > 0) {
+          const distance = Math.min(movementDistance, length);
+          destination = {
+            x: enemy.x + dx / length * distance,
+            y: enemy.y + dy / length * distance
+          };
+        } else {
+          destination = origin;
         }
-        if (!destination) return enemy;
-        return { ...enemy, x: destination.x, y: destination.y, velocityX: 0, velocityY: 0 };
-      });
-      enemiesStateRef.current = next;
-      return next;
+      } else if (movementPolicy === "push_along_direction" && movementDistance > 0) {
+        const pushDirection = normalizedWorldDirection(event.direction);
+        const rawDestination = {
+          x: enemy.x + pushDirection.x * movementDistance,
+          y: enemy.y + pushDirection.y * movementDistance
+        };
+        destination = battleMap ? resolveWalkableMove(battleMap, enemy, rawDestination) : rawDestination;
+      }
+      if (!destination) return enemy;
+      const lockMs = movementPolicy === "push_along_direction" ? Math.max(0, Number(payload.knockback_lock_ms ?? FRONTEND_KNOCKBACK_LOCK_MS)) : 0;
+      const knockbackUntilMs = lockMs > 0
+        ? Math.max(Number(enemy.knockbackUntilMs ?? 0), Math.round(elapsedRef.current * 1000) + lockMs)
+        : enemy.knockbackUntilMs;
+      return { ...enemy, x: destination.x, y: destination.y, velocityX: 0, velocityY: 0, knockbackUntilMs };
     });
+    enemiesStateRef.current = next;
+    setEnemies(next);
   }
 
   function mergeBackendInventoryState(nextState: AppState) {
@@ -11042,11 +11298,17 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     if (target.kind === "invalid") return { type: "reject" };
     if (isDropBackToOrigin(current, target, state, inventorySlots, equipmentSlots, state?.stash_pages)) return { type: "place" };
     if (target.kind === "map") {
-      setItemDiscardPrompt({
+      const prompt = {
         item: current.gem,
         origin: current.origin,
         position: target.position
-      });
+      };
+      if (skipItemDiscardConfirmToday && loadItemDiscardSkipConfirmPreference()) {
+        discardItem(prompt);
+      } else {
+        if (skipItemDiscardConfirmToday) setSkipItemDiscardConfirmToday(false);
+        setItemDiscardPrompt(prompt);
+      }
       return { type: "place" };
     }
     if (target.kind === "bag") return await placeItemInBag(current, target.slotIndex);
@@ -11205,14 +11467,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     return { kind: "map", position };
   }
 
-  function confirmDiscardItem() {
-    const prompt = itemDiscardPrompt;
-    if (!prompt || !state) return;
+  function discardItem(prompt: ItemDiscardPrompt) {
+    if (!state) return;
     const instanceId = prompt.item.instance_id;
     const drop = createDiscardDrop(prompt.item, prompt.position);
     dropDisplayPositions.current.set(drop.drop_id, prompt.position);
     knownDropIds.current.add(drop.drop_id);
-    setItemDiscardPrompt(null);
     setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId]));
     setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
     applyFrontendState((current) => {
@@ -11223,6 +11483,18 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       };
     });
     setNotice(`已丢弃：${prompt.item.name_text}`);
+  }
+
+  function confirmDiscardItem() {
+    const prompt = itemDiscardPrompt;
+    if (!prompt) return;
+    setItemDiscardPrompt(null);
+    discardItem(prompt);
+  }
+
+  function setSkipItemDiscardConfirmPreference(enabled: boolean) {
+    setSkipItemDiscardConfirmToday(enabled);
+    saveItemDiscardSkipConfirmPreference(enabled);
   }
 
   function createDiscardDrop(item: Gem, position: { x: number; y: number }): DropPrompt {
@@ -11845,6 +12117,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     spawnTimer.current = 0;
     attackTimers.current = {};
     thundercloudChannels.current = {};
+    damageZoneChannels.current = {};
     scheduledSkillEvents.current = [];
     activeDamageZones.current = [];
     bossSkillTimers.current = new Map();
@@ -12018,7 +12291,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   function onGemHover(event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number) {
     setHoveredGemId(gem.instance_id);
     const preview = state?.skill_preview.find((skill) => skill.active_gem_instance_id === gem.instance_id);
-    setTooltip({ gem: gemWithFrontendSkillPreviewTooltip(gem, preview), ...resolveTooltipPosition(event.currentTarget as HTMLElement, source, slotIndex) });
+    const comparisonGem = source === "inventory" ? comparisonGemForInventoryEquipment(gem, equipmentSlots, fullGemById) : null;
+    setTooltip({
+      gem: gemWithFrontendSkillPreviewTooltip(gem, preview),
+      comparisonGem,
+      ...resolveTooltipPosition(event.currentTarget as HTMLElement, source, slotIndex)
+    });
   }
 
   const linkedGemIds = useLinkedGemIds(state, hoveredGemId);
@@ -12214,7 +12492,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function continueBattleFromPause() {
     setBattlePauseOpen(false);
-    setNotice("继续战斗。");
+    setNotice(playing ? "继续战斗。" : "继续休息。");
   }
 
   function exitCurrentRunToRestArea() {
@@ -12591,15 +12869,15 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </section>
       )}
 
-      {!monsterTestMode && !skillEditorMode && playing && battlePauseOpen && (
+      {!monsterTestMode && !skillEditorMode && (playing || restAreaMapActive) && battlePauseOpen && (
         <section className="battle-pause-overlay" role="dialog" aria-modal="true" aria-label="暂停菜单">
           <div className="battle-pause-dialog">
             <span>暂停菜单</span>
-            <h2>游戏已暂停</h2>
+            <h2>{playing ? "游戏已暂停" : "休息区菜单"}</h2>
             <div className="battle-pause-actions">
               <button type="button" onClick={continueBattleFromPause}>继续</button>
-              <button type="button" onClick={exitCurrentRunToRestArea}>退出当前对局</button>
-              <button type="button" onClick={endGameToTitle}>结束游戏</button>
+              {playing ? <button type="button" onClick={exitCurrentRunToRestArea}>退出当前对局</button> : null}
+              <button type="button" onClick={endGameToTitle}>{playing ? "结束游戏" : "退出游戏"}</button>
             </div>
           </div>
         </section>
@@ -12880,7 +13158,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             </section>
           </section>
 
-          {tooltip && !floatingGem && <GemTooltip tooltip={tooltip} />}
+          {tooltip && !floatingGem && <GemTooltip tooltip={tooltip} compareModifierHeld={compareModifierHeld} />}
           {floatingGem && <FloatingGemView floatingGem={floatingGem} />}
           {floatingGem && <div className="drag-hint">拖到数独盘格子后松开</div>}
           {placementPrompt && (
@@ -12894,6 +13172,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                 <span>丢弃物品</span>
                 <h2>{itemDiscardPrompt.item.name_text}</h2>
                 <p>确认要把该物品丢在地上吗？</p>
+                <label className="item-discard-skip">
+                  <input
+                    type="checkbox"
+                    checked={skipItemDiscardConfirmToday}
+                    onChange={(event) => setSkipItemDiscardConfirmPreference(event.currentTarget.checked)}
+                  />
+                  <span>今天不再确认丢弃</span>
+                </label>
                 <div className="item-discard-actions">
                   <button type="button" onClick={confirmDiscardItem}>确认丢弃</button>
                   <button type="button" onClick={() => setItemDiscardPrompt(null)}>取消</button>
@@ -14420,6 +14706,22 @@ function clampTooltipLeft(left: number) {
 
 function clampTooltipTop(top: number) {
   return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(top, window.innerHeight - TOOLTIP_SCREEN_PADDING));
+}
+
+function getComparisonTooltipPosition(tooltip: Tooltip): Omit<Tooltip, "gem" | "comparisonGem"> {
+  const rightLeft = tooltip.left + TOOLTIP_WIDTH + TOOLTIP_COMPARISON_GAP;
+  if (rightLeft + TOOLTIP_WIDTH <= window.innerWidth - TOOLTIP_SCREEN_PADDING) {
+    return {
+      left: rightLeft,
+      top: tooltip.top,
+      transform: tooltip.transform
+    };
+  }
+  return {
+    left: Math.max(TOOLTIP_SCREEN_PADDING, tooltip.left - TOOLTIP_WIDTH - TOOLTIP_COMPARISON_GAP),
+    top: tooltip.top,
+    transform: tooltip.transform
+  };
 }
 
 function isFloatingOrigin(floatingGem: FloatingGem | null, origin: FloatingOrigin) {
@@ -17967,6 +18269,7 @@ function updateRuntimeEnemies(
       movingCurrent.map((enemy) => {
         if (enemy.hp <= 0) return { ...enemy, velocityX: 0, velocityY: 0, runtimeTier: "dead" as const };
         const survivalEnemy = { ...enemy, aggroLocked: true };
+        if (isEnemyKnockbackLocked(survivalEnemy, elapsedSeconds)) return freezeAttackingEnemy(survivalEnemy, "active");
         return attackLockedEnemyIds.has(enemy.id)
           ? freezeAttackingEnemy(survivalEnemy, "active")
           : moveEnemyTowardPlayer(survivalEnemy, player, map, dt, "active", spatialIndex, navigation);
@@ -18007,6 +18310,13 @@ function updateRuntimeEnemies(
         ? "active"
         : "aware";
     if (attackLockedEnemyIds.has(enemy.id)) {
+      return {
+        ...freezeAttackingEnemy(enemy, tier),
+        aggroLocked,
+        nextThinkAt: tier === "aware" ? elapsedSeconds + ENEMY_LOW_FREQUENCY_THINK_INTERVAL : elapsedSeconds
+      };
+    }
+    if (isEnemyKnockbackLocked(enemy, elapsedSeconds)) {
       return {
         ...freezeAttackingEnemy(enemy, tier),
         aggroLocked,
@@ -18350,6 +18660,10 @@ function freezeAttackingEnemy(enemy: Enemy, runtimeTier: EnemyRuntimeTier): Enem
     velocityX: 0,
     velocityY: 0
   };
+}
+
+function isEnemyKnockbackLocked(enemy: Enemy, elapsedSeconds: number) {
+  return Number(enemy.knockbackUntilMs ?? 0) > elapsedSeconds * 1000;
 }
 
 function moveEnemyTowardPlayer(
@@ -19384,6 +19698,21 @@ function canPlaceItemInEquipmentSlot(item: Gem, slot: typeof EQUIPMENT_SLOT_SPEC
   return slot.accepts.some((keyword) => searchable.includes(keyword.toLowerCase()));
 }
 
+function comparisonGemForInventoryEquipment(item: Gem, equipmentSlots: (string | null)[], fullGemById: Map<string, Gem>) {
+  if (item.item_kind !== "equipment" || isGemItem(item)) return null;
+  const preferredSlotIndices = isWeaponItem(item)
+    ? [MAIN_WEAPON_SLOT_INDEX, OFF_WEAPON_SLOT_INDEX]
+    : EQUIPMENT_SLOT_SPECS.map((_, index) => index);
+  for (const slotIndex of preferredSlotIndices) {
+    const slot = EQUIPMENT_SLOT_SPECS[slotIndex];
+    const equippedId = equipmentSlots[slotIndex];
+    if (!slot || !equippedId || !canPlaceItemInEquipmentSlot(item, slot)) continue;
+    const equipped = fullGemById.get(equippedId);
+    if (equipped?.item_kind === "equipment" && equipped.instance_id !== item.instance_id) return equipped;
+  }
+  return null;
+}
+
 function equipmentTargetSlotIndices(item: Gem, slotIndex: number): readonly number[] {
   return isWeaponSlot(EQUIPMENT_SLOT_SPECS[slotIndex]) && isTwoHandedWeapon(item)
     ? WEAPON_SLOT_INDICES
@@ -19964,7 +20293,23 @@ function floatingTextStyle(text: FloatingText): CSSProperties {
   };
 }
 
-function GemTooltip({ tooltip }: { tooltip: Tooltip }) {
+function GemTooltip({ tooltip, compareModifierHeld }: { tooltip: Tooltip; compareModifierHeld: boolean }) {
+  const comparisonGem = tooltip.comparisonGem ?? null;
+  const comparisonPosition = comparisonGem && compareModifierHeld ? getComparisonTooltipPosition(tooltip) : null;
+  return (
+    <>
+      <GemTooltipPanel tooltip={tooltip} showCompareHint={Boolean(comparisonGem) && !compareModifierHeld} />
+      {comparisonGem && comparisonPosition && (
+        <GemTooltipPanel
+          tooltip={{ gem: comparisonGem, ...comparisonPosition }}
+          className="equipment-compare-tooltip"
+        />
+      )}
+    </>
+  );
+}
+
+function GemTooltipPanel({ tooltip, className = "", showCompareHint = false }: { tooltip: Tooltip; className?: string; showCompareHint?: boolean }) {
   const { gem, left, top, transform } = tooltip;
   const view = buildGemTooltipViewModel(gem);
   if (!view) return null;
@@ -19979,7 +20324,7 @@ function GemTooltip({ tooltip }: { tooltip: Tooltip }) {
   const tooltipTags = isActiveTooltip ? view.tags : normalizedEquipmentTooltipTags(gem, view, equipmentTone);
   const sections = view.sections;
   return (
-    <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""}`} style={{ left, top, transform }}>
+    <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""} ${className}`.trim()} style={{ left, top, transform }}>
       <div className="tooltip-header">
         <GemOrb gem={gem} />
         <div className="tooltip-heading">
@@ -20037,6 +20382,7 @@ function GemTooltip({ tooltip }: { tooltip: Tooltip }) {
       {sections.rules && sections.rules.lines.length > 0 && <TooltipSection title={sections.rules.title_text}>
         {sections.rules.lines.map((line) => <p key={line} className={isActiveTooltip ? "tooltip-tone-bonus-positive" : undefined}>{line}</p>)}
       </TooltipSection>}
+      {showCompareHint && <div className="equipment-compare-hint">按住ctrl对比</div>}
     </div>
   );
 }
@@ -20151,8 +20497,9 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
   ];
   const bonusLines = frontendSupportModifierTooltipLines(skill);
   const levelText = frontendSkillPreviewEffectiveLevelText(skill);
+  const projectileLine = frontendProjectileCountTooltipLine(gem, skill);
   const channelLines = frontendChannelStackTooltipLines(gem, skill);
-  if (componentLines.length === 0 && bonusLines.length === 0 && !levelText && channelLines.length === 0) return gem;
+  if (componentLines.length === 0 && bonusLines.length === 0 && !levelText && !projectileLine && channelLines.length === 0) return gem;
   return {
     ...gem,
     tooltip_view: {
@@ -20162,6 +20509,7 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
         stats: {
           ...view.sections.stats,
           lines: mergeFrontendSkillPreviewTooltipLines(view.sections.stats.lines, skill, [
+            ...(projectileLine ? [projectileLine] : []),
             ...channelLines,
             ...componentLines
           ], levelText)
@@ -20269,6 +20617,23 @@ function mergeFrontendSkillPreviewTooltipLines(lines: TooltipStatLine[], skill: 
   return [...nextLines.slice(0, insertAfter + 1), ...missingComponentLines, ...nextLines.slice(insertAfter + 1)];
 }
 
+function frontendProjectileCountTooltipLine(gem: Gem, skill: SkillPreview): TooltipStatLine | null {
+  const tagIds = new Set([
+    ...(gem.tags ?? []).map((tag) => tag.id ?? tag.text),
+    ...(skill.tags ?? []).map((tag) => tag.id ?? tag.text),
+  ]);
+  if (!tagIds.has("projectile")) return null;
+  const totalCount = Math.max(1, Math.round(Number(skill.projectile_count ?? 1)));
+  const addedCount = Math.round(statValue(skill.skill_stats, "projectile_count_add"));
+  const valueText = addedCount > 0
+    ? `${totalCount}(${Math.max(1, totalCount - addedCount)}+${addedCount})`
+    : formatPreviewNumber(totalCount);
+  return {
+    label_text: "\u6295\u5c04\u7269\u6570\u91cf",
+    value_text: valueText,
+  };
+}
+
 function frontendChannelStackTooltipLines(gem: Gem, skill: SkillPreview): TooltipStatLine[] {
   const tagIds = new Set([
     ...(gem.tags ?? []).map((tag) => tag.id ?? tag.text),
@@ -20372,6 +20737,8 @@ const NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS = new Set([
   "elemental",
 ]);
 const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
+const FRONTEND_BASE_KNOCKBACK_DISTANCE = 128;
+const FRONTEND_KNOCKBACK_LOCK_MS = 260;
 
 function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
   const tags = view.tags
@@ -20671,6 +21038,7 @@ function isEquipmentRarityTag(gem: Gem, tag: TooltipTagView) {
   if (text && text === gem.rarity_text) return true;
   return frontendEquipmentRarities().some((rarity) => text === rarity.name_text);
 }
+
 const sudokuGemIconSprites: Record<number, string> = {
   1: new URL("./assets/gems/sudoku-gem-1.png", import.meta.url).href,
   2: new URL("./assets/gems/sudoku-gem-2.png", import.meta.url).href,

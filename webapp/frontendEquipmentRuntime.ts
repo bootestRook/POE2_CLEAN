@@ -269,9 +269,11 @@ export function frontendEquipmentOrdinaryAffixTexts(item: FrontendEquipmentItem)
 }
 
 export function frontendEquipmentStatModifiers(item: FrontendEquipmentItem): FrontendEquipmentStatModifier[] {
+  const normalizedItem = normalizeFrontendEquipmentItem(item);
+  const affixes = [normalizedItem.base_affix, ...normalizedItem.prefix_affixes, ...normalizedItem.suffix_affixes];
   return [
-    ...localFrontendEquipmentStatModifiers(item),
-    ...[item.base_affix, ...item.prefix_affixes, ...item.suffix_affixes].flatMap((affix) =>
+    ...localFrontendEquipmentStatModifiers(normalizedItem),
+    ...affixes.flatMap((affix) =>
       affix.operations
       .filter((operation) =>
         ["player_stat", "skill_stat", "damage_stat", "runtime_hook"].includes(operation.kind)
@@ -292,6 +294,36 @@ export function frontendEquipmentStatModifiers(item: FrontendEquipmentItem): Fro
       }))
     ),
   ];
+}
+
+function normalizeFrontendEquipmentItem(item: FrontendEquipmentItem): FrontendEquipmentItem {
+  return {
+    ...item,
+    base_affix: normalizeFrontendEquipmentAffixRoll(item.base_affix),
+    prefix_affixes: item.prefix_affixes.map(normalizeFrontendEquipmentAffixRoll),
+    suffix_affixes: item.suffix_affixes.map(normalizeFrontendEquipmentAffixRoll),
+  };
+}
+
+function normalizeFrontendEquipmentAffixRoll(affix: FrontendEquipmentAffixRoll): FrontendEquipmentAffixRoll {
+  return {
+    ...affix,
+    operations: normalizeFrontendEquipmentEffectOperations(affix.effect, affix.operations),
+  };
+}
+
+function normalizeFrontendEquipmentEffectOperations(effect: string, operations: FrontendEquipmentEffectOperation[]): FrontendEquipmentEffectOperation[] {
+  return operations.map((operation) => {
+    if (operation.value_min === null && operation.value_max === null) return operation;
+    const values = rolledValuesFromRenderedSourceText(effect, operation.source_text);
+    if (values.length === 0) return operation;
+    if (values.length === 1) {
+      return { ...operation, value: values[0], value_min: values[0], value_max: values[0] };
+    }
+    const minimum = Math.min(...values);
+    const maximum = Math.max(...values);
+    return { ...operation, value: (minimum + maximum) / 2, value_min: minimum, value_max: maximum };
+  });
 }
 
 export function applyFrontendEquipmentStatModifiers<T extends Record<string, { value?: unknown; trace?: Record<string, number>; [key: string]: unknown }>>(
@@ -600,6 +632,35 @@ function rolledValuesForSourceText(effect: string, ranges: RolledEffectRange[], 
   return ranges
     .filter((range) => range.index >= sourceIndex && range.index < sourceEnd)
     .map((range) => range.value);
+}
+
+function rolledValuesFromRenderedSourceText(effect: string, sourceText: string) {
+  EFFECT_RANGE_PATTERN.lastIndex = 0;
+  const hasRange = Boolean(sourceText) && EFFECT_RANGE_PATTERN.test(sourceText);
+  EFFECT_RANGE_PATTERN.lastIndex = 0;
+  if (!hasRange) return [];
+  EFFECT_RANGE_PATTERN.lastIndex = 0;
+  const pattern = renderedSourceTextPattern(sourceText);
+  const match = pattern.exec(effect);
+  if (!match) return [];
+  return match.slice(1).map(Number).filter(Number.isFinite);
+}
+
+function renderedSourceTextPattern(sourceText: string) {
+  let cursor = 0;
+  let pattern = "";
+  EFFECT_RANGE_PATTERN.lastIndex = 0;
+  for (const match of sourceText.matchAll(EFFECT_RANGE_PATTERN)) {
+    pattern += escapeRegExp(sourceText.slice(cursor, match.index));
+    pattern += "\\(?(-?\\d+(?:\\.\\d+)?)\\)?";
+    cursor = Number(match.index) + match[0].length;
+  }
+  pattern += escapeRegExp(sourceText.slice(cursor));
+  return new RegExp(pattern);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*");
 }
 
 function rollRangeNumberText(minimumText: string, maximumText: string, rng: FrontendSeedRandom) {

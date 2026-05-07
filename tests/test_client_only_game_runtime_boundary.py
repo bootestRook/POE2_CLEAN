@@ -235,6 +235,8 @@ def test_frontend_equipment_runtime_consumes_recent_affix_effects() -> None:
         assert token in source
     assert "source_text?: string" in equipment_source
     assert "source_text: operation.source_text" in equipment_source
+    assert "frontendEquipmentModifiersForInventoryItem(item)" in source
+    assert "return frontendEquipmentStatModifiers(equipmentItem)" in source
     assert 'sourceText.includes("法术附加")' in source
     assert 'if (!frontendEquipmentGrantedEffectMatchesTags(triggerCondition, tags)) return null;' in source
     for token in [
@@ -259,6 +261,22 @@ def test_frontend_equipment_runtime_consumes_recent_affix_effects() -> None:
         assert '"6"' not in conduit_table
     assert 'modifier.kind !== "player_stat"' in source
     assert 'modifier.kind !== "player_stat"' in equipment_source
+
+
+def test_frontend_equipment_modifiers_recover_rolled_values_from_saved_affix_text() -> None:
+    app_source = _read(WEBAPP / "App.tsx")
+    equipment_source = _read(WEBAPP / "frontendEquipmentRuntime.ts")
+
+    assert "function frontendEquipmentModifiersForInventoryItem" in app_source
+    assert "if (affixes.length === 0) return item.equipment_stat_modifiers ?? []" in app_source
+    assert "base_affix: affixes.find((affix) => affix.gen === \"base\") ?? affixes[0]" in app_source
+    assert "return frontendEquipmentStatModifiers(equipmentItem)" in app_source
+    assert "const normalizedItem = normalizeFrontendEquipmentItem(item)" in equipment_source
+    assert "...localFrontendEquipmentStatModifiers(normalizedItem)" in equipment_source
+    assert "rolledValuesFromRenderedSourceText(effect, operation.source_text)" in equipment_source
+    assert "pattern += \"\\\\(?(-?\\\\d+(?:\\\\.\\\\d+)?)\\\\)?\"" in equipment_source
+    assert "value: values[0], value_min: values[0], value_max: values[0]" in equipment_source
+    assert "value: (minimum + maximum) / 2, value_min: minimum, value_max: maximum" in equipment_source
 
 
 def test_every_seed_skill_family_has_frontend_runtime_branch() -> None:

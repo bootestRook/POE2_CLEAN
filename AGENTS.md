@@ -108,6 +108,8 @@ Plan:
 
 For any task that changes or can affect the frontend, Codex must run the frontend in a browser and verify it visually with a screenshot.
 
+All frontend-affecting changes must be accepted against the project root `run.bat` flow. When local visual behavior matters, launch or match the same WebApp experience that `run.bat` opens, and treat that rendered result as the source of truth for acceptance.
+
 Backend-only tests, unit tests, static checks, logs, or guesses are not enough for frontend-affecting work.
 
 For any visual change or visual test, Codex must run screenshot regression through the built-in WebApp's actual game/battle view. Do not validate visual behavior only from backend tests, code inspection, config checks, build output, or indirect evidence.
