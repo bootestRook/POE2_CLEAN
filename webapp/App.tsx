@@ -1873,14 +1873,16 @@ function frontendSupportSkillModifiersForTarget(
     if (!isAllowedRoute(sourceGem, targetGem)) continue;
     const relation = frontendBoardRelation(sourceGem.board_position, targetGem.board_position);
     if (!relation) continue;
+    if (!frontendConduitCanUseTarget(sourceGem, targetGem)) continue;
     if (!frontendSupportCanAffect(sourceGem, targetTags)) continue;
     const supportLevel = frontendSupportEffectiveLevel(sourceGem, supportLevelAdd);
-    for (const modifier of frontendGemBaseModifiers(sourceGem)) {
+    for (const modifier of frontendSupportBaseModifiers(sourceGem, supportLevel)) {
       const modifierStat = frontendRecord(modifier.stat);
       const stat = String(modifierStat.id ?? "");
       if (!stat) continue;
       const baseValue = Number(modifier.value ?? 0);
-      const value = frontendSkillLevelTableValueById(String(sourceGem.base_gem_id ?? sourceGem.instance_id), supportLevel, stat) ?? baseValue;
+      const tableKey = String(modifier.table_key ?? stat);
+      const value = frontendSkillLevelTableValueById(String(sourceGem.base_gem_id ?? sourceGem.instance_id), supportLevel, tableKey) ?? baseValue;
       if (!Number.isFinite(value) || value === 0) continue;
       const appliedValue = value * frontendRelationCoefficient(relation);
       modifiers.push({
@@ -2144,7 +2146,7 @@ function applyFrontendModuleLevelValues(modules: unknown[], levelValues: Record<
 }
 
 function frontendSupportEffectiveLevel(sourceGem: Gem, supportLevelAdd: number) {
-  const baseGemId = String(sourceGem.base_gem_id ?? sourceGem.instance_id);
+  const baseGemId = frontendSupportLevelTableId(sourceGem);
   const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[baseGemId];
   const levels = table ? Object.keys(table).map(Number).filter(Number.isFinite).sort((a, b) => a - b) : [];
   const currentLevel = Math.max(1, Math.floor(Number(sourceGem.level ?? 1)));
@@ -2182,6 +2184,57 @@ function frontendPassiveSelfStatEffects(gem: Gem): FrontendPassiveEffect[] {
         layer: "additive"
       };
     });
+}
+
+function frontendSupportBaseModifiers(gem: Gem, supportLevel: number) {
+  const modifiers = frontendGemBaseModifiers(gem);
+  if (modifiers.length > 0 || !frontendConduitRelation(gem)) return modifiers;
+  const skillLevelAdd = frontendSkillLevelTableValueById(frontendSupportLevelTableId(gem), supportLevel, "skill_level_add");
+  if (!skillLevelAdd) return modifiers;
+  return [{
+    stat: { id: "active_gem_level_add", text: "\u6280\u80fd\u7b49\u7ea7" },
+    table_key: "skill_level_add",
+    value: skillLevelAdd,
+  }];
+}
+
+function frontendSupportLevelTableId(gem: Gem) {
+  return frontendConduitBaseGemId(gem) || String(gem.base_gem_id ?? gem.instance_id);
+}
+
+function frontendConduitBaseGemId(gem: Gem) {
+  const baseGemId = String(gem.base_gem_id ?? gem.instance_id);
+  if (baseGemId === "support_row_conduit" || baseGemId === "support_column_conduit" || baseGemId === "support_box_conduit") {
+    return baseGemId;
+  }
+  const text = `${gem.name_text ?? ""} ${gem.description_text ?? ""}`.toLowerCase();
+  if (text.includes("\u884c\u5bfc\u7ba1") || text.includes("\u540c\u884c\u8fde\u63a5")) return "support_row_conduit";
+  if (text.includes("\u5217\u5bfc\u7ba1") || text.includes("\u540c\u5217\u8fde\u63a5")) return "support_column_conduit";
+  if (text.includes("\u5bab\u5bfc\u7ba1") || text.includes("\u540c\u5bab\u8fde\u63a5")) return "support_box_conduit";
+  return "";
+}
+
+function frontendConduitRelation(gem: Gem) {
+  const baseGemId = frontendConduitBaseGemId(gem);
+  if (baseGemId === "support_row_conduit") return "same_row";
+  if (baseGemId === "support_column_conduit") return "same_column";
+  if (baseGemId === "support_box_conduit") return "same_box";
+  return "";
+}
+
+function frontendConduitCanUseTarget(gem: Gem, targetGem: Gem) {
+  const conduitRelation = frontendConduitRelation(gem);
+  if (!conduitRelation) return true;
+  const source = gem.board_position;
+  const target = targetGem.board_position;
+  if (!source || !target) return false;
+  if (conduitRelation === "same_row") return source.row === target.row;
+  if (conduitRelation === "same_column") return source.column === target.column;
+  if (conduitRelation === "same_box") {
+    return Math.floor(source.row / 3) === Math.floor(target.row / 3)
+      && Math.floor(source.column / 3) === Math.floor(target.column / 3);
+  }
+  return false;
 }
 
 function frontendSupportCanAffect(sourceGem: Gem, targetTags: Set<string>) {
@@ -19754,12 +19807,14 @@ function GemTooltip({ tooltip }: { tooltip: Tooltip }) {
 
 function SupportGemTooltip({ gem, view, left, top, transform }: { gem: Gem; view: TooltipView; left: number; top: number; transform: string }) {
   const sections = view.sections;
+  const levelText = frontendGemLevelText(gem);
   return (
     <div className="gem-tooltip support-tooltip" style={{ left, top, transform }}>
       <div className="tooltip-header">
         <GemOrb gem={gem} />
         <div className="tooltip-heading">
           <h3 className="support-tooltip-name">{view.name_text}</h3>
+          <RichText line={[{ text: `\u7b49\u7ea7 ${levelText}`, tone: "bonus-positive" }]} className="support-tooltip-summary" />
           {(view.summary_lines ?? []).map((line, index) => <RichText key={index} line={line} className="support-tooltip-summary" />)}
         </div>
       </div>
@@ -20047,7 +20102,7 @@ function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
     ...view.sections,
     stats: {
       ...view.sections.stats,
-      lines: ensureReleaseIntervalStatLine(gem, view.sections.stats.lines),
+      lines: ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines)),
     },
   };
   return {
@@ -20063,6 +20118,22 @@ function normalizedTooltipSubtitle(subtitle: string, tags: TooltipTagView[]) {
   if (parts.length === 0) return subtitle;
   const colorText = parts[0];
   return [colorText, ...tags.map((tag) => tag.text)].join("、");
+}
+
+function frontendGemLevelText(gem: Gem) {
+  return String(Math.max(1, Math.floor(Number(gem.level ?? 1))));
+}
+
+function ensureGemLevelStatLine(gem: Gem, lines: TooltipStatLine[]) {
+  const levelText = frontendGemLevelText(gem);
+  let found = false;
+  const nextLines = lines.map((line) => {
+    if (!isSkillLevelTooltipLine(line.label_text)) return line;
+    found = true;
+    return { ...line, value_text: levelText };
+  });
+  if (found) return nextLines;
+  return [{ label_text: "\u7b49\u7ea7", value_text: levelText }, ...nextLines];
 }
 
 function ensureReleaseIntervalStatLine(gem: Gem, lines: TooltipStatLine[]) {
