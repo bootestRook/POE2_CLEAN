@@ -13132,19 +13132,24 @@ function PlayerOverheadResourceBars({
   player,
   camera
 }: {
-  player: Pick<PlayerRuntimeState, "x" | "y" | "hp" | "maxHp" | "currentMana" | "maxMana">;
+  player: Pick<PlayerRuntimeState, "x" | "y" | "hp" | "maxHp" | "currentMana" | "maxMana" | "currentEnergyShield" | "maxEnergyShield">;
   camera: Camera2D;
 }) {
   const maxLife = Math.max(0, player.maxHp);
   const currentLife = clamp(player.hp, 0, maxLife);
   const maxMana = Math.max(0, player.maxMana);
   const currentMana = clamp(player.currentMana, 0, maxMana);
+  const maxEnergyShield = Math.max(0, player.maxEnergyShield);
+  const currentEnergyShield = clamp(player.currentEnergyShield, 0, maxEnergyShield);
   const style = playerOverheadResourceStyle(player, camera);
 
   return (
     <aside className="player-overhead-resource-bars" style={style} aria-label="玩家资源">
       <span className="player-overhead-bar player-overhead-bar-life">
         <span style={{ width: `${resourcePercent(currentLife, maxLife)}%` }} />
+        {maxEnergyShield > 0 ? (
+          <span className="player-overhead-bar-energy-shield" style={{ width: `${resourcePercent(currentEnergyShield, maxEnergyShield)}%` }} />
+        ) : null}
       </span>
       <span className="player-overhead-bar player-overhead-bar-mana">
         <span style={{ width: `${resourcePercent(currentMana, maxMana)}%` }} />

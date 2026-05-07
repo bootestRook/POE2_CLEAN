@@ -63,6 +63,7 @@ def test_player_resource_bars_render_from_single_runtime_player_state() -> None:
     set_player_body = source.split("function setRuntimePlayer", 1)[1].split("function setRuntimePlayerBuffs", 1)[0]
     resource_bar_body = source.split("function PlayerOverheadResourceBars", 1)[1].split("function playerOverheadResourceStyle", 1)[0]
     resource_bar_style = styles.split(".player-overhead-bar span {", 1)[1].split(".player-overhead-bar-life span", 1)[0]
+    resource_bar_life_style = styles.split(".player-overhead-bar-life span {", 1)[1].split(".player-overhead-bar-mana span", 1)[0]
 
     assert "playerResources" not in source
     assert "normalizePlayerRuntimeResources(updater(playerStateRef.current))" in set_player_body
@@ -70,7 +71,10 @@ def test_player_resource_bars_render_from_single_runtime_player_state() -> None:
     assert "player: Pick<PlayerRuntimeState" in resource_bar_body
     assert "const currentLife = clamp(player.hp, 0, maxLife)" in resource_bar_body
     assert "const currentMana = clamp(player.currentMana, 0, maxMana)" in resource_bar_body
+    assert "const currentEnergyShield = clamp(player.currentEnergyShield, 0, maxEnergyShield)" in resource_bar_body
+    assert 'className="player-overhead-bar-energy-shield"' in resource_bar_body
     assert "transition:" not in resource_bar_style
+    assert "transition:" not in resource_bar_life_style
 
 
 def test_playable_minimap_exploration_is_run_scoped_and_seeded() -> None:
