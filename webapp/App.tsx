@@ -1694,6 +1694,7 @@ const STASH_PAGE_COLUMNS = 10;
 const REST_AREA_WIDTH = 1640;
 const REST_AREA_HEIGHT = 1000;
 const REST_AREA_INTERACTION_RADIUS = 96;
+const KEYBOARD_PICKUP_SCREEN_RADIUS = 250;
 const CLICK_INTERACTION_COMPLETE_RADIUS = 10;
 const REST_AREA_INTERACTABLES = {
   wangYang: { kind: "stage" as const, id: "wang-yang", label: "王阳", x: 330, y: 330 },
@@ -1728,6 +1729,7 @@ const FRONTEND_SAVE_VERSION = 1;
 const PACKAGED_RELEASE_HOSTNAME = "wangyang-adventure.local";
 const RELEASE_DEBUG_TOOLS_ENABLED = typeof window === "undefined" || window.location.hostname !== PACKAGED_RELEASE_HOSTNAME;
 const STARTER_GEM_BOARD_POSITION = { row: 4, column: 4 } as const;
+const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);
 
 type FrontendSaveSlotSummary = {
   id: number;
@@ -2909,7 +2911,11 @@ function createFrontendNewSaveStarterState(slotId?: number, playerName = DEFAULT
 
 function createRandomNewSaveStarterGem(slotId?: number): Gem | null {
   const activeGems = (FRONTEND_GEM_DROP_POOL as readonly Gem[])
-    .filter((gem) => gem.gem_kind === "active_skill" && Number(gem.level ?? 1) === 1);
+    .filter((gem) => (
+      gem.gem_kind === "active_skill"
+      && Number(gem.level ?? 1) === 1
+      && !EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS.has(String(gem.base_gem_id ?? gem.instance_id))
+    ));
   if (activeGems.length === 0) return null;
   const seed = Date.now() + Math.floor(Math.random() * 1_000_000) + (slotId ?? 0) * 9973;
   const template = activeGems[seed % activeGems.length];
@@ -5976,6 +5982,7 @@ function GameApp() {
   });
   const [enemies, setEnemies] = useState<Enemy[]>(() => skillEditorMode ? createSkillTestDummies(1, MAP_WIDTH / 2, MAP_HEIGHT / 2) : []);
   const [bossPortal, setBossPortal] = useState<BossPortal | null>(null);
+  const [bossPortalConfirm, setBossPortalConfirm] = useState<{ portalId: string } | null>(null);
   const [texts, setTexts] = useState<FloatingText[]>([]);
   const [activePlayerBuffs, setActivePlayerBuffs] = useState<PlayerBuff[]>([]);
   const [bolts, setBolts] = useState<FireBolt[]>([]);
@@ -6748,7 +6755,7 @@ function GameApp() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [bagOpen, battleMap, battlePauseOpen, bossPortal, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, state?.drops, tooltip]);
+  }, [bagOpen, battleMap, battlePauseOpen, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, state?.drops, tooltip]);
 
   useEffect(() => {
     playerStateRef.current = player;
@@ -6880,10 +6887,10 @@ function GameApp() {
     const currentPlayer = playerStateRef.current;
     const pickupTarget = pendingDropPickup.current;
     const portalTarget = pendingBossPortalUse.current;
-    const interactionTarget = portalTarget
-      ? { kind: "portal" as const, x: portalTarget.x, y: portalTarget.y }
-      : pickupTarget
-        ? { kind: "drop" as const, x: pickupTarget.x, y: pickupTarget.y }
+    const interactionTarget = pickupTarget
+      ? { kind: "drop" as const, x: pickupTarget.x, y: pickupTarget.y }
+      : portalTarget
+        ? { kind: "portal" as const, x: portalTarget.x, y: portalTarget.y }
         : null;
     const manualMoveVector = playerInputVector(keys.current);
     const interactionVector = interactionTarget
@@ -6896,12 +6903,12 @@ function GameApp() {
     if ((manualMoveVector.x !== 0 || manualMoveVector.y !== 0) && interactionTarget) {
       pendingDropPickup.current = null;
       pendingBossPortalUse.current = null;
-    } else if (portalTarget && interactionTarget?.kind === "portal" && interactionDistance <= CLICK_INTERACTION_COMPLETE_RADIUS) {
-      pendingBossPortalUse.current = null;
-      finishBossPortalUse(portalTarget.portalId);
     } else if (pickupTarget && interactionTarget?.kind === "drop" && interactionDistance <= CLICK_INTERACTION_COMPLETE_RADIUS && !pickupRequestInFlight.current) {
       pendingDropPickup.current = null;
       void finishDropPickup(pickupTarget.dropId);
+    } else if (portalTarget && interactionTarget?.kind === "portal" && interactionDistance <= CLICK_INTERACTION_COMPLETE_RADIUS) {
+      pendingBossPortalUse.current = null;
+      openBossPortalConfirm(portalTarget.portalId);
     }
     syncPlayerVisual(playerMoveVector);
     const dx = playerMoveVector.x;
@@ -9049,8 +9056,11 @@ function frontendDamageEventsForTarget(
     const distanceAddPercent = statValue(skill.skill_stats, "knockback_distance_add_percent");
     const movementDistance = FRONTEND_BASE_KNOCKBACK_DISTANCE * Math.max(0, 1 + distanceAddPercent / 100);
     if (movementDistance <= 0) return [];
+    const knockbackOrigin = playerStateRef.current;
+    const knockbackDirection = guideDirection(knockbackOrigin, target);
     const knockbackPayload = {
       ...payload,
+      origin_world_position: knockbackOrigin,
       movement_policy: "push_along_direction",
       movement_distance: movementDistance,
       knockback_chance_percent: chancePercent,
@@ -9058,8 +9068,8 @@ function frontendDamageEventsForTarget(
       knockback_lock_ms: FRONTEND_KNOCKBACK_LOCK_MS
     };
     return [
-      frontendSkillEvent(skill, "forced_movement", target, position, direction, movementDistance, skill.damage_type, knockbackPayload, 0, delayMs),
-      frontendSkillEvent(skill, "floating_text", target, { x: position.x, y: position.y - 52 }, direction, 0, skill.damage_type, {
+      frontendSkillEvent(skill, "forced_movement", target, position, knockbackDirection, movementDistance, skill.damage_type, knockbackPayload, 0, delayMs),
+      frontendSkillEvent(skill, "floating_text", target, { x: position.x, y: position.y - 52 }, knockbackDirection, 0, skill.damage_type, {
         ...knockbackPayload,
         text: "击退"
       }, 650, delayMs)
@@ -10266,8 +10276,11 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
       const knockbackDistanceAddPercent = Number(zone.payload.knockback_distance_add_percent ?? 0);
       const knockbackDistance = FRONTEND_BASE_KNOCKBACK_DISTANCE * Math.max(0, 1 + knockbackDistanceAddPercent / 100);
       if (knockbackChancePercent > 0 && knockbackDistance > 0 && stablePercent(`${baseId}.knockback`) <= knockbackChancePercent) {
+        const knockbackOrigin = playerStateRef.current;
+        const knockbackDirection = guideDirection(knockbackOrigin, target);
         const knockbackPayload = {
           ...basePayload,
+          origin_world_position: knockbackOrigin,
           movement_policy: "push_along_direction",
           movement_distance: knockbackDistance,
           knockback_chance_percent: knockbackChancePercent,
@@ -10280,7 +10293,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           type: "forced_movement",
           target_entity: String(target.id),
           position,
-          direction,
+          direction: knockbackDirection,
           delay_ms: 0,
           duration_ms: 0,
           amount: knockbackDistance,
@@ -10292,7 +10305,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           type: "floating_text",
           target_entity: String(target.id),
           position: { x: position.x, y: position.y - 52 },
-          direction,
+          direction: knockbackDirection,
           delay_ms: 0,
           duration_ms: 650,
           amount: 0,
@@ -11088,7 +11101,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           destination = origin;
         }
       } else if (movementPolicy === "push_along_direction" && movementDistance > 0) {
-        const pushDirection = normalizedWorldDirection(event.direction);
+        const pushDirection = origin ? guideDirection(origin, enemy) : normalizedWorldDirection(event.direction);
         const rawDestination = {
           x: enemy.x + pushDirection.x * movementDistance,
           y: enemy.y + pushDirection.y * movementDistance
@@ -11870,10 +11883,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         ?? drop.equipment_source
         ?? "装备";
       const bonusLines = drop.equipment_affixes?.map((affix) => {
-        if (affix.library === "base") return affix.effect;
-        const prefix = affix.library === "initial" ? "初阶" : affix.library === "advanced" ? "进阶" : affix.library === "pinnacle" ? "至臻" : affix.library;
-        const side = affix.gen === "prefix" ? "前缀" : affix.gen === "suffix" ? "后缀" : affix.gen;
-        return `${prefix}${side} T${affix.tier}：${affix.effect}`;
+        return equipmentTooltipAffixLine(affix.effect, affix.tier);
       }) ?? (drop.status_text && drop.status_text !== "点击拾取" && drop.status_text !== "GM 添加"
         ? drop.status_text.split(/[、；]/).map((line) => line.trim()).filter(Boolean)
         : []);
@@ -11997,6 +12007,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function beginBossPortalUse(portal: BossPortal) {
     if (portal.used) return;
+    const overlappingDrop = nearestDropAtPosition(portal.position, CLICK_INTERACTION_COMPLETE_RADIUS);
+    if (overlappingDrop) {
+      beginDropPickup(overlappingDrop);
+      return;
+    }
     pendingDropPickup.current = null;
     pendingBossPortalUse.current = {
       portalId: portal.portal_id,
@@ -12006,9 +12021,39 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice("Moving to Boss exit.");
   }
 
+  function nearestDropAtPosition(position: { x: number; y: number }, radius: number) {
+    return (state?.drops ?? [])
+      .filter((drop) => !drop.picked_up && drop.position)
+      .map((drop) => {
+        const target = dropDisplayPositions.current.get(drop.drop_id) ?? drop.position!;
+        return { drop, distance: Math.hypot(target.x - position.x, target.y - position.y) };
+      })
+      .filter((candidate) => candidate.distance <= radius)
+      .sort((left, right) => left.distance - right.distance)[0]?.drop ?? null;
+  }
+
+  function openBossPortalConfirm(portalId: string) {
+    setBossPortalConfirm({ portalId });
+    setNotice("是否离开该区域？");
+  }
+
+  function cancelBossPortalConfirm() {
+    pendingBossPortalUse.current = null;
+    setBossPortalConfirm(null);
+    setNotice("已取消离开区域。");
+  }
+
+  function confirmBossPortalExit() {
+    const portalId = bossPortalConfirm?.portalId;
+    if (!portalId) return;
+    setBossPortalConfirm(null);
+    finishBossPortalUse(portalId);
+  }
+
   function finishBossPortalUse(portalId: string) {
     pendingBossPortalUse.current = null;
     pendingDropPickup.current = null;
+    setBossPortalConfirm(null);
     setBossPortal((current) => (
       current?.portal_id === portalId ? { ...current, used: true } : current
     ));
@@ -12055,35 +12100,19 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
     if (!playing || !battleMap || skillEditorMode || monsterTestMode) return;
 
-    const keyboardWorldInteractionRadius = REST_AREA_INTERACTION_RADIUS / Math.max(0.1, battleCamera.zoom || 1);
-    const candidates: Array<{ distance: number; interact: () => void }> = [];
+    const keyboardWorldPickupRadius = KEYBOARD_PICKUP_SCREEN_RADIUS / Math.max(0.1, battleCamera.zoom || 1);
+    const candidates: Array<{ distance: number; drop: DropPrompt }> = [];
     for (const drop of state?.drops ?? []) {
       if (drop.picked_up || !drop.position) continue;
       const target = dropDisplayPositions.current.get(drop.drop_id) ?? drop.position;
       const distanceToDrop = Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y);
-      if (distanceToDrop > keyboardWorldInteractionRadius) continue;
-      candidates.push({
-        distance: distanceToDrop,
-        interact: () => {
-          beginDropPickup(drop);
-        }
-      });
+      if (distanceToDrop > keyboardWorldPickupRadius) continue;
+      candidates.push({ distance: distanceToDrop, drop });
     }
-    if (bossPortal && !bossPortal.used) {
-      const distanceToPortal = Math.hypot(bossPortal.position.x - currentPlayer.x, bossPortal.position.y - currentPlayer.y);
-      if (distanceToPortal <= keyboardWorldInteractionRadius) {
-        candidates.push({
-          distance: distanceToPortal,
-          interact: () => {
-            beginBossPortalUse(bossPortal);
-          }
-        });
-      }
-    }
-
     const nearest = candidates.sort((left, right) => left.distance - right.distance)[0];
+    if (!nearest) return;
     if (nearest) {
-      nearest.interact();
+      beginDropPickup(nearest.drop);
     } else {
       setNotice("附近没有可拾取/交互目标。");
     }
@@ -12131,6 +12160,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     nextEnemyId.current = skillEditorMode ? SKILL_TEST_DUMMY_OFFSETS.length + 1 : 1;
     pendingDropPickup.current = null;
     pendingBossPortalUse.current = null;
+    setBossPortalConfirm(null);
     setBossPortal(null);
     resetPlayableMinimapForRun(mapForMinimap, spawnPoint);
   }
@@ -12878,6 +12908,19 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               <button type="button" onClick={continueBattleFromPause}>继续</button>
               {playing ? <button type="button" onClick={exitCurrentRunToRestArea}>退出当前对局</button> : null}
               <button type="button" onClick={endGameToTitle}>{playing ? "结束游戏" : "退出游戏"}</button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {!monsterTestMode && !skillEditorMode && playing && bossPortalConfirm && (
+        <section className="portal-confirm-overlay" role="dialog" aria-modal="true" aria-label="离开区域确认">
+          <div className="portal-confirm-dialog">
+            <span>传送门</span>
+            <h2>是否离开该区域？</h2>
+            <div className="portal-confirm-actions">
+              <button type="button" onClick={confirmBossPortalExit}>离开</button>
+              <button type="button" onClick={cancelBossPortalConfirm}>取消</button>
             </div>
           </div>
         </section>
@@ -20323,23 +20366,29 @@ function GemTooltipPanel({ tooltip, className = "", showCompareHint = false }: {
     : equipmentTone ? `tooltip-rarity-title tooltip-rarity-${equipmentTone}` : undefined;
   const tooltipTags = isActiveTooltip ? view.tags : normalizedEquipmentTooltipTags(gem, view, equipmentTone);
   const sections = view.sections;
+  const isEquipmentTooltip = gem.item_kind === "equipment";
+  const showDescriptionSection = isActiveTooltip || gem.item_kind !== "equipment";
+  const showSubtitle = isActiveTooltip || !isEquipmentTooltip;
+  const showIdentity = Boolean(view.type_identity_text) && !isEquipmentTooltip;
+  const statLines = isEquipmentTooltip ? equipmentTooltipStatLines(gem, sections.stats.lines) : sections.stats.lines;
+  const bonusLines = isEquipmentTooltip && sections.bonuses ? equipmentTooltipBonusLines(sections.bonuses.lines) : sections.bonuses?.lines ?? [];
   return (
     <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""} ${className}`.trim()} style={{ left, top, transform }}>
       <div className="tooltip-header">
         <GemOrb gem={gem} />
         <div className="tooltip-heading">
           <h3 className={titleClassName}>{view.name_text}</h3>
-          {isActiveTooltip ? <RichText line={highlightTooltipText(view.subtitle_text)} /> : <p>{view.subtitle_text}</p>}
+          {showSubtitle && (isActiveTooltip ? <RichText line={highlightTooltipText(view.subtitle_text)} /> : <p>{view.subtitle_text}</p>)}
         </div>
       </div>
-      {view.type_identity_text && <p className="tooltip-identity">{view.type_identity_text}</p>}
+      {showIdentity && <p className="tooltip-identity">{view.type_identity_text}</p>}
       {!isActiveTooltip && <div className="tooltip-tag-list">{tooltipTags.map((tag) => <TooltipTag key={`${tag.id ?? tag.text}-${tag.text}`} tag={tag} />)}</div>}
-      <TooltipSection title={sections.description.title_text}>
+      {showDescriptionSection && <TooltipSection title={sections.description.title_text}>
         {sections.description.lines.map((line) => isActiveTooltip ? <RichText key={line} line={highlightTooltipText(line)} /> : <p key={line}>{line}</p>)}
-      </TooltipSection>
-      {sections.stats.lines.length > 0 && <TooltipSection title={sections.stats.title_text}>
+      </TooltipSection>}
+      {statLines.length > 0 && <TooltipSection title={sections.stats.title_text}>
         <dl className="tooltip-stat-list">
-          {sections.stats.lines.map((line) => (
+          {statLines.map((line) => (
             <div key={`${line.label_text}-${line.value_text}`} className="tooltip-stat-line">
               <dt className={isActiveTooltip ? "tooltip-tone-body" : undefined}>{line.label_text}：</dt>
               <dd className={isActiveTooltip ? "tooltip-tone-body" : undefined}>
@@ -20361,9 +20410,9 @@ function GemTooltipPanel({ tooltip, className = "", showCompareHint = false }: {
           </dl>
         </TooltipSection>
       )}
-      {sections.bonuses && sections.bonuses.lines.length > 0 && (
+      {sections.bonuses && bonusLines.length > 0 && (
         <TooltipSection title={sections.bonuses.title_text}>
-          {sections.bonuses.lines.map((line, index) => <p key={`${index}-${line}`} className={`tooltip-bonus-line ${isActiveTooltip ? "tooltip-tone-rule" : ""}`}>{line}</p>)}
+          {bonusLines.map((line, index) => <p key={`${index}-${line}`} className={`tooltip-bonus-line ${isActiveTooltip ? "tooltip-tone-rule" : ""}`}>{line}</p>)}
         </TooltipSection>
       )}
       {view.variant === "active" && sections.base_skill_level && sections.base_skill_level.lines.length > 0 && (
@@ -20499,7 +20548,15 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
   const levelText = frontendSkillPreviewEffectiveLevelText(skill);
   const projectileLine = frontendProjectileCountTooltipLine(gem, skill);
   const channelLines = frontendChannelStackTooltipLines(gem, skill);
-  if (componentLines.length === 0 && bonusLines.length === 0 && !levelText && !projectileLine && channelLines.length === 0) return gem;
+  const guardLines = frontendGuardTooltipLines(skill);
+  if (
+    componentLines.length === 0
+    && bonusLines.length === 0
+    && !levelText
+    && !projectileLine
+    && channelLines.length === 0
+    && guardLines.length === 0
+  ) return gem;
   return {
     ...gem,
     tooltip_view: {
@@ -20511,6 +20568,7 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
           lines: mergeFrontendSkillPreviewTooltipLines(view.sections.stats.lines, skill, [
             ...(projectileLine ? [projectileLine] : []),
             ...channelLines,
+            ...guardLines,
             ...componentLines
           ], levelText)
         },
@@ -20521,6 +20579,26 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
       }
     }
   };
+}
+
+function frontendGuardTooltipLines(skill: SkillPreview): TooltipStatLine[] {
+  const params = skill.runtime_params ?? {};
+  const absorbPercent = Number(params.guard_absorb_percent ?? 0);
+  const absorbAmount = Number(params.guard_absorb_amount ?? 0);
+  const lines: TooltipStatLine[] = [];
+  if (Number.isFinite(absorbPercent) && absorbPercent > 0) {
+    lines.push({
+      label_text: "\u5438\u6536\u4f24\u5bb3\u6bd4\u4f8b",
+      value_text: `${formatPreviewNumber(absorbPercent)}%`,
+    });
+  }
+  if (Number.isFinite(absorbAmount) && absorbAmount > 0) {
+    lines.push({
+      label_text: "\u5438\u6536\u4f24\u5bb3\u4e0a\u9650",
+      value_text: formatPreviewNumber(absorbAmount),
+    });
+  }
+  return lines;
 }
 
 function frontendSupportModifierTooltipLines(skill: SkillPreview) {
@@ -20737,7 +20815,7 @@ const NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS = new Set([
   "elemental",
 ]);
 const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
-const FRONTEND_BASE_KNOCKBACK_DISTANCE = 128;
+const FRONTEND_BASE_KNOCKBACK_DISTANCE = 250;
 const FRONTEND_KNOCKBACK_LOCK_MS = 260;
 
 function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
@@ -21029,6 +21107,50 @@ function normalizedEquipmentTooltipTags(gem: Gem, view: TooltipView, rarityTone:
   return view.tags.map((tag) => (
     isEquipmentRarityTag(gem, tag) ? { ...tag, tone: `rarity-${rarityTone}` } : tag
   ));
+}
+
+function equipmentTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
+  const slotText = equipmentTooltipSlotText(gem);
+  return lines.map((line) => (
+    isEquipmentTooltipSourceLine(line)
+      ? { ...line, label_text: "\u90e8\u4f4d", value_text: slotText }
+      : line
+  ));
+}
+
+function isEquipmentTooltipSourceLine(line: TooltipStatLine) {
+  const label = line.label_text.trim().toLowerCase();
+  return label === "\u6765\u6e90" || label === "\u93c9\u30e6\u7c2e" || label === "source";
+}
+
+function equipmentTooltipSlotText(gem: Gem) {
+  const slotId = equipmentSourceSlotId(gem);
+  if (slotId === "head") return "\u5934\u90e8";
+  if (slotId === "chest") return "\u80f8\u7532";
+  if (slotId === "amulet") return "\u9879\u94fe";
+  if (slotId === "gloves") return "\u624b\u5957";
+  if (slotId === "belt") return "\u8170\u5e26";
+  if (slotId === "boots") return "\u978b\u5b50";
+  if (slotId === "ring" || slotId === "ring_1" || slotId === "ring_2") return "\u6212\u6307";
+  if (slotId === "weapon" || slotId === "main_weapon" || slotId === "off_weapon" || isWeaponItem(gem)) return "\u6b66\u5668";
+  return gem.category_text || gem.gem_type?.display_text || "\u88c5\u5907";
+}
+
+function equipmentTooltipBonusLines(lines: string[]) {
+  return lines.map(normalizeEquipmentTooltipBonusLine);
+}
+
+function normalizeEquipmentTooltipBonusLine(line: string) {
+  const match = line.match(/^(?:(?:\u521d\u9636|\u8fdb\u9636|\u81f3\u81fb|\u57fa\u7840)(?:\u524d\u7f00|\u540e\u7f00)?|[^\s\uff1a:]+(?:\u524d\u7f00|\u540e\u7f00))\s*T(\d+)\s*[\uff1a:]\s*(.+)$/u);
+  if (!match) return line;
+  return equipmentTooltipAffixLine(match[2], Number(match[1]));
+}
+
+function equipmentTooltipAffixLine(effect: string, tier: unknown) {
+  const tierNumber = Number(tier);
+  const suffix = Number.isFinite(tierNumber) ? `\uff08T${tierNumber}\uff09` : "";
+  const normalizedEffect = effect.trim().replace(/([%\uff05])\s+(?=\p{Script=Han})/gu, "$1");
+  return `${normalizedEffect}${suffix}`;
 }
 
 function isEquipmentRarityTag(gem: Gem, tag: TooltipTagView) {
