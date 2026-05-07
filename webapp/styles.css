@@ -130,8 +130,9 @@ button {
 .playable-minimap-expanded {
   left: 50%;
   top: 50%;
-  width: min(820px, 72vw);
-  height: min(460px, 58vh);
+  width: min(1120px, 88vw, calc(92vh * var(--playable-minimap-aspect-number, 1)));
+  height: auto;
+  aspect-ratio: var(--playable-minimap-aspect-ratio, 1 / 1);
   transform: translate(-50%, -50%);
   opacity: 0.68;
   border: 0;

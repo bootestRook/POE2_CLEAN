@@ -96,6 +96,9 @@ def test_playable_minimap_renders_explored_runtime_map_cells() -> None:
     assert "data-playable-minimap=\"true\"" in render_body
     assert "data-minimap-mode={mode}" in render_body
     assert "data-minimap-explored-cells={exploredCells.size}" in render_body
+    assert "--playable-minimap-aspect-ratio" in render_body
+    assert "--playable-minimap-aspect-number" in render_body
+    assert "style={minimapStyle}" in render_body
     assert "renderPlayableMinimapCanvas(context, map, exploredCells)" in render_body
     assert "for (const key of exploredCells)" in render_body
     assert 'if (kind === "hidden") continue' in render_body
@@ -125,6 +128,8 @@ def test_playable_minimap_m_key_is_scoped_and_overlay_is_nonblocking() -> None:
     assert "pointer-events: auto" not in minimap_style
     assert ".playable-minimap-expanded" in styles
     assert "opacity: 0.68" in expanded_style
+    assert "aspect-ratio: var(--playable-minimap-aspect-ratio, 1 / 1)" in expanded_style
+    assert "calc(92vh * var(--playable-minimap-aspect-number, 1))" in expanded_style
     assert "background: transparent" in expanded_style
     assert "box-shadow: none" in expanded_style
 

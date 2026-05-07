@@ -12719,6 +12719,12 @@ function PlayableBattleMinimap({
   mode: PlayableMinimapMode;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const minimapAspect = Math.max(0.1, map.meta.world_width / Math.max(1, map.meta.world_height));
+  const minimapStyle = {
+    "--playable-minimap-aspect-ratio": `${Math.max(1, map.meta.world_width)} / ${Math.max(1, map.meta.world_height)}`,
+    "--playable-minimap-aspect-number": String(minimapAspect)
+  } as CSSProperties;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
@@ -12732,6 +12738,7 @@ function PlayableBattleMinimap({
       data-playable-minimap="true"
       data-minimap-mode={mode}
       data-minimap-explored-cells={exploredCells.size}
+      style={minimapStyle}
       aria-label={mode === "expanded" ? "????" : "???"}
     >
       <canvas
