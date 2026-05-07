@@ -653,7 +653,7 @@ const DEFAULT_SKILL_EDITOR_CAMERA_SETTINGS: SkillEditorCameraSettings = {
 };
 const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "fullscreen";
 const GAME_RESOLUTION_PRESETS: GameResolutionPreset[] = [
-  { mode: "fullscreen", label: "全屏", width: null, height: null },
+  { mode: "fullscreen", label: "全屏", width: 1920, height: 1080 },
   { mode: "4k", label: "4K", width: 3840, height: 2160 },
   { mode: "2k", label: "2K", width: 2560, height: 1440 },
   { mode: "1080p", label: "1080p", width: 1920, height: 1080 }
@@ -751,6 +751,64 @@ function loadGameResolutionMode(): GameResolutionMode {
 function saveGameResolutionMode(mode: GameResolutionMode) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(GAME_RESOLUTION_STORAGE_KEY, mode);
+}
+
+function useGameViewport(mode: GameResolutionMode): GameViewport {
+  const [windowSize, setWindowSize] = useState(() => ({
+    width: typeof window === "undefined" ? 1920 : window.innerWidth,
+    height: typeof window === "undefined" ? 1080 : window.innerHeight
+  }));
+
+  useEffect(() => {
+    function resize() {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    window.addEventListener("fullscreenchange", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("fullscreenchange", resize);
+    };
+  }, []);
+
+  return useMemo(() => {
+    const preset = GAME_RESOLUTION_PRESET_BY_MODE.get(mode) ?? GAME_RESOLUTION_PRESET_BY_MODE.get(DEFAULT_GAME_RESOLUTION_MODE)!;
+    const width = preset.width ?? Math.max(1, windowSize.width);
+    const height = preset.height ?? Math.max(1, windowSize.height);
+    const scale = Math.min(windowSize.width / width, windowSize.height / height);
+    const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    return {
+      width,
+      height,
+      scale: safeScale,
+      offsetX: Math.max(0, (windowSize.width - width * safeScale) / 2),
+      offsetY: Math.max(0, (windowSize.height - height * safeScale) / 2)
+    };
+  }, [mode, windowSize.height, windowSize.width]);
+}
+
+function GameViewportFrame({ viewport, mode, children }: { viewport: GameViewport; mode: GameResolutionMode; children: ReactNode }) {
+  const style = {
+    "--game-viewport-width": `${viewport.width}px`,
+    "--game-viewport-height": `${viewport.height}px`,
+    "--game-viewport-scale": viewport.scale,
+    "--game-viewport-offset-x": `${viewport.offsetX}px`,
+    "--game-viewport-offset-y": `${viewport.offsetY}px`
+  } as CSSProperties;
+
+  return (
+    <div className="game-viewport-shell" data-resolution-mode={mode} style={style}>
+      <div
+        className="game-viewport-content"
+        data-game-viewport-content="true"
+        data-viewport-width={viewport.width}
+        data-viewport-height={viewport.height}
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 type SkillEvent = {
@@ -1596,8 +1654,8 @@ const MAP_VISUAL_HEIGHT = MAP_HEIGHT;
 const PLAYER_SPEED = 250;
 const FLOATING_TEXT_VISUAL_RISE_SPEED = 22;
 const BATTLE_CAMERA_ZOOM = 0.22;
-const BATTLE_CAMERA_ANCHOR_X = "50vw";
-const BATTLE_CAMERA_ANCHOR_Y = "54vh";
+const BATTLE_CAMERA_ANCHOR_X = "calc(var(--game-viewport-width, 100vw) * 0.5)";
+const BATTLE_CAMERA_ANCHOR_Y = "calc(var(--game-viewport-height, 100vh) * 0.54)";
 const BATTLE_CAMERA_FOLLOW_OFFSET_Y = 0;
 const BATTLE_ENTITY_Z_INDEX_BASE = 10;
 const CANVAS_GEOMETRY_BATTLE_OBJECTS = true;
@@ -5987,6 +6045,8 @@ function directionFromSpriteTestPath(points: { x: number; y: number }[], progres
 
 function GameApp() {
   const [state, setState] = useState<AppState | null>(null);
+  const [gameResolutionMode, setGameResolutionMode] = useState<GameResolutionMode>(() => loadGameResolutionMode());
+  const gameViewport = useGameViewport(gameResolutionMode);
   const [bagOpen, setBagOpen] = useState(false);
   const [monsterTestMode] = useState(() => initialMonsterTestMode());
   const [skillEditorMode] = useState(() => initialSkillEditorMode());
@@ -6014,6 +6074,7 @@ function GameApp() {
   const [notice, setNotice] = useState("正在载入。");
   const [playing, setPlaying] = useState(() => skillEditorMode);
   const [battlePauseOpen, setBattlePauseOpen] = useState(false);
+  const [battlePauseView, setBattlePauseView] = useState<"menu" | "settings">("menu");
   const [gameFailureOpen, setGameFailureOpen] = useState(false);
   const [player, setPlayer] = useState<PlayerRuntimeState>({
     x: MAP_WIDTH / 2,
@@ -6685,7 +6746,8 @@ function GameApp() {
     function onMouseMove(event: globalThis.MouseEvent) {
       const current = floatingGemRef.current;
       if (!current) return;
-      setFloatingGem({ ...current, x: event.clientX + current.offsetX, y: event.clientY + current.offsetY });
+      const point = clientToGameViewportPoint(event.clientX, event.clientY);
+      setFloatingGem({ ...current, x: point.x + current.offsetX, y: point.y + current.offsetY });
     }
 
     async function onMouseUp(event: globalThis.MouseEvent) {
@@ -6705,7 +6767,8 @@ function GameApp() {
       try {
         const result = await placeFloatingItem(current, target, event);
         if (result.type === "swap") {
-          setFloatingItem(result.nextFloatingItem, result.origin, event.clientX, event.clientY, current.offsetX, current.offsetY);
+          const point = clientToGameViewportPoint(event.clientX, event.clientY);
+          setFloatingItem(result.nextFloatingItem, result.origin, point.x, point.y, current.offsetX, current.offsetY);
         }
       } finally {
         window.setTimeout(clearDragHoverState, 0);
@@ -6746,6 +6809,10 @@ function GameApp() {
           return;
         }
         if (battlePauseOpen) {
+          if (battlePauseView === "settings") {
+            setBattlePauseView("menu");
+            return;
+          }
           continueBattleFromPause();
           return;
         }
@@ -6754,11 +6821,13 @@ function GameApp() {
           return;
         }
         if (!playing && entryStep === "rest" && !skillEditorMode && !monsterTestMode) {
+          setBattlePauseView("menu");
           setBattlePauseOpen(true);
           setNotice("已打开菜单。");
           return;
         }
         if (playableBattleActive) {
+          setBattlePauseView("menu");
           setBattlePauseOpen(true);
           setNotice("游戏已暂停。");
           return;
@@ -6800,7 +6869,7 @@ function GameApp() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [bagOpen, battleMap, battlePauseOpen, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, state?.drops, tooltip]);
+  }, [bagOpen, battleMap, battlePauseOpen, battlePauseView, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, state?.drops, tooltip]);
 
   useEffect(() => {
     playerStateRef.current = player;
@@ -11606,7 +11675,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function showPlacementPrompt(text: string, x: number, y: number) {
     const id = nextPromptId.current++;
-    setPlacementPrompt({ id, text, x, y });
+    const point = clientToGameViewportPoint(x, y);
+    setPlacementPrompt({ id, text, x: point.x, y: point.y });
     window.setTimeout(() => {
       setPlacementPrompt((current) => (current?.id === id ? null : current));
     }, 900);
@@ -12360,7 +12430,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     event.preventDefault();
     event.stopPropagation();
     clearDragHoverState();
-    setFloatingItem(gem, origin, event.clientX, event.clientY);
+    const point = clientToGameViewportPoint(event.clientX, event.clientY);
+    setFloatingItem(gem, origin, point.x, point.y);
   }
 
   function onGemHover(event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number) {
@@ -12552,6 +12623,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice("已回到休息区。");
   }
 
+  async function applyGameResolutionMode(mode: GameResolutionMode) {
+    setGameResolutionMode(mode);
+    saveGameResolutionMode(mode);
+    if (mode === "fullscreen" && typeof document !== "undefined" && !document.fullscreenElement) {
+      await document.documentElement.requestFullscreen?.().catch(() => undefined);
+    }
+  }
+
   function closeInventorySurface() {
     clearFloatingGem();
     clearDragHoverState();
@@ -12567,6 +12646,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function continueBattleFromPause() {
     setBattlePauseOpen(false);
+    setBattlePauseView("menu");
     setNotice(playing ? "继续战斗。" : "继续休息。");
   }
 
@@ -12602,7 +12682,13 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice("已返回主菜单。");
   }
 
-  if (!state) return <main className="game-screen loading">{notice}</main>;
+  if (!state) {
+    return (
+      <GameViewportFrame viewport={gameViewport} mode={gameResolutionMode}>
+        <main className="game-screen loading">{notice}</main>
+      </GameViewportFrame>
+    );
+  }
   const runtimeUsesEditorMap = battleMap ? isEditorRuntimeBattleMap(battleMap) : false;
   const battleCamera = createBattleCamera(player.x, player.y, skillEditorMode ? skillEditorCameraSettings.zoom : runtimeUsesEditorMap ? 1 : BATTLE_CAMERA_ZOOM);
   const visibleEnemies = selectRenderableEnemies(enemies, player, elapsed);
@@ -12776,6 +12862,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   };
 
   return (
+    <GameViewportFrame viewport={gameViewport} mode={gameResolutionMode}>
     <main className="game-screen">
       {activeBossEnemy && <BossHealthBar enemy={activeBossEnemy} />}
       {showBattleMapLayer && <section className="map-layer" aria-label="可玩地图">
@@ -12825,7 +12912,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             ))}
           </div>
         </div>
-        <BattleGeometryCanvas snapshot={battleGeometrySnapshot} />
+        <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
         <PlayerOverheadResourceBars player={player} camera={battleCamera} />
         <GroundDropLayer drops={state.drops} displayPositions={dropDisplayPositions.current} camera={battleCamera} onPickup={beginDropPickup} />
         <BossPortalLayer portal={bossPortal} camera={battleCamera} onUse={beginBossPortalUse} />
@@ -12946,11 +13033,36 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
       {!monsterTestMode && !skillEditorMode && (playing || restAreaMapActive) && battlePauseOpen && (
         <section className="battle-pause-overlay" role="dialog" aria-modal="true" aria-label="暂停菜单">
-          <div className="battle-pause-dialog">
+          <div className="battle-pause-dialog" data-view={battlePauseView}>
+            {battlePauseView === "settings" && (
+              <div className="battle-settings-panel">
+                <span>设置</span>
+                <h2>分辨率</h2>
+                <div className="battle-resolution-options">
+                  {GAME_RESOLUTION_PRESETS.map((preset) => (
+                    <button
+                      key={preset.mode}
+                      type="button"
+                      className={preset.mode === gameResolutionMode ? "selected" : ""}
+                      aria-pressed={preset.mode === gameResolutionMode}
+                      onClick={() => void applyGameResolutionMode(preset.mode)}
+                    >
+                      <strong>{preset.label}</strong>
+                      <small>{preset.width && preset.height ? `${preset.width} x ${preset.height}` : "跟随屏幕"}</small>
+                    </button>
+                  ))}
+                </div>
+                <div className="battle-pause-actions">
+                  <button type="button" onClick={() => setBattlePauseView("menu")}>返回</button>
+                  <button type="button" onClick={continueBattleFromPause}>继续</button>
+                </div>
+              </div>
+            )}
             <span>暂停菜单</span>
             <h2>{playing ? "游戏已暂停" : "休息区菜单"}</h2>
             <div className="battle-pause-actions">
               <button type="button" onClick={continueBattleFromPause}>继续</button>
+              <button type="button" onClick={() => setBattlePauseView("settings")}>设置</button>
               {playing ? <button type="button" onClick={exitCurrentRunToRestArea}>退出当前对局</button> : null}
               <button type="button" onClick={endGameToTitle}>{playing ? "结束游戏" : "退出游戏"}</button>
             </div>
@@ -13278,6 +13390,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </section>
       )}
     </main>
+    </GameViewportFrame>
   );
 }
 
@@ -14750,8 +14863,8 @@ function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventor
 function getBoardTooltipPosition(anchor: HTMLElement): Omit<Tooltip, "gem"> {
   const cell = anchor.closest("[data-board-row][data-board-column]") as HTMLElement | null;
   const board = anchor.closest(".board-grid") as HTMLElement | null;
-  const cellRect = (cell ?? anchor).getBoundingClientRect();
-  const boardRect = (board ?? anchor).getBoundingClientRect();
+  const cellRect = clientRectToGameViewportRect((cell ?? anchor).getBoundingClientRect());
+  const boardRect = clientRectToGameViewportRect((board ?? anchor).getBoundingClientRect());
   const centerTop = clampTooltipTop(cellRect.top + cellRect.height / 2);
 
   return {
@@ -14762,7 +14875,7 @@ function getBoardTooltipPosition(anchor: HTMLElement): Omit<Tooltip, "gem"> {
 }
 
 function getInventoryTooltipPosition(anchor: HTMLElement, slotIndex: number): Omit<Tooltip, "gem"> {
-  const rect = anchor.getBoundingClientRect();
+  const rect = clientRectToGameViewportRect(anchor.getBoundingClientRect());
   const columnIndex = slotIndex % INVENTORY_COLUMNS;
   if (columnIndex >= INVENTORY_COLUMNS - 4) {
     return {
@@ -14780,7 +14893,7 @@ function getInventoryTooltipPosition(anchor: HTMLElement, slotIndex: number): Om
 }
 
 function getEquipmentTooltipPosition(anchor: HTMLElement): Omit<Tooltip, "gem"> {
-  const rect = anchor.getBoundingClientRect();
+  const rect = clientRectToGameViewportRect(anchor.getBoundingClientRect());
   return {
     left: clampTooltipLeft(rect.right + 8),
     top: clampTooltipTop(rect.top + rect.height / 2),
@@ -14789,16 +14902,19 @@ function getEquipmentTooltipPosition(anchor: HTMLElement): Omit<Tooltip, "gem"> 
 }
 
 function clampTooltipLeft(left: number) {
-  return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(left, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_SCREEN_PADDING));
+  const viewport = currentGameViewportMetrics();
+  return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(left, viewport.width - TOOLTIP_WIDTH - TOOLTIP_SCREEN_PADDING));
 }
 
 function clampTooltipTop(top: number) {
-  return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(top, window.innerHeight - TOOLTIP_SCREEN_PADDING));
+  const viewport = currentGameViewportMetrics();
+  return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(top, viewport.height - TOOLTIP_SCREEN_PADDING));
 }
 
 function getComparisonTooltipPosition(tooltip: Tooltip): Omit<Tooltip, "gem" | "comparisonGem"> {
   const rightLeft = tooltip.left + TOOLTIP_WIDTH + TOOLTIP_COMPARISON_GAP;
-  if (rightLeft + TOOLTIP_WIDTH <= window.innerWidth - TOOLTIP_SCREEN_PADDING) {
+  const viewport = currentGameViewportMetrics();
+  if (rightLeft + TOOLTIP_WIDTH <= viewport.width - TOOLTIP_SCREEN_PADDING) {
     return {
       left: rightLeft,
       top: tooltip.top,
@@ -16507,12 +16623,45 @@ function LaunchPointAdjustmentOverlay({
   );
 }
 
+function currentGameViewportMetrics() {
+  if (typeof document === "undefined" || typeof window === "undefined") {
+    return { width: 1920, height: 1080, scale: 1, left: 0, top: 0 };
+  }
+  const viewport = document.querySelector<HTMLElement>("[data-game-viewport-content='true']");
+  if (!viewport) return { width: window.innerWidth, height: window.innerHeight, scale: 1, left: 0, top: 0 };
+  const rect = viewport.getBoundingClientRect();
+  const width = Number(viewport.dataset.viewportWidth) || rect.width || window.innerWidth;
+  const height = Number(viewport.dataset.viewportHeight) || rect.height || window.innerHeight;
+  const scale = rect.width > 0 && width > 0 ? rect.width / width : 1;
+  return { width, height, scale: scale > 0 ? scale : 1, left: rect.left, top: rect.top };
+}
+
+function clientToGameViewportPoint(clientX: number, clientY: number) {
+  const viewport = currentGameViewportMetrics();
+  return {
+    x: (clientX - viewport.left) / viewport.scale,
+    y: (clientY - viewport.top) / viewport.scale
+  };
+}
+
+function clientRectToGameViewportRect(rect: DOMRect) {
+  const viewport = currentGameViewportMetrics();
+  return {
+    left: (rect.left - viewport.left) / viewport.scale,
+    right: (rect.right - viewport.left) / viewport.scale,
+    top: (rect.top - viewport.top) / viewport.scale,
+    bottom: (rect.bottom - viewport.top) / viewport.scale,
+    width: rect.width / viewport.scale,
+    height: rect.height / viewport.scale
+  };
+}
+
 function battleAnchorX() {
-  return window.innerWidth * 0.5;
+  return currentGameViewportMetrics().width * 0.5;
 }
 
 function battleAnchorY() {
-  return window.innerHeight * 0.58;
+  return currentGameViewportMetrics().height * 0.58;
 }
 
 function battleWorldToViewport(worldPosition: { x: number; y: number }, camera: Camera2D) {
@@ -16524,8 +16673,9 @@ function battleWorldToViewport(worldPosition: { x: number; y: number }, camera: 
 }
 
 function viewportToBattleWorld(clientX: number, clientY: number, camera: Camera2D) {
-  const terrainScreenX = (clientX - battleAnchorX()) / camera.zoom + camera.screenX;
-  const terrainScreenY = (clientY - battleAnchorY()) / camera.zoom + camera.screenY;
+  const point = clientToGameViewportPoint(clientX, clientY);
+  const terrainScreenX = (point.x - battleAnchorX()) / camera.zoom + camera.screenX;
+  const terrainScreenY = (point.y - battleAnchorY()) / camera.zoom + camera.screenY;
   void unprojectScreenToWorld;
   return { x: terrainScreenX, y: terrainScreenY };
 }

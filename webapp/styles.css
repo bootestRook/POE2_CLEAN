@@ -10,10 +10,10 @@
   --equipment-grid-width: calc(var(--equipment-slot-size) * 2 + var(--equipment-slot-column-gap) + 2px);
   --equipment-grid-height: calc(var(--equipment-slot-size) * 5 + var(--equipment-slot-row-gap) * 4 + 2px);
   --right-frame-width: calc(var(--bag-grid-width) + 36px);
-  --inventory-character-panel-width: clamp(420px, calc(100vw - var(--right-frame-width) - 90px), 620px);
+  --inventory-character-panel-width: clamp(420px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - var(--right-frame-width) - 90px), 620px);
   --inventory-workbench-width: calc(var(--right-frame-width) + 25px);
-  --inventory-center-width: calc(100vw - var(--inventory-character-panel-width) - var(--inventory-workbench-width) - 10px);
-  --inventory-center-x: calc(50vw + (var(--inventory-character-panel-width) - var(--inventory-workbench-width)) / 2);
+  --inventory-center-width: calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - var(--inventory-character-panel-width) - var(--inventory-workbench-width) - 10px);
+  --inventory-center-x: calc(calc(var(--game-viewport-width, 100vw) * 50 / 100) + (var(--inventory-character-panel-width) - var(--inventory-workbench-width)) / 2);
   --geo-ui-bg: rgba(11, 13, 16, 0.82);
   --geo-ui-bg-raised: rgba(18, 22, 26, 0.9);
   --geo-ui-border: rgba(244, 247, 248, 0.16);
@@ -41,10 +41,28 @@ button {
   font: inherit;
 }
 
+.game-viewport-shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #050607;
+}
+
+.game-viewport-content {
+  position: absolute;
+  left: var(--game-viewport-offset-x, 0);
+  top: var(--game-viewport-offset-y, 0);
+  width: var(--game-viewport-width, 100vw);
+  height: var(--game-viewport-height, 100vh);
+  overflow: hidden;
+  transform: scale(var(--game-viewport-scale, 1));
+  transform-origin: 0 0;
+}
+
 .game-screen {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: var(--game-viewport-width, 100vw);
+  height: var(--game-viewport-height, 100vh);
   overflow: hidden;
   background: #1b2418;
 }
@@ -123,14 +141,14 @@ button {
 .playable-minimap-compact {
   top: 18px;
   right: 18px;
-  width: min(240px, calc(100vw - 36px));
+  width: min(240px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 36px));
   height: 136px;
 }
 
 .playable-minimap-expanded {
   left: 50%;
   top: 50%;
-  width: min(1120px, 88vw, calc(92vh * var(--playable-minimap-aspect-number, 1)));
+  width: min(1120px, calc(var(--game-viewport-width, 100vw) * 88 / 100), calc(calc(var(--game-viewport-height, 100vh) * 92 / 100) * var(--playable-minimap-aspect-number, 1)));
   height: auto;
   aspect-ratio: var(--playable-minimap-aspect-ratio, 1 / 1);
   transform: translate(-50%, -50%);
@@ -171,7 +189,7 @@ button {
   left: 50%;
   top: 18px;
   z-index: 24;
-  width: min(680px, calc(100vw - 48px));
+  width: min(680px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -1474,8 +1492,8 @@ button {
 }
 
 .map-editor-screen {
-  width: 100vw;
-  height: 100vh;
+  width: calc(var(--game-viewport-width, 100vw) * 100 / 100);
+  height: calc(var(--game-viewport-height, 100vh) * 100 / 100);
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
   overflow: hidden;
@@ -2419,8 +2437,8 @@ button {
 
 .sprite-test-screen {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: calc(var(--game-viewport-width, 100vw) * 100 / 100);
+  height: calc(var(--game-viewport-height, 100vh) * 100 / 100);
   overflow: hidden;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -2843,8 +2861,8 @@ button {
 }
 
 .sprite-test-screen-shot {
-  width: 100vw;
-  height: 100vh;
+  width: calc(var(--game-viewport-width, 100vw) * 100 / 100);
+  height: calc(var(--game-viewport-height, 100vh) * 100 / 100);
   grid-template-rows: 58px 138px minmax(0, 1fr);
   gap: 8px;
   padding: 10px;
@@ -2990,7 +3008,7 @@ button {
   }
 
   .map-editor-stage {
-    min-height: 68vh;
+    min-height: calc(var(--game-viewport-height, 100vh) * 68 / 100);
   }
 
   .sprite-test-screen {
@@ -4624,7 +4642,7 @@ button {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  max-width: min(540px, calc(100vw - 48px));
+  max-width: min(540px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
   padding: 12px 14px;
   border: 1px solid var(--geo-ui-border);
   border-left-color: var(--geo-ui-accent);
@@ -4699,7 +4717,7 @@ button {
   z-index: 22;
   display: grid;
   gap: 5px;
-  width: min(360px, calc(100vw - 48px));
+  width: min(360px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
   padding: 10px;
   border: 1px solid var(--geo-ui-accent);
   border-radius: 5px;
@@ -4717,8 +4735,8 @@ button {
   z-index: 22;
   display: grid;
   gap: 6px;
-  width: min(380px, calc(100vw - 48px));
-  max-height: 42vh;
+  width: min(380px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
+  max-height: calc(var(--game-viewport-height, 100vh) * 42 / 100);
   overflow: auto;
   padding: 10px;
   border: 1px solid var(--geo-ui-blue);
@@ -4779,7 +4797,7 @@ button {
 
 .entry-title-copy h2 {
   margin: 0;
-  font-size: clamp(32px, 6vw, 68px);
+  font-size: clamp(32px, calc(var(--game-viewport-width, 100vw) * 6 / 100), 68px);
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -4820,8 +4838,8 @@ button {
 .save-selection-shell {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  width: min(760px, calc(100vw - 48px));
-  max-height: min(82vh, 720px);
+  width: min(760px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
+  max-height: min(calc(var(--game-viewport-height, 100vh) * 82 / 100), 720px);
   overflow: hidden;
   border: 1px solid var(--geo-ui-border-strong);
   border-radius: 6px;
@@ -4917,7 +4935,7 @@ button {
 .save-slot-list {
   display: grid;
   gap: 8px;
-  max-height: min(48vh, 390px);
+  max-height: min(calc(var(--game-viewport-height, 100vh) * 48 / 100), 390px);
   overflow: auto;
   padding: 14px 18px;
 }
@@ -5010,8 +5028,8 @@ button {
 
 .rest-area-room {
   position: relative;
-  max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 48px);
+  max-width: calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px);
+  max-height: calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 48px);
   overflow: hidden;
   border: 1px solid var(--geo-ui-border-strong);
   border-radius: 6px;
@@ -5123,8 +5141,8 @@ button {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
-  width: min(980px, calc(100vw - 48px));
-  max-height: calc(100vh - 48px);
+  width: min(980px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
+  max-height: calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 48px);
   padding: 16px;
   border: 1px solid var(--geo-ui-border-strong);
   border-top-color: var(--geo-ui-accent);
@@ -5200,7 +5218,7 @@ button {
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 8px;
   width: calc(var(--stash-slot-size) * 10 + 22px);
-  max-height: min(720px, calc(100vh - 16px));
+  max-height: min(720px, calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 16px));
   padding: 10px;
   overflow: hidden;
   pointer-events: auto;
@@ -5263,8 +5281,8 @@ button {
   z-index: 24;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(720px, calc(100vw - 48px));
-  max-height: min(82vh, 760px);
+  width: min(720px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
+  max-height: min(calc(var(--game-viewport-height, 100vh) * 82 / 100), 760px);
   overflow: hidden;
   gap: 14px;
   padding: 18px;
@@ -5560,6 +5578,51 @@ button {
   line-height: 1.2;
 }
 
+.battle-pause-dialog[data-view="settings"] > span,
+.battle-pause-dialog[data-view="settings"] > h2,
+.battle-pause-dialog[data-view="settings"] > .battle-pause-actions {
+  display: none;
+}
+
+.battle-settings-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.battle-settings-panel span {
+  color: #ffc470;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.battle-resolution-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.battle-resolution-options button {
+  min-height: 68px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border: 1px solid rgba(244, 247, 248, 0.18);
+  border-radius: 4px;
+  background: rgba(244, 247, 248, 0.08);
+  color: var(--geo-ui-text);
+  cursor: pointer;
+}
+
+.battle-resolution-options button.selected {
+  border-color: var(--geo-ui-accent);
+  background: rgba(255, 138, 42, 0.2);
+}
+
+.battle-resolution-options small {
+  color: var(--geo-ui-muted);
+  font-size: 12px;
+}
+
 .battle-pause-actions {
   display: grid;
   gap: 8px;
@@ -5779,7 +5842,7 @@ button {
   display: flex;
   align-items: center;
   gap: 18px;
-  max-width: min(620px, calc(100vw - 32px));
+  max-width: min(620px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 32px));
   padding: 12px 14px;
   border: 1px solid rgba(222, 191, 127, 0.78);
   border-radius: 6px;
@@ -5864,8 +5927,8 @@ button {
 }
 
 .skill-editor-shell {
-  width: min(1080px, calc(100vw - 56px));
-  max-height: calc(100vh - 56px);
+  width: min(1080px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 56px));
+  max-height: calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 56px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   border: 1px solid rgba(210, 190, 142, 0.72);
@@ -6739,7 +6802,7 @@ button {
 .gm-tool-anchor {
   position: absolute;
   top: 8px;
-  left: calc(50vw + 24px);
+  left: calc(calc(var(--game-viewport-width, 100vw) * 50 / 100) + 24px);
   z-index: 8;
 }
 
@@ -6768,9 +6831,9 @@ button {
   position: absolute;
   top: 86px;
   left: 50%;
-  width: min(560px, calc(100vw - 980px));
+  width: min(560px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 980px));
   min-width: 420px;
-  max-height: min(620px, calc(100vh - 150px));
+  max-height: min(620px, calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 150px));
   transform: translateX(-50%);
   z-index: 9;
   display: grid;
@@ -7239,7 +7302,7 @@ button {
 .bag-panel {
   position: absolute;
   right: 22px;
-  bottom: calc(clamp(5px, calc((100vh - 860px) * 0.6), 70px) + 30px);
+  bottom: calc(clamp(5px, calc((calc(var(--game-viewport-height, 100vh) * 100 / 100) - 860px) * 0.6), 70px) + 30px);
   width: calc(var(--bag-grid-width) + 16px);
 }
 
@@ -7969,7 +8032,7 @@ h3 {
   position: fixed;
   z-index: 90;
   width: 410px;
-  max-height: calc(100vh - 16px);
+  max-height: calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 16px);
   overflow: auto;
   padding: 14px;
   border: 1px solid var(--geo-ui-border-strong);
@@ -7982,6 +8045,18 @@ h3 {
 
 .equipment-compare-tooltip {
   z-index: 89;
+}
+
+.equipment-equipped-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: #d7c6a1;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  pointer-events: none;
 }
 
 .equipment-compare-hint {
@@ -8355,7 +8430,7 @@ h3 {
   }
 
   .save-selection-shell {
-    width: calc(100vw - 24px);
+    width: calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 24px);
   }
 
   .save-selection-header,
@@ -8379,7 +8454,7 @@ h3 {
 
   .procedural-spawn-debug-panel {
     top: 96px;
-    max-height: 18vh;
+    max-height: calc(var(--game-viewport-height, 100vh) * 18 / 100);
   }
 
   .map-editor-toolbar {
@@ -8392,8 +8467,8 @@ h3 {
   }
 
   .skill-editor-shell {
-    width: calc(100vw - 24px);
-    max-height: calc(100vh - 24px);
+    width: calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 24px);
+    max-height: calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 24px);
   }
 
   .skill-editor-body {
@@ -8445,7 +8520,7 @@ h3 {
   left: 24px;
   top: 24px;
   z-index: 30;
-  width: min(360px, calc(100vw - 48px));
+  width: min(360px, calc(calc(var(--game-viewport-width, 100vw) * 100 / 100) - 48px));
   padding: 14px;
   border: 1px solid rgba(214, 228, 214, 0.24);
   border-radius: 8px;

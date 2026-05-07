@@ -3,23 +3,30 @@ import { BattleGeometrySnapshot, renderBattleGeometry } from "./battleGeometryRe
 
 type BattleGeometryCanvasProps = {
   snapshot: BattleGeometrySnapshot;
+  viewportWidth?: number;
+  viewportHeight?: number;
 };
 
-export function BattleGeometryCanvas({ snapshot }: BattleGeometryCanvasProps) {
+export function BattleGeometryCanvas({ snapshot, viewportWidth, viewportHeight }: BattleGeometryCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [viewport, setViewport] = useState(() => ({
+  const [windowViewport, setWindowViewport] = useState(() => ({
     width: typeof window === "undefined" ? snapshot.width : window.innerWidth,
     height: typeof window === "undefined" ? snapshot.height : window.innerHeight
   }));
 
   useEffect(() => {
     function resize() {
-      setViewport({ width: window.innerWidth, height: window.innerHeight });
+      setWindowViewport({ width: window.innerWidth, height: window.innerHeight });
     }
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, []);
+
+  const viewport = useMemo(() => ({
+    width: viewportWidth ?? windowViewport.width,
+    height: viewportHeight ?? windowViewport.height
+  }), [viewportHeight, viewportWidth, windowViewport.height, windowViewport.width]);
 
   const viewportSnapshot = useMemo<BattleGeometrySnapshot>(() => ({
     ...snapshot,
