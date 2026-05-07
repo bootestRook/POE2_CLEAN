@@ -4344,6 +4344,14 @@ export const FRONTEND_GEM_DROP_POOL = [
         }
       ]
     },
+    "passive_effects": [
+          {
+                "target": "self_stat",
+                "stat": "life_regen_flat",
+                "value": 40,
+                "layer": "additive"
+          }
+    ],
     "can_affect": {
       "summary_text": "按标签影响匹配的主动技能",
       "target_kinds": [
@@ -5615,6 +5623,14 @@ export const FRONTEND_GEM_DROP_POOL = [
         }
       ]
     },
+    "passive_effects": [
+          {
+                "target": "self_stat",
+                "stat": "max_energy_shield",
+                "value": 120,
+                "layer": "additive"
+          }
+    ],
     "can_affect": {
       "summary_text": "按标签影响匹配的主动技能",
       "target_kinds": [
@@ -5801,6 +5817,20 @@ export const FRONTEND_GEM_DROP_POOL = [
         }
       ]
     },
+    "passive_effects": [
+          {
+                "target": "self_stat",
+                "stat": "max_mana",
+                "value": 50,
+                "layer": "additive"
+          },
+          {
+                "target": "active_skill",
+                "stat": "cast_speed_add_percent",
+                "value": 10,
+                "layer": "additive"
+          }
+    ],
     "can_affect": {
       "summary_text": "按标签影响匹配的主动技能",
       "target_kinds": [

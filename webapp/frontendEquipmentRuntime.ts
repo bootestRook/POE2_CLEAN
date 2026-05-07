@@ -295,6 +295,7 @@ export function applyFrontendEquipmentStatModifiers<T extends Record<string, { v
       moveSpeedAddPercent += modifier.value;
       continue;
     }
+    const traceKey = modifier.reason_key === "modifier.passive_self_stat" ? "passive" : "equipment";
     const current = next[modifier.stat] ?? { label_text: modifier.stat, value: 0, trace: {} };
     const numericValue = typeof current.value === "number" ? current.value : 0;
     next[modifier.stat] = {
@@ -302,7 +303,7 @@ export function applyFrontendEquipmentStatModifiers<T extends Record<string, { v
       value: numericValue + modifier.value,
       trace: {
         ...(current.trace ?? {}),
-        equipment: Number((current.trace?.equipment ?? 0) + modifier.value),
+        [traceKey]: Number((current.trace?.[traceKey] ?? 0) + modifier.value),
       },
     };
     if (modifier.stat === "strength") strengthAdd += modifier.value;

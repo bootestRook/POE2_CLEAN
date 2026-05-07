@@ -118,7 +118,17 @@ def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
 
 def test_equipped_player_stats_feed_actual_frontend_combat_runtime() -> None:
     source = _read(WEBAPP / "App.tsx")
+    gem_data = _read(WEBAPP / "frontendGemDropData.ts")
 
+    assert "frontendMountedPassiveSelfStatModifiers(state)" in source
+    assert "frontendPassiveSelfStatEffects(gem)" in source
+    assert 'String(effect.target ?? "") === "self_stat"' in source
+    assert "FRONTEND_PASSIVE_SELF_STAT_IDS_BY_GEM" not in source
+    assert '"passive_effects"' in gem_data
+    assert '"target": "self_stat"' in gem_data
+    assert '"stat": "life_regen_flat"' in gem_data
+    assert 'reason_key: "modifier.passive_self_stat"' in source
+    assert "recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(legacyState as AppState)))" in source
     assert "const playerStats = applyFrontendEquipmentStatModifiers(baseStats, modifiers)" in source
     assert "player_stats: playerStats" in source
     assert "character_panel: recalculateFrontendCharacterPanel(playerStats)" in source
@@ -126,6 +136,7 @@ def test_equipped_player_stats_feed_actual_frontend_combat_runtime() -> None:
     assert "statNumber(playerStats.mana_regen_flat, 0) * (1 + Math.max(0, statNumber(playerStats.mana_regen_add_percent, 0)) / 100)" in source
     assert 'row.stat_id === "life_regen_flat"' in source
     assert "statNumber(playerStats.life_regen_flat, 0) * (1 + Math.max(0, statNumber(playerStats.life_regen_add_percent, 0)) / 100)" in source
+    assert "statNumber(stats?.life_regen_flat, 0) * (1 + Math.max(0, statNumber(stats?.life_regen_add_percent, 0)) / 100)" in source
     assert "resolveMonsterHitAgainstPlayer(enemy, playerBeforeHit, state?.player_stats, blocked, nowMs)" in source
     assert "regeneratePlayerResources(currentPlayer, state?.player_stats, dt)" in source
     assert "applyFrontendEnergyShieldRecharge(regeneratePlayerResources(currentPlayer, state?.player_stats, dt), dt)" in source

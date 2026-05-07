@@ -108,6 +108,14 @@ type Gem = {
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   equipment_slot_id?: string;
+  passive_effects?: FrontendPassiveEffect[];
+};
+
+type FrontendPassiveEffect = {
+  target?: string;
+  stat?: string;
+  value?: number;
+  layer?: string;
 };
 
 type TooltipView = {
@@ -1793,6 +1801,32 @@ function frontendEquippedEquipmentModifiers(state: AppState) {
   return modifiers;
 }
 
+function frontendMountedPassiveSelfStatModifiers(state: AppState): FrontendEquipmentStatModifier[] {
+  const itemById = new Map(state.inventory.map((item) => [item.instance_id, item]));
+  const modifiers: FrontendEquipmentStatModifier[] = [];
+  for (const cell of state.board.cells.flat()) {
+    const gem = cell.gem ? itemById.get(cell.gem.instance_id) ?? cell.gem : null;
+    if (!gem || !isPassiveGem(gem)) continue;
+    const baseGemId = String(gem.base_gem_id ?? gem.instance_id);
+    const level = Math.max(1, Math.floor(Number(gem.level ?? 1)));
+    for (const effect of frontendPassiveSelfStatEffects(gem)) {
+      const stat = String(effect.stat ?? "");
+      if (!stat) continue;
+      const baseValue = Number(effect.value ?? 0);
+      const value = frontendSkillLevelTableValueById(baseGemId, level, stat) ?? baseValue;
+      if (!Number.isFinite(value) || value === 0) continue;
+      modifiers.push({
+        source_modifier_id: `${gem.instance_id}:self_stat:${stat}`,
+        kind: "player_stat",
+        stat,
+        value,
+        reason_key: "modifier.passive_self_stat",
+      });
+    }
+  }
+  return modifiers;
+}
+
 function recalculateFrontendSkillPreview(state: AppState): AppState {
   const nextSkills: SkillPreview[] = [];
   const equipmentSkillModifiers = frontendEquippedEquipmentModifiers(state).filter((modifier) => modifier.kind !== "player_stat");
@@ -2122,6 +2156,32 @@ function frontendGemBaseModifiers(gem: Gem) {
   const baseEffect = frontendRecord(frontendRecord(gem).base_effect);
   const modifiers = baseEffect.modifiers;
   return Array.isArray(modifiers) ? modifiers.map(frontendRecord) : [];
+}
+
+function frontendPassiveSelfStatEffects(gem: Gem): FrontendPassiveEffect[] {
+  const passiveEffects = frontendRecord(gem).passive_effects;
+  if (Array.isArray(passiveEffects)) {
+    return passiveEffects
+      .map(frontendRecord)
+      .filter((effect) => String(effect.target ?? "") === "self_stat")
+      .map((effect) => ({
+        target: "self_stat",
+        stat: String(effect.stat ?? ""),
+        value: Number(effect.value ?? 0),
+        layer: String(effect.layer ?? "additive")
+      }));
+  }
+  return frontendGemBaseModifiers(gem)
+    .filter((modifier) => String(modifier.target_text ?? "") === "??????")
+    .map((modifier) => {
+      const stat = frontendRecord(modifier.stat);
+      return {
+        target: "self_stat",
+        stat: String(stat.id ?? ""),
+        value: Number(modifier.value ?? 0),
+        layer: "additive"
+      };
+    });
 }
 
 function frontendSupportCanAffect(sourceGem: Gem, targetTags: Set<string>) {
@@ -2847,10 +2907,10 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
   if (!save || Number(save.version) !== FRONTEND_SAVE_VERSION) return null;
   const legacyState = save.app_state;
   if (legacyState && typeof legacyState === "object") {
-    return recalculateFrontendSkillPreview(sanitizeFrontendStorageState(legacyState as AppState));
+    return recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(legacyState as AppState)));
   }
   const initial = createFrontendInitialAppState();
-  return recalculateFrontendSkillPreview(sanitizeFrontendStorageState({
+  return recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState({
     ...initial,
     player_name: normalizePlayerName(save.player_name ?? initial.player_name),
     inventory: Array.isArray(save.inventory) ? save.inventory : initial.inventory,
@@ -2872,7 +2932,7 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
     current_map_run: null,
     autosave: initial.autosave,
     ui_text: save.ui_text ?? initial.ui_text
-  }));
+  })));
 }
 
 function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
@@ -2968,7 +3028,10 @@ async function requestGmEquipmentAffixes(source: string, level: number): Promise
 
 function recalculateFrontendEquipmentState(state: AppState): AppState {
   const baseStats = cloneFrontendData(FRONTEND_INITIAL_APP_STATE.player_stats ?? {}) as Record<string, PlayerStatView>;
-  const modifiers = frontendEquippedEquipmentModifiers(state);
+  const modifiers = [
+    ...frontendEquippedEquipmentModifiers(state),
+    ...frontendMountedPassiveSelfStatModifiers(state),
+  ];
   const playerStats = applyFrontendEquipmentStatModifiers(baseStats, modifiers);
   return {
     ...state,
