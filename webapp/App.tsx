@@ -1492,6 +1492,8 @@ type BattleAnimationContexts = {
   enemies: Map<number, UnitAnimationContext>;
 };
 
+type PlayableMinimapMode = "compact" | "expanded";
+
 const DEFAULT_BAKED_BATTLE_MAP = BAKED_BATTLE_MAPS[0];
 const MAP_WIDTH = DEFAULT_BAKED_BATTLE_MAP.meta.world_width;
 const MAP_HEIGHT = DEFAULT_BAKED_BATTLE_MAP.meta.world_height;
@@ -1506,6 +1508,7 @@ const BATTLE_CAMERA_FOLLOW_OFFSET_Y = 0;
 const BATTLE_ENTITY_Z_INDEX_BASE = 10;
 const CANVAS_GEOMETRY_BATTLE_OBJECTS = true;
 const CANVAS_GEOMETRY_SKILL_EFFECTS = true;
+const PLAYABLE_MINIMAP_REVEAL_RADIUS_CELLS = 7;
 const FIRE_BOLT_FAKE_Z = 22;
 const FIRE_BOLT_PROJECTILE_FAKE_Z = 0;
 const FIRE_BOLT_TRAIL_LENGTH = 0;
@@ -5630,6 +5633,8 @@ function GameApp() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(() => monsterTestMode ? MONSTER_TEST_MAP_TEMPLATE_ID : skillEditorMode ? DEFAULT_BAKED_BATTLE_MAP_ID : DEFAULT_RUNTIME_MAP_ID);
   const [battleMap, setBattleMap] = useState<BakedBattleMapData | null>(null);
   const [mapDebugEnabled, setMapDebugEnabled] = useState(false);
+  const [playableMinimapMode, setPlayableMinimapMode] = useState<PlayableMinimapMode>("compact");
+  const [exploredMinimapCells, setExploredMinimapCells] = useState<Set<string>>(() => new Set());
   const [authoredSpawnPlanActive, setAuthoredSpawnPlanActive] = useState(false);
   const [authoredAggroSources, setAuthoredAggroSources] = useState<RuntimeEncounterAggroSource[]>([]);
   const [spawnPlanWarnings, setSpawnPlanWarnings] = useState<string[]>([]);
@@ -5741,6 +5746,8 @@ function GameApp() {
   const spawnTimer = useRef(0);
   const playerVisual = useRef<UnitVisualRuntime>({ direction: "down", movementVector: { x: 0, y: 0 } });
   const enemyVisuals = useRef(new Map<number, EnemyVisualRuntime>());
+  const exploredMinimapCellsRef = useRef<Set<string>>(new Set());
+  const lastMinimapGridCellRef = useRef<string | null>(null);
   const triggeredEncounterSourceIds = useRef<Set<string>>(new Set());
   const encounterMonsterPalette = useRef<EncounterMonsterPalette>(createEncounterMonsterPalette());
   const playerStateRef = useRef(player);
@@ -5799,6 +5806,25 @@ function GameApp() {
   function setRuntimePlayerBuffs(next: PlayerBuff[]) {
     activePlayerBuffsRef.current = next;
     setActivePlayerBuffs(next);
+  }
+
+  function resetPlayableMinimapForRun(map: BakedBattleMapData | null | undefined, spawnPoint: { x: number; y: number }) {
+    setPlayableMinimapMode("compact");
+    lastMinimapGridCellRef.current = map ? playableMinimapCellKeyForPoint(map, spawnPoint) : null;
+    const nextCells = map ? playableMinimapRevealCells(map, spawnPoint, new Set()).cells : new Set<string>();
+    exploredMinimapCellsRef.current = nextCells;
+    setExploredMinimapCells(nextCells);
+  }
+
+  function revealPlayableMinimapAroundPlayer(map: BakedBattleMapData | null | undefined, point: { x: number; y: number }) {
+    if (!map || skillEditorMode || monsterTestMode) return;
+    const gridKey = playableMinimapCellKeyForPoint(map, point);
+    if (!gridKey || gridKey === lastMinimapGridCellRef.current) return;
+    const revealed = playableMinimapRevealCells(map, point, exploredMinimapCellsRef.current);
+    lastMinimapGridCellRef.current = gridKey;
+    if (!revealed.changed) return;
+    exploredMinimapCellsRef.current = revealed.cells;
+    setExploredMinimapCells(revealed.cells);
   }
 
   function warIntentEnabled() {
@@ -6188,7 +6214,7 @@ function GameApp() {
   useEffect(() => {
     if (!monsterTestMode || !battleMap || !state) return;
     const spawn = battleMap.playerSpawn;
-    resetBattleRuntimeForChallenge(spawn);
+    resetBattleRuntimeForChallenge(spawn, battleMap);
     setRuntimePlayer((current) => ({
       ...current,
       x: spawn.x,
@@ -6283,6 +6309,12 @@ function GameApp() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const key = event.key.toLowerCase();
+      const playableBattleActive = Boolean(playing && battleMap && !skillEditorMode && !monsterTestMode);
+      if (key === "m" && playableBattleActive && !isPlayableBattleTypingTarget(event.target)) {
+        event.preventDefault();
+        setPlayableMinimapMode((current) => current === "expanded" ? "compact" : "expanded");
+        return;
+      }
       if (key === "c") {
         event.preventDefault();
         setBagOpen((current) => !current);
@@ -6301,7 +6333,7 @@ function GameApp() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [battleMap, monsterTestMode, playing, skillEditorMode]);
 
   useEffect(() => {
     playerStateRef.current = player;
@@ -6428,6 +6460,7 @@ function GameApp() {
     nextPlayer = applyFrontendMovementEquipmentEffects(currentPlayer, nextPlayer, dt);
     nextPlayer = applyFrontendPlayerSelfDamage(nextPlayer, dt);
     setRuntimePlayer(() => nextPlayer);
+    revealPlayableMinimapAroundPlayer(battleMap, nextPlayer);
 
     let currentVisualEnemies = enemiesStateRef.current;
     if (!skillEditorMode) {
@@ -11111,7 +11144,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice("Exited through Boss portal.");
   }
 
-  function resetBattleRuntimeForChallenge(spawnPoint: { x: number; y: number }) {
+  function resetBattleRuntimeForChallenge(spawnPoint: { x: number; y: number }, mapForMinimap: BakedBattleMapData | null | undefined = battleMap) {
     const resetPlayer = {
       ...playerStateRef.current,
       x: spawnPoint.x,
@@ -11152,6 +11185,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     pendingDropPickup.current = null;
     pendingBossPortalUse.current = null;
     setBossPortal(null);
+    resetPlayableMinimapForRun(mapForMinimap, spawnPoint);
   }
 
   function startGame(stageIdOverride?: string) {
@@ -11167,7 +11201,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       const challengeSpawn = runtimeDebugCornerPlayerSpawn(battleMap);
       const nextEncounterPalette = createEncounterMonsterPalette();
       encounterMonsterPalette.current = nextEncounterPalette;
-      resetBattleRuntimeForChallenge(challengeSpawn);
+      resetBattleRuntimeForChallenge(challengeSpawn, battleMap);
       const debugEnemies = createRuntimeDebugCornerEnemies(challengeSpawn, battleMap, nextEncounterPalette);
       enemiesStateRef.current = debugEnemies;
       setEnemies(debugEnemies);
@@ -11192,7 +11226,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       const mapInstance = createRuntimeMapInstanceForStage(selectedStage);
       const challengeSpawn = mapInstance.playerSpawn;
       setBattleMap(mapInstance);
-      resetBattleRuntimeForChallenge(challengeSpawn);
+      resetBattleRuntimeForChallenge(challengeSpawn, mapInstance);
       applyFrontendState((current) => {
         if (!current.map_progression) return { ...current, current_map_run: null, drops: [] };
         return {
@@ -11235,7 +11269,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return;
     }
     const challengeSpawn = battleMap.playerSpawn;
-    resetBattleRuntimeForChallenge(challengeSpawn);
+    resetBattleRuntimeForChallenge(challengeSpawn, battleMap);
     setAuthoredSpawnPlanActive(false);
     setAuthoredAggroSources([]);
     setSpawnPlanWarnings([]);
@@ -11481,6 +11515,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const runtimeBoundaryScanLine = runtimeDebugMonsterBoundaryTestEnabled()
     ? runtimeBoundaryMonsterScanLine(runtimeBoundaryScan)
     : null;
+  const playableMinimapVisible = Boolean(battleMap && playing && !monsterTestMode && !skillEditorMode);
   const terrainWidth = battleMap?.meta.world_width ?? MAP_VISUAL_WIDTH;
   const terrainHeight = battleMap?.meta.world_height ?? MAP_VISUAL_HEIGHT;
   const battleGeometrySnapshot: BattleGeometrySnapshot = {
@@ -11681,6 +11716,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         <PlayerOverheadResourceBars player={player} resources={playerResources} camera={battleCamera} />
         <GroundDropLayer drops={state.drops} displayPositions={dropDisplayPositions.current} camera={battleCamera} onPickup={beginDropPickup} />
         <BossPortalLayer portal={bossPortal} camera={battleCamera} onUse={beginBossPortalUse} />
+        {playableMinimapVisible && battleMap && (
+          <PlayableBattleMinimap
+            map={battleMap}
+            player={player}
+            exploredCells={exploredMinimapCells}
+            mode={playableMinimapMode}
+          />
+        )}
       </section>
 
       {monsterTestMode && (
@@ -12664,6 +12707,85 @@ function BossPortalLayer({
   );
 }
 
+function PlayableBattleMinimap({
+  map,
+  player,
+  exploredCells,
+  mode
+}: {
+  map: BakedBattleMapData;
+  player: { x: number; y: number };
+  exploredCells: ReadonlySet<string>;
+  mode: PlayableMinimapMode;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    renderPlayableMinimapCanvas(context, map, exploredCells);
+  }, [map, exploredCells]);
+
+  return (
+    <aside
+      className={`playable-minimap playable-minimap-${mode}`}
+      data-playable-minimap="true"
+      data-minimap-mode={mode}
+      data-minimap-explored-cells={exploredCells.size}
+      aria-label={mode === "expanded" ? "????" : "???"}
+    >
+      <canvas
+        ref={canvasRef}
+        className="playable-minimap-canvas"
+        width={Math.max(1, map.gridWidth)}
+        height={Math.max(1, map.gridHeight)}
+        aria-hidden="true"
+      />
+      <span className="playable-minimap-player" style={playableMinimapPlayerStyle(map, player)} aria-hidden="true" />
+    </aside>
+  );
+}
+
+function renderPlayableMinimapCanvas(
+  context: CanvasRenderingContext2D,
+  map: BakedBattleMapData,
+  exploredCells: ReadonlySet<string>
+) {
+  const canvas = context.canvas;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "rgba(0, 0, 0, 0)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  for (const key of exploredCells) {
+    const cell = playableMinimapCellFromKey(key);
+    if (!cell) continue;
+    const kind = playableMinimapTerrainKind(map, cell.x, cell.y);
+    if (kind === "hidden") continue;
+    context.fillStyle = kind === "wall"
+      ? "rgba(169, 184, 176, 0.72)"
+      : "rgba(78, 116, 96, 0.82)";
+    context.fillRect(cell.x, cell.y, 1, 1);
+  }
+}
+
+function playableMinimapTerrainKind(map: BakedBattleMapData, gridX: number, gridY: number): "ground" | "wall" | "hidden" {
+  if (isEditorRuntimeBattleMap(map)) {
+    const tile = map.editorTiles[gridY]?.[gridX] ?? "empty";
+    if (tile === "ground") return "ground";
+    if (tile === "wall") return "wall";
+    return "hidden";
+  }
+  if (map.blockerGrid[gridY]?.[gridX]) return "wall";
+  if (map.walkableGrid[gridY]?.[gridX]) return "ground";
+  return "hidden";
+}
+
+function playableMinimapPlayerStyle(map: BakedBattleMapData, player: { x: number; y: number }): CSSProperties {
+  return {
+    left: `${clamp(player.x / Math.max(1, map.meta.world_width) * 100, 0, 100)}%`,
+    top: `${clamp(player.y / Math.max(1, map.meta.world_height) * 100, 0, 100)}%`
+  };
+}
+
 function BakedMapBackground({ map }: { map: BakedBattleMapData }) {
   if (isEditorRuntimeBattleMap(map)) return <EditorRuntimeMapBackground map={map} />;
   return (
@@ -13349,11 +13471,74 @@ function isInventoryDropBlockedByInterface(element: Element | null) {
   ].join(",")));
 }
 
+function isPlayableBattleTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target.tagName === "TEXTAREA" || target.tagName === "SELECT") return true;
+  if (target instanceof HTMLInputElement) return target.type !== "range";
+  return false;
+}
+
 function isBattleMapPointInBounds(map: BakedBattleMapData, position: { x: number; y: number }) {
   return position.x >= 0
     && position.y >= 0
     && position.x <= map.meta.world_width
     && position.y <= map.meta.world_height;
+}
+
+
+function playableMinimapGridPoint(map: BakedBattleMapData, point: { x: number; y: number }) {
+  return {
+    x: clamp(Math.floor(point.x / Math.max(1, map.meta.grid_size)), 0, Math.max(0, map.gridWidth - 1)),
+    y: clamp(Math.floor(point.y / Math.max(1, map.meta.grid_size)), 0, Math.max(0, map.gridHeight - 1))
+  };
+}
+
+function playableMinimapCellKey(gridX: number, gridY: number) {
+  return `${gridX},${gridY}`;
+}
+
+function playableMinimapCellKeyForPoint(map: BakedBattleMapData, point: { x: number; y: number }) {
+  if (map.gridWidth <= 0 || map.gridHeight <= 0) return null;
+  const grid = playableMinimapGridPoint(map, point);
+  return playableMinimapCellKey(grid.x, grid.y);
+}
+
+function playableMinimapCellFromKey(key: string) {
+  const [rawX, rawY] = key.split(",");
+  const x = Number(rawX);
+  const y = Number(rawY);
+  if (!Number.isInteger(x) || !Number.isInteger(y)) return null;
+  return { x, y };
+}
+
+function playableMinimapRevealCells(
+  map: BakedBattleMapData,
+  point: { x: number; y: number },
+  previous: ReadonlySet<string>,
+  radius = PLAYABLE_MINIMAP_REVEAL_RADIUS_CELLS
+) {
+  const center = playableMinimapGridPoint(map, point);
+  const cells = new Set(previous);
+  let changed = false;
+  const radiusSquared = radius * radius;
+  for (let dy = -radius; dy <= radius; dy += 1) {
+    for (let dx = -radius; dx <= radius; dx += 1) {
+      if (dx * dx + dy * dy > radiusSquared) continue;
+      const gridX = center.x + dx;
+      const gridY = center.y + dy;
+      if (gridX < 0 || gridY < 0 || gridX >= map.gridWidth || gridY >= map.gridHeight) continue;
+      const key = playableMinimapCellKey(gridX, gridY);
+      if (cells.has(key)) continue;
+      cells.add(key);
+      changed = true;
+    }
+  }
+  return { cells, changed };
+}
+
+function playableMinimapUsesClientOnlyState() {
+  return true;
 }
 
 function droppedItemDropKind(item: Gem): DropPrompt["loot_kind"] {

@@ -57,6 +57,92 @@ def test_playable_map_run_keeps_frontend_real_combat_calculation() -> None:
     assert "damageEvents.push({" not in consume_skill_event_body
 
 
+def test_playable_minimap_exploration_is_run_scoped_and_seeded() -> None:
+    source = _app_source()
+    save_body = source.split("function frontendSavePayloadFromState", 1)[1].split("function saveFrontendAutosave", 1)[0]
+    reset_body = source.split("function resetBattleRuntimeForChallenge", 1)[1].split("function startGame", 1)[0]
+    start_body = source.split("function startGame", 1)[1].split("function spawnSelectedMonsterTestEnemy", 1)[0]
+
+    assert 'const [exploredMinimapCells, setExploredMinimapCells] = useState<Set<string>>(() => new Set())' in source
+    assert "const exploredMinimapCellsRef = useRef<Set<string>>(new Set())" in source
+    assert "const lastMinimapGridCellRef = useRef<string | null>(null)" in source
+    assert "function resetPlayableMinimapForRun" in source
+    assert 'setPlayableMinimapMode("compact")' in source
+    assert "resetPlayableMinimapForRun(mapForMinimap, spawnPoint)" in reset_body
+    assert "playableMinimapRevealCells(map, spawnPoint, new Set()).cells" in source
+    assert "resetBattleRuntimeForChallenge(challengeSpawn, mapInstance)" in start_body
+    assert "minimap" not in save_body.lower()
+
+
+def test_playable_minimap_reveals_only_on_player_grid_changes() -> None:
+    source = _app_source()
+    step_game_body = source.split("function stepGame", 1)[1].split("function recordRuntimePerf", 1)[0]
+    reveal_body = source.split("function revealPlayableMinimapAroundPlayer", 1)[1].split("function warIntentEnabled", 1)[0]
+    reveal_helper_body = source.split("function playableMinimapRevealCells", 1)[1].split("function playableMinimapUsesClientOnlyState", 1)[0]
+
+    assert "revealPlayableMinimapAroundPlayer(battleMap, nextPlayer)" in step_game_body
+    assert "if (!map || skillEditorMode || monsterTestMode) return" in reveal_body
+    assert "gridKey === lastMinimapGridCellRef.current" in reveal_body
+    assert "lastMinimapGridCellRef.current = gridKey" in reveal_body
+    assert "dx * dx + dy * dy > radiusSquared" in reveal_helper_body
+    assert "gridX >= map.gridWidth || gridY >= map.gridHeight" in reveal_helper_body
+
+
+def test_playable_minimap_renders_explored_runtime_map_cells() -> None:
+    source = _app_source()
+    render_body = source.split("function PlayableBattleMinimap", 1)[1].split("function BakedMapBackground", 1)[0]
+    terrain_body = source.split("function playableMinimapTerrainKind", 1)[1].split("function playableMinimapPlayerStyle", 1)[0]
+
+    assert "data-playable-minimap=\"true\"" in render_body
+    assert "data-minimap-mode={mode}" in render_body
+    assert "data-minimap-explored-cells={exploredCells.size}" in render_body
+    assert "renderPlayableMinimapCanvas(context, map, exploredCells)" in render_body
+    assert "for (const key of exploredCells)" in render_body
+    assert 'if (kind === "hidden") continue' in render_body
+    assert "isEditorRuntimeBattleMap(map)" in terrain_body
+    assert "map.editorTiles[gridY]?.[gridX]" in terrain_body
+    assert "map.blockerGrid[gridY]?.[gridX]" in terrain_body
+    assert "map.walkableGrid[gridY]?.[gridX]" in terrain_body
+    assert "<PlayableBattleMinimap" in source
+    assert "exploredCells={exploredMinimapCells}" in source
+
+
+def test_playable_minimap_m_key_is_scoped_and_overlay_is_nonblocking() -> None:
+    source = _app_source()
+    styles = (ROOT / "webapp" / "styles.css").read_text(encoding="utf-8")
+    key_body = source.split("function onKeyDown(event: KeyboardEvent)", 2)[2].split("function onKeyUp", 1)[0]
+    minimap_style = styles.split(".playable-minimap {", 1)[1].split(".playable-minimap-compact", 1)[0]
+    expanded_style = styles.split(".playable-minimap-expanded", 1)[1].split(".playable-minimap-canvas", 1)[0]
+
+    assert 'key === "m"' in key_body
+    assert "playing && battleMap && !skillEditorMode && !monsterTestMode" in key_body
+    assert "entryStep" not in key_body
+    assert "isPlayableBattleTypingTarget(event.target)" in key_body
+    assert 'current === "expanded" ? "compact" : "expanded"' in key_body
+    assert "playing" not in expanded_style
+    assert "setPlaying" not in key_body
+    assert "pointer-events: none" in minimap_style
+    assert "pointer-events: auto" not in minimap_style
+    assert ".playable-minimap-expanded" in styles
+    assert "opacity: 0.68" in expanded_style
+    assert "background: transparent" in expanded_style
+    assert "box-shadow: none" in expanded_style
+
+
+def test_playable_minimap_stays_client_only_and_outside_skill_editor() -> None:
+    source = _app_source()
+    minimap_source = "\n".join(line for line in source.splitlines() if "Minimap" in line or "minimap" in line)
+
+    assert "playableMinimapUsesClientOnlyState" in source
+    assert "requestState(" not in minimap_source
+    assert '"/api/' not in minimap_source
+    assert "localStorage" not in minimap_source
+    assert "skill-editor" not in minimap_source
+    assert "dist-skill-editor" not in minimap_source
+    assert "map-editor-minimap" in source
+    assert "playable-minimap" in source
+
+
 def test_frontend_loot_is_not_guaranteed_for_every_normal_kill() -> None:
     source = _app_source()
 

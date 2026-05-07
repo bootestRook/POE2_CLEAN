@@ -106,6 +106,65 @@ button {
   user-select: none;
 }
 
+.playable-minimap {
+  position: fixed;
+  z-index: 23;
+  overflow: hidden;
+  border: 1px solid rgba(230, 236, 226, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(8, 10, 11, 0.72), rgba(3, 4, 5, 0.84)),
+    rgba(4, 5, 6, 0.72);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+  user-select: none;
+}
+
+.playable-minimap-compact {
+  top: 18px;
+  right: 18px;
+  width: min(240px, calc(100vw - 36px));
+  height: 136px;
+}
+
+.playable-minimap-expanded {
+  left: 50%;
+  top: 50%;
+  width: min(820px, 72vw);
+  height: min(460px, 58vh);
+  transform: translate(-50%, -50%);
+  opacity: 0.68;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.playable-minimap-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.playable-minimap-player {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(4, 5, 6, 0.92);
+  border-radius: 50%;
+  background: #f7df9a;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 0 10px rgba(255, 223, 138, 0.74);
+  transform: translate(-50%, -50%);
+}
+
+.playable-minimap-expanded .playable-minimap-player {
+  width: 12px;
+  height: 12px;
+}
+
 .boss-health-bar {
   position: fixed;
   left: 50%;
