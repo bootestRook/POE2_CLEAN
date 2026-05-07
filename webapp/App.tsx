@@ -1689,6 +1689,7 @@ const STASH_PAGE_COLUMNS = 10;
 const REST_AREA_WIDTH = 1640;
 const REST_AREA_HEIGHT = 1000;
 const REST_AREA_INTERACTION_RADIUS = 96;
+const CLICK_INTERACTION_COMPLETE_RADIUS = 10;
 const REST_AREA_INTERACTABLES = {
   wangYang: { kind: "stage" as const, id: "wang-yang", label: "王阳", x: 330, y: 330 },
   stash: { kind: "stash" as const, id: "stash", label: "仓库", x: 760, y: 335 }
@@ -5880,6 +5881,7 @@ function GameApp() {
   const [proceduralSpawnDebug, setProceduralSpawnDebug] = useState<ProceduralSpawnDebugSummary | null>(null);
   const [notice, setNotice] = useState("正在载入。");
   const [playing, setPlaying] = useState(() => skillEditorMode);
+  const [battlePauseOpen, setBattlePauseOpen] = useState(false);
   const [gameFailureOpen, setGameFailureOpen] = useState(false);
   const [player, setPlayer] = useState<PlayerRuntimeState>({
     x: MAP_WIDTH / 2,
@@ -6574,14 +6576,60 @@ function GameApp() {
     function onKeyDown(event: KeyboardEvent) {
       const key = event.key.toLowerCase();
       const playableBattleActive = Boolean(playing && battleMap && !skillEditorMode && !monsterTestMode);
+      if (key === "escape") {
+        event.preventDefault();
+        keys.current.clear();
+        if (floatingGemRef.current) {
+          clearFloatingGem();
+          clearDragHoverState();
+          return;
+        }
+        if (tooltip || hoveredGemId) {
+          setTooltip(null);
+          setHoveredGemId(null);
+        }
+        if (gameFailureOpen) {
+          setGameFailureOpen(false);
+          return;
+        }
+        if (bagOpen) {
+          closeInventorySurface();
+          return;
+        }
+        if (battlePauseOpen) {
+          continueBattleFromPause();
+          return;
+        }
+        if (restAreaPanel) {
+          closeRestAreaPanel();
+          return;
+        }
+        if (playableBattleActive) {
+          setBattlePauseOpen(true);
+          setNotice("游戏已暂停。");
+          return;
+        }
+        if (!playing && entryStep === "save" && !skillEditorMode && !monsterTestMode) {
+          setEntryStep("title");
+          setNotice("已返回主菜单。");
+        }
+        return;
+      }
       if (key === "m" && playableBattleActive && !isPlayableBattleTypingTarget(event.target)) {
         event.preventDefault();
         setPlayableMinimapMode((current) => current === "expanded" ? "compact" : "expanded");
         return;
       }
+      if (key === "f" && !event.repeat) {
+        event.preventDefault();
+        handleKeyboardInteract();
+        return;
+      }
       if (key === "c") {
+        if (battlePauseOpen) return;
         event.preventDefault();
         setBagOpen((current) => !current);
+        setBattlePauseOpen(false);
         setRestAreaPanel(null);
         setTooltip(null);
         setHoveredGemId(null);
@@ -6598,7 +6646,7 @@ function GameApp() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [battleMap, monsterTestMode, playing, skillEditorMode]);
+  }, [bagOpen, battleMap, battlePauseOpen, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, tooltip]);
 
   useEffect(() => {
     playerStateRef.current = player;
@@ -6682,7 +6730,7 @@ function GameApp() {
   }, [state?.skill_editor?.selected_id, selectedSkillEditorId]);
 
   useEffect(() => {
-    if (!playing) {
+    if (!playing || battlePauseOpen) {
       lastFrame.current = null;
       return;
     }
@@ -6717,7 +6765,7 @@ function GameApp() {
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [playing, activeSkills, state?.player_stats?.move_speed?.value, battleMap, authoredAggroSources, authoredSpawnPlanActive, skillEditorMode]);
+  }, [playing, battlePauseOpen, activeSkills, state?.player_stats?.move_speed?.value, battleMap, authoredAggroSources, authoredSpawnPlanActive, skillEditorMode]);
 
   function stepGame(dt: number) {
     elapsedRef.current += dt;
@@ -6740,16 +6788,16 @@ function GameApp() {
       ? { x: interactionTarget.x - currentPlayer.x, y: interactionTarget.y - currentPlayer.y }
       : null;
     const interactionDistance = interactionVector ? Math.hypot(interactionVector.x, interactionVector.y) : 0;
-    const playerMoveVector = interactionTarget && interactionDistance > 10
+    const playerMoveVector = interactionTarget && interactionDistance > CLICK_INTERACTION_COMPLETE_RADIUS
       ? { x: interactionVector!.x / interactionDistance, y: interactionVector!.y / interactionDistance }
       : manualMoveVector;
     if ((manualMoveVector.x !== 0 || manualMoveVector.y !== 0) && interactionTarget) {
       pendingDropPickup.current = null;
       pendingBossPortalUse.current = null;
-    } else if (portalTarget && interactionTarget?.kind === "portal" && interactionDistance <= 10) {
+    } else if (portalTarget && interactionTarget?.kind === "portal" && interactionDistance <= CLICK_INTERACTION_COMPLETE_RADIUS) {
       pendingBossPortalUse.current = null;
       finishBossPortalUse(portalTarget.portalId);
-    } else if (pickupTarget && interactionTarget?.kind === "drop" && interactionDistance <= 10 && !pickupRequestInFlight.current) {
+    } else if (pickupTarget && interactionTarget?.kind === "drop" && interactionDistance <= CLICK_INTERACTION_COMPLETE_RADIUS && !pickupRequestInFlight.current) {
       pendingDropPickup.current = null;
       void finishDropPickup(pickupTarget.dropId);
     }
@@ -6934,6 +6982,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     setRuntimePlayer(() => nextPlayer);
     if (defeated) {
       setPlaying(false);
+      setBattlePauseOpen(false);
       setEntryStep("rest");
       setRestAreaPanel(null);
       setBagOpen(false);
@@ -7964,6 +8013,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const defeated = !skillEditorMode && guarded.hit.nextPlayer.hp <= 0;
     if (defeated) {
       setPlaying(false);
+      setBattlePauseOpen(false);
       setBagOpen(false);
       setGameFailureOpen(true);
       setNotice("游戏失败。玩家生命已归零。");
@@ -11660,6 +11710,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     enemiesStateRef.current = [];
     setEnemies([]);
     setPlaying(false);
+    setBattlePauseOpen(false);
     setEntryStep("rest");
     setRestAreaPanel(null);
     setBagOpen(false);
@@ -11669,6 +11720,62 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     applyFrontendState((current) => ({ ...current, current_map_run: null, drops: [] }));
     setCombatLogs((logs) => ["Exited through Boss portal.", ...logs].slice(0, 8));
     setNotice("Exited through Boss portal.");
+  }
+
+  function handleKeyboardInteract() {
+    if (battlePauseOpen || bagOpen || floatingGemRef.current || gameFailureOpen) return;
+    const currentPlayer = playerStateRef.current;
+
+    if (!monsterTestMode && !skillEditorMode && !playing && entryStep === "rest") {
+      const restTargets = (["stage", "stash"] as const)
+        .map((kind) => {
+          const target = restAreaInteractablePosition(kind, battleMap);
+          return { kind, distance: Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y) };
+        })
+        .filter((target) => target.distance <= REST_AREA_INTERACTION_RADIUS)
+        .sort((left, right) => left.distance - right.distance);
+      const nearest = restTargets[0];
+      if (nearest) {
+        interactWithRestArea(nearest.kind);
+      } else {
+        setNotice("附近没有可交互目标。");
+      }
+      return;
+    }
+
+    if (!playing || !battleMap || skillEditorMode || monsterTestMode) return;
+
+    const candidates: Array<{ distance: number; interact: () => void }> = [];
+    for (const drop of state?.drops ?? []) {
+      if (drop.picked_up || !drop.position) continue;
+      const target = dropDisplayPositions.current.get(drop.drop_id) ?? drop.position;
+      const distanceToDrop = Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y);
+      if (distanceToDrop > REST_AREA_INTERACTION_RADIUS) continue;
+      candidates.push({
+        distance: distanceToDrop,
+        interact: () => {
+          beginDropPickup(drop);
+        }
+      });
+    }
+    if (bossPortal && !bossPortal.used) {
+      const distanceToPortal = Math.hypot(bossPortal.position.x - currentPlayer.x, bossPortal.position.y - currentPlayer.y);
+      if (distanceToPortal <= REST_AREA_INTERACTION_RADIUS) {
+        candidates.push({
+          distance: distanceToPortal,
+          interact: () => {
+            beginBossPortalUse(bossPortal);
+          }
+        });
+      }
+    }
+
+    const nearest = candidates.sort((left, right) => left.distance - right.distance)[0];
+    if (nearest) {
+      nearest.interact();
+    } else {
+      setNotice("附近没有可拾取/交互目标。");
+    }
   }
 
   function resetBattleRuntimeForChallenge(spawnPoint: { x: number; y: number }, mapForMinimap: BakedBattleMapData | null | undefined = battleMap) {
@@ -11734,6 +11841,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       enemiesStateRef.current = debugEnemies;
       setEnemies(debugEnemies);
       setGameFailureOpen(false);
+      setBattlePauseOpen(false);
       setPlaying(true);
       setCombatLogs(["边缘角落怪物 AI 测试开始。玩家静止，怪物应直接贴近并按节奏攻击。"]);
       setNotice(`${battleMap.displayName} 边缘角落怪物 AI 测试中。`);
@@ -11742,6 +11850,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const nextEncounterPalette = createEncounterMonsterPalette();
     encounterMonsterPalette.current = nextEncounterPalette;
     setGameFailureOpen(false);
+    setBattlePauseOpen(false);
     setPlaying(true);
     setRestAreaPanel(null);
     setRestAreaInteractionTarget(null);
@@ -12049,6 +12158,56 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setTooltip(null);
     setHoveredGemId(null);
     setNotice("已回到休息区。");
+  }
+
+  function closeInventorySurface() {
+    clearFloatingGem();
+    clearDragHoverState();
+    setBagOpen(false);
+    setGmOpen(false);
+    setTooltip(null);
+    setHoveredGemId(null);
+    if (restAreaPanel === "stash") {
+      setRestAreaPanel(null);
+      setNotice("已返回休息区域。");
+    }
+  }
+
+  function continueBattleFromPause() {
+    setBattlePauseOpen(false);
+    setNotice("继续战斗。");
+  }
+
+  function exitCurrentRunToRestArea() {
+    keys.current.clear();
+    resetBattleRuntimeForChallenge(battleMap?.playerSpawn ?? playerStateRef.current, battleMap);
+    setPlaying(false);
+    setBattlePauseOpen(false);
+    setEntryStep("rest");
+    setRestAreaPanel(null);
+    setRestAreaInteractionTarget(null);
+    setBagOpen(false);
+    setGameFailureOpen(false);
+    setAuthoredAggroSources([]);
+    setAuthoredSpawnPlanActive(false);
+    setSelectedMapId(REST_AREA_MAP_TEMPLATE_ID);
+    applyFrontendState((current) => ({ ...current, current_map_run: null, drops: [] }));
+    setNotice("已退出当前对局，返回休息区域。");
+  }
+
+  function endGameToTitle() {
+    keys.current.clear();
+    resetBattleRuntimeForChallenge(battleMap?.playerSpawn ?? playerStateRef.current, battleMap);
+    setPlaying(false);
+    setBattlePauseOpen(false);
+    setEntryStep("title");
+    setRestAreaPanel(null);
+    setRestAreaInteractionTarget(null);
+    setBagOpen(false);
+    setGameFailureOpen(false);
+    applyFrontendState((current) => ({ ...current, current_map_run: null, drops: [] }));
+    refreshFrontendSaveSlots();
+    setNotice("已返回主菜单。");
   }
 
   if (!state) return <main className="game-screen loading">{notice}</main>;
@@ -12393,12 +12552,27 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </section>
       )}
 
+      {!monsterTestMode && !skillEditorMode && playing && battlePauseOpen && (
+        <section className="battle-pause-overlay" role="dialog" aria-modal="true" aria-label="暂停菜单">
+          <div className="battle-pause-dialog">
+            <span>暂停菜单</span>
+            <h2>游戏已暂停</h2>
+            <div className="battle-pause-actions">
+              <button type="button" onClick={continueBattleFromPause}>继续</button>
+              <button type="button" onClick={exitCurrentRunToRestArea}>退出当前对局</button>
+              <button type="button" onClick={endGameToTitle}>结束游戏</button>
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="help-text">
+        <p>Esc：返回/暂停菜单</p>
         <p>C：打开/关闭背包</p>
         <p>M：打开/关闭小地图</p>
         <p>WASD：移动</p>
         <p>拖拽：放置宝石</p>
-        <p>左键：拾取</p>
+        <p>左键/F：拾取/交互</p>
       </div>
 
       {skillEditorMode && (
