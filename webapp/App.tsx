@@ -1870,20 +1870,20 @@ function frontendSupportSkillModifiersForTarget(
     .reduce((total, modifier) => total + modifier.value, 0)));
   for (const sourceCell of state.board.cells.flat()) {
     const sourceGem = sourceCell.gem ? itemById.get(sourceCell.gem.instance_id) ?? sourceCell.gem : null;
-    if (!sourceGem || sourceGem.instance_id === targetGem.instance_id || !isSupportGem(sourceGem)) continue;
+    if (!sourceGem || sourceGem.instance_id === targetGem.instance_id || !(isSupportGem(sourceGem) || isPassiveGem(sourceGem))) continue;
     if (!isAllowedRoute(sourceGem, targetGem)) continue;
-    const relation = frontendBoardRelation(sourceGem.board_position, targetGem.board_position);
+    const relation = frontendModifierRelation(sourceGem, targetGem);
     if (!relation) continue;
     if (!frontendConduitCanUseTarget(sourceGem, targetGem)) continue;
     if (!frontendSupportCanAffect(sourceGem, targetTags)) continue;
-    const supportLevel = frontendSupportEffectiveLevel(sourceGem, supportLevelAdd);
-    for (const modifier of frontendSupportBaseModifiers(sourceGem, supportLevel)) {
+    const sourceLevel = frontendModifierSourceLevel(sourceGem, supportLevelAdd);
+    for (const modifier of frontendSkillTargetModifiers(sourceGem, sourceLevel)) {
       const modifierStat = frontendRecord(modifier.stat);
       const stat = String(modifierStat.id ?? "");
       if (!stat) continue;
       const baseValue = Number(modifier.value ?? 0);
       const tableKey = String(modifier.table_key ?? stat);
-      const value = frontendSkillLevelTableValueById(String(sourceGem.base_gem_id ?? sourceGem.instance_id), supportLevel, tableKey) ?? baseValue;
+      const value = frontendSkillLevelTableValueById(String(sourceGem.base_gem_id ?? sourceGem.instance_id), sourceLevel, tableKey) ?? baseValue;
       if (!Number.isFinite(value) || value === 0) continue;
       const appliedValue = value * frontendRelationCoefficient(relation);
       modifiers.push({
@@ -1900,12 +1900,35 @@ function frontendSupportSkillModifiersForTarget(
         stat: { id: stat, text: String(modifierStat.text ?? stat) },
         value: appliedValue,
         relation_text: frontendRelationText(relation),
-        reason_text: supportLevelAdd ? `辅助等级 ${supportLevel}` : "辅助基础效果",
+        reason_text: frontendModifierReasonText(sourceGem, sourceLevel, supportLevelAdd),
         applied: true,
       });
     }
   }
   return { modifiers, appliedModifiers };
+}
+
+function frontendModifierRelation(sourceGem: Gem, targetGem: Gem) {
+  if (isPassiveGem(sourceGem) && isActiveGem(targetGem)) {
+    return sourceGem.board_position && targetGem.board_position ? "board_wide" : "";
+  }
+  return frontendBoardRelation(sourceGem.board_position, targetGem.board_position);
+}
+
+function frontendModifierSourceLevel(sourceGem: Gem, supportLevelAdd: number) {
+  if (isSupportGem(sourceGem)) return frontendSupportEffectiveLevel(sourceGem, supportLevelAdd);
+  return Math.max(1, Math.floor(Number(sourceGem.level ?? 1)));
+}
+
+function frontendModifierReasonText(sourceGem: Gem, sourceLevel: number, supportLevelAdd: number) {
+  if (isPassiveGem(sourceGem)) return "\u88ab\u52a8\u6280\u80fd\u6548\u679c";
+  return supportLevelAdd ? `\u8f85\u52a9\u7b49\u7ea7 ${sourceLevel}` : "\u8f85\u52a9\u57fa\u7840\u6548\u679c";
+}
+
+function frontendSkillTargetModifiers(sourceGem: Gem, sourceLevel: number) {
+  const modifiers = frontendSupportBaseModifiers(sourceGem, sourceLevel);
+  if (!isPassiveGem(sourceGem)) return modifiers;
+  return modifiers.filter((modifier) => String(modifier.target_text ?? "").includes("\u5f71\u54cd\u4e3b\u52a8\u6280\u80fd"));
 }
 
 function frontendSkillPreviewForGemLevel(skill: SkillPreview, gem: Gem): SkillPreview {
@@ -2269,6 +2292,7 @@ function frontendRelationCoefficient(relation: string) {
 }
 
 function frontendRelationText(relation: string) {
+  if (relation === "board_wide") return "\u5168\u76d8";
   if (relation === "adjacent") return "相邻";
   if (relation === "same_row") return "同行";
   if (relation === "same_column") return "同列";
@@ -20009,9 +20033,6 @@ function SupportGemTooltip({ gem, view, left, top, transform }: { gem: Gem; view
           {(view.summary_lines ?? []).map((line, index) => <RichText key={index} line={line} className="support-tooltip-summary" />)}
         </div>
       </div>
-      <TooltipSection title={sections.description.title_text}>
-        {(sections.description as { rich_lines?: TooltipRichLine[] }).rich_lines?.map((line, index) => <RichText key={index} line={line} />)}
-      </TooltipSection>
       {sections.conditions && sections.conditions.rich_lines.length > 0 && (
         <TooltipSection title="">
           {sections.conditions.rich_lines.map((line, index) => <RichText key={index} line={line} />)}
@@ -20312,17 +20333,39 @@ function frontendDamageTypeLabel(damageType: string) {
 }
 
 const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS = new Set(["bow", "gun", "cannon"]);
+const NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS = new Set([
+  "attack",
+  "spell",
+  "melee",
+  "ranged",
+  "projectile",
+  "area",
+  "dot",
+  "hit",
+  "damage",
+  "physical",
+  "fire",
+  "cold",
+  "lightning",
+  "chaos",
+  "elemental",
+]);
 const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
 
 function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
   const tags = view.tags
     .filter((tag) => !HIDDEN_ACTIVE_TOOLTIP_TAG_IDS.has(tag.id ?? ""))
+    .filter((tag) => shouldShowTooltipTagForGem(gem, tag))
     .map((tag) => frontendDisplayGemKindTag(gem, tag));
+  const statLines = normalizePassiveTooltipStatLines(
+    gem,
+    ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines))
+  );
   const sections = {
     ...view.sections,
     stats: {
       ...view.sections.stats,
-      lines: ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines)),
+      lines: statLines,
     },
   };
   return {
@@ -20333,6 +20376,58 @@ function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
   };
 }
 
+function shouldShowTooltipTagForGem(gem: Gem, tag: TooltipTagView) {
+  if (!isPassiveGem(gem) || passiveGemCanDealDamage(gem)) return true;
+  return !NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS.has(tag.id ?? "");
+}
+
+function passiveGemCanDealDamage(gem: Gem) {
+  const baseEffect = frontendRecord(frontendRecord(gem).base_effect);
+  if (frontendDirectDamageTotal(baseEffect) > 0) return true;
+  const hit = frontendRecord(baseEffect.hit);
+  if (frontendDirectDamageTotal(hit) > 0) return true;
+  const runtimeParams = frontendRecord(baseEffect.runtime_params);
+  return frontendDirectDamageTotal(runtimeParams) > 0;
+}
+
+function normalizePassiveTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
+  if (!isPassiveGem(gem)) return lines;
+  const nextLines = lines.filter((line) => !isPassiveTooltipEffectStatLine(line));
+  if (!passiveAffectsActiveSkills(gem)) return nextLines;
+  const targetTexts = frontendPassiveTargetTagTexts(gem);
+  if (targetTexts.length === 0) return nextLines;
+  const targetLine = {
+    label_text: "\u5f71\u54cd\u4e3b\u52a8\u6280\u80fd",
+    value_text: targetTexts.join("\u3001"),
+  };
+  const levelLineIndex = nextLines.findIndex((line) => isSkillLevelTooltipLine(line.label_text));
+  if (levelLineIndex < 0) return [targetLine, ...nextLines];
+  return [...nextLines.slice(0, levelLineIndex + 1), targetLine, ...nextLines.slice(levelLineIndex + 1)];
+}
+
+function isPassiveTooltipEffectStatLine(line: TooltipStatLine) {
+  return !isSkillLevelTooltipLine(line.label_text);
+}
+
+function passiveAffectsActiveSkills(gem: Gem) {
+  return frontendGemBaseModifiers(gem)
+    .some((modifier) => String(modifier.target_text ?? "").includes("\u5f71\u54cd\u4e3b\u52a8\u6280\u80fd"));
+}
+
+function frontendPassiveTargetTagTexts(gem: Gem) {
+  return frontendTargetTagTexts(gem);
+}
+
+function frontendDirectDamageTotal(value: Record<string, unknown>) {
+  return [
+    value.base_damage,
+    value.damage,
+    value.final_damage,
+    value.amount,
+  ].reduce((total, next) => total + Math.max(0, Number(next) || 0), 0)
+    + frontendDamageMapTotal(value.damage_components);
+}
+
 function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
   return {
     ...view,
@@ -20340,7 +20435,7 @@ function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
     summary_lines: replaceGemTagRichLines(gem, view.summary_lines),
     sections: {
       ...view.sections,
-      conditions: replaceGemTagRichLineSection(gem, view.sections.conditions),
+      conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions),
     },
   };
 }
@@ -20352,7 +20447,35 @@ function frontendGemKindTagText(gem: Gem) {
   return "\u5b9d\u77f3";
 }
 
+const FRONTEND_GEM_COLOR_TEXT_BY_KEY: Record<string, string> = {
+  red: "\u7ea2\u8272",
+  blue: "\u84dd\u8272",
+  green: "\u7eff\u8272",
+  pink: "\u7c89\u8272",
+  yellow: "\u9ec4\u8272",
+  white: "\u767d\u8272",
+  black: "\u9ed1\u8272",
+  cyan: "\u9752\u8272",
+  orange: "\u6a59\u8272",
+};
+
+function frontendGemColorTag(gem: Gem) {
+  const key = gem.tooltip_view?.icon_color_key ?? gemColorKey(gem);
+  return {
+    text: FRONTEND_GEM_COLOR_TEXT_BY_KEY[key] ?? gem.gem_type?.display_text ?? "\u5b9d\u77f3",
+    tone: `color-${key}`,
+  };
+}
+
+function isGemTypeTagText(gem: Gem, text: string) {
+  const digit = gemSudokuDigit(gem);
+  return text === gem.gem_type?.display_text || text === `${digit}\u53f7\u5b9d\u77f3`;
+}
+
 function frontendDisplayGemKindTag(gem: Gem, tag: TooltipTagView): TooltipTagView {
+  if ((tag.id ?? "").startsWith("gem_type_") || isGemTypeTagText(gem, tag.text)) {
+    return { ...tag, ...frontendGemColorTag(gem) };
+  }
   if ((tag.id ?? "") !== "gem" && tag.text !== "\u5b9d\u77f3") return tag;
   return { ...tag, text: frontendGemKindTagText(gem) };
 }
@@ -20365,11 +20488,75 @@ function replaceGemTagRichLineSection(gem: Gem, section: { rich_lines: TooltipRi
   };
 }
 
+function normalizeSupportConditionRichLineSection(gem: Gem, section: { rich_lines: TooltipRichLine[] } | undefined) {
+  const normalized = replaceGemTagRichLineSection(gem, section);
+  if (!normalized) return normalized;
+  const targetLine = supportTargetTagRichLine(gem);
+  return {
+    ...normalized,
+    rich_lines: [targetLine, ...normalized.rich_lines.slice(1)],
+  };
+}
+
+function supportTargetTagRichLine(gem: Gem): TooltipRichLine {
+  const targetTexts = frontendSupportTargetTagTexts(gem);
+  const targetText = targetTexts.length > 0 ? targetTexts.join("\u3001") : "\u6240\u6709\u7c7b\u578b";
+  return [
+    { text: "\u8f85\u52a9\uff1a", tone: "label" },
+    { text: targetText, tone: "body" },
+  ];
+}
+
+function frontendSupportTargetTagTexts(gem: Gem) {
+  return frontendTargetTagTexts(gem);
+}
+
+function frontendTargetTagTexts(gem: Gem) {
+  const canAffect = frontendRecord(frontendRecord(gem).can_affect);
+  const tags = [
+    ...frontendTagTextEntries(canAffect.tags_any),
+    ...frontendTagTextEntries(canAffect.tags_all),
+  ];
+  const seen = new Set<string>();
+  return tags.filter((tag) => {
+    if (!tag.text || isNonTargetSupportTag(tag, gem) || seen.has(tag.text)) return false;
+    seen.add(tag.text);
+    return true;
+  }).map((tag) => tag.text);
+}
+
+function frontendTagTextEntries(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((entry) => {
+      const record = frontendRecord(entry);
+      return {
+        id: String(record.id ?? ""),
+        text: String(record.text ?? record.id ?? ""),
+      };
+    })
+    : [];
+}
+
+function isNonTargetSupportTag(tag: { id: string; text: string }, gem: Gem) {
+  return tag.id === "gem"
+    || tag.id === "support_gem"
+    || tag.id === "active_skill_gem"
+    || tag.id === "passive_skill_gem"
+    || tag.id === "loot_gem"
+    || tag.id.startsWith("gem_type_")
+    || tag.text === "\u5b9d\u77f3"
+    || tag.text === frontendGemKindTagText(gem)
+    || isGemTypeTagText(gem, tag.text);
+}
+
 function replaceGemTagRichLines(gem: Gem, lines: TooltipRichLine[] | undefined) {
   return lines?.map((line) => line.map((segment) => (
-    segment.text === "\u5b9d\u77f3" ? { ...segment, text: frontendGemKindTagText(gem) } : segment
+    isGemTypeTagText(gem, segment.text)
+      ? { ...segment, ...frontendGemColorTag(gem) }
+      : segment.text === "\u5b9d\u77f3" ? { ...segment, text: frontendGemKindTagText(gem) } : segment
   )));
 }
+
 function normalizedTooltipSubtitle(subtitle: string, tags: TooltipTagView[]) {
   const parts = subtitle.split("、").filter(Boolean);
   if (parts.length === 0) return subtitle;

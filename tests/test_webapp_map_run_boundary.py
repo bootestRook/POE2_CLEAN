@@ -353,6 +353,7 @@ def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
 
     assert "const levelText = frontendGemLevelText(gem)" in support_tooltip_body
     assert '`\\u7b49\\u7ea7 ${levelText}`' in support_tooltip_body
+    assert "sections.description" not in support_tooltip_body
     assert "ensureGemLevelStatLine(gem, view.sections.stats.lines)" in active_normalizer_body
     assert "return { ...line, value_text: levelText }" in level_line_body
     assert 'return [{ label_text: "\\u7b49\\u7ea7", value_text: levelText }, ...nextLines]' in level_line_body
@@ -367,11 +368,64 @@ def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
     assert 'if (view.variant === "support") return normalizeSupportTooltipView(gem, view)' in view_model_body
     assert ".map((tag) => frontendDisplayGemKindTag(gem, tag))" in active_normalizer_body
     assert "summary_lines: replaceGemTagRichLines(gem, view.summary_lines)" in support_normalizer_body
-    assert "conditions: replaceGemTagRichLineSection(gem, view.sections.conditions)" in support_normalizer_body
+    assert "conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions)" in support_normalizer_body
     assert 'if (isActiveGem(gem)) return "\\u4e3b\\u52a8\\u6280\\u80fd"' in support_normalizer_body
     assert 'if (isPassiveGem(gem)) return "\\u88ab\\u52a8\\u6280\\u80fd"' in support_normalizer_body
     assert 'if (isSupportGem(gem)) return "\\u8f85\\u52a9\\u6280\\u80fd"' in support_normalizer_body
     assert 'tag.text !== "\\u5b9d\\u77f3"' in support_normalizer_body
+    assert 'cyan: "\\u9752\\u8272"' in support_normalizer_body
+    assert '(tag.id ?? "").startsWith("gem_type_")' in support_normalizer_body
+    assert "isGemTypeTagText(gem, segment.text)" in support_normalizer_body
+    assert 'targetTexts.length > 0 ? targetTexts.join("\\u3001") : "\\u6240\\u6709\\u7c7b\\u578b"' in support_normalizer_body
+    assert "frontendTagTextEntries(canAffect.tags_any)" in support_normalizer_body
+    assert "frontendTagTextEntries(canAffect.tags_all)" in support_normalizer_body
+    assert 'tag.id === "support_gem"' in support_normalizer_body
+
+
+def test_frontend_non_damaging_passive_tooltips_hide_damage_tags() -> None:
+    source = _app_source()
+    tooltip_normalizer_body = source.split("const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS", 1)[1].split("function normalizeSupportTooltipView", 1)[0]
+
+    assert ".filter((tag) => shouldShowTooltipTagForGem(gem, tag))" in tooltip_normalizer_body
+    assert "NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS" in tooltip_normalizer_body
+    assert '"attack"' in tooltip_normalizer_body
+    assert '"physical"' in tooltip_normalizer_body
+    assert "passiveGemCanDealDamage(gem)" in tooltip_normalizer_body
+    assert "frontendRecord(frontendRecord(gem).base_effect)" in tooltip_normalizer_body
+    assert "frontendDamageMapTotal(value.damage_components)" in tooltip_normalizer_body
+
+
+def test_frontend_passive_tooltip_stats_show_target_tags_not_effect_details() -> None:
+    source = _app_source()
+    tooltip_normalizer_body = source.split("function normalizeActiveTooltipView", 1)[1].split("function normalizeSupportTooltipView", 1)[0]
+
+    assert "normalizePassiveTooltipStatLines(" in tooltip_normalizer_body
+    assert "isPassiveTooltipEffectStatLine(line)" in tooltip_normalizer_body
+    assert "return !isSkillLevelTooltipLine(line.label_text)" in tooltip_normalizer_body
+    assert 'label_text: "\\u5f71\\u54cd\\u4e3b\\u52a8\\u6280\\u80fd"' in tooltip_normalizer_body
+    assert 'value_text: targetTexts.join("\\u3001")' in tooltip_normalizer_body
+    assert 'String(modifier.target_text ?? "").includes("\\u5f71\\u54cd\\u4e3b\\u52a8\\u6280\\u80fd")' in tooltip_normalizer_body
+    assert "if (targetTexts.length === 0) return nextLines" in tooltip_normalizer_body
+    assert "frontendPassiveTargetTagTexts(gem)" in tooltip_normalizer_body
+    assert "return frontendTargetTagTexts(gem)" in tooltip_normalizer_body
+
+
+def test_frontend_passive_skill_modifiers_are_board_wide_tag_matched() -> None:
+    source = _app_source()
+    modifier_body = source.split("function frontendSupportSkillModifiersForTarget", 1)[1].split("function frontendSkillPreviewForGemLevel", 1)[0]
+    relation_body = source.split("function frontendModifierRelation", 1)[1].split("function frontendSkillPreviewForGemLevel", 1)[0]
+
+    assert "!(isSupportGem(sourceGem) || isPassiveGem(sourceGem))" in modifier_body
+    assert "const relation = frontendModifierRelation(sourceGem, targetGem)" in modifier_body
+    assert "if (!frontendSupportCanAffect(sourceGem, targetTags)) continue" in modifier_body
+    assert "frontendSkillTargetModifiers(sourceGem, sourceLevel)" in modifier_body
+    assert "frontendModifierReasonText(sourceGem, sourceLevel, supportLevelAdd)" in modifier_body
+    assert 'return sourceGem.board_position && targetGem.board_position ? "board_wide" : ""' in relation_body
+    assert 'if (relation === "board_wide") return "\\u5168\\u76d8"' in source
+    assert 'if (isPassiveGem(sourceGem)) return "\\u88ab\\u52a8\\u6280\\u80fd\\u6548\\u679c"' in relation_body
+    assert "function frontendSkillTargetModifiers" in relation_body
+    assert 'String(modifier.target_text ?? "").includes("\\u5f71\\u54cd\\u4e3b\\u52a8\\u6280\\u80fd")' in relation_body
+
 
 def test_frontend_passive_skill_gems_use_type_two_identity() -> None:
     drop_pool_source = (ROOT / "webapp" / "frontendGemDropData.ts").read_text(encoding="utf-8")
@@ -385,6 +439,7 @@ def test_frontend_passive_skill_gems_use_type_two_identity() -> None:
         assert '"sudoku_digit": 2' in body
         assert '"icon_color_key": "blue"' in body
         assert '"gem_type_8"' not in body
+
 
 def test_frontend_self_centered_damage_zone_releases_after_event_validation() -> None:
     source = _app_source()
