@@ -13,6 +13,10 @@ export type MonsterSkillModule =
 
 export type MonsterSkillRole = "basic" | "pressure" | "major" | "movement" | "defensive" | "support";
 
+export type MonsterDamageType = "physical" | "fire" | "cold" | "lightning" | "chaos";
+
+export type MonsterDamageForm = "hit" | "dot" | "secondary" | "reflection";
+
 export type MonsterSkillRange = {
   cast_range: number;
   min_cast_range?: number;
@@ -29,7 +33,8 @@ export type MonsterSkillDefinition = {
   windup_ms?: number;
   duration_ms?: number;
   damage_multiplier?: number;
-  damage_type?: string;
+  damage_type: MonsterDamageType;
+  damage_form: MonsterDamageForm;
   hit_kind?: "attack" | "spell";
   projectile_speed?: number;
   projectile_count?: number;
@@ -101,6 +106,10 @@ const MODULES = new Set<MonsterSkillModule>([
   "monster_guard",
   "monster_support"
 ]);
+
+const MONSTER_DAMAGE_TYPES = new Set<MonsterDamageType>(["physical", "fire", "cold", "lightning", "chaos"]);
+
+const MONSTER_DAMAGE_FORMS = new Set<MonsterDamageForm>(["hit", "dot", "secondary", "reflection"]);
 
 export function validateMonsterSkillConfig(config: MonsterSkillConfig, monsterIds: string[]) {
   const errors: string[] = [];
@@ -235,9 +244,28 @@ function validateSkillDefinition(skill: MonsterSkillDefinition, boss: boolean, e
   if (!skill.id) errors.push("monster skill missing id");
   if (!MODULES.has(skill.module)) errors.push(`invalid monster skill module: ${skill.id}/${skill.module}`);
   if (!hasChineseText(skill.chinese_form)) errors.push(`monster skill missing Chinese form: ${skill.id}`);
+  validateDamageClassification(skill, errors);
   validateRange(skill.id, skill.range, errors);
   if (!finitePositive(skill.cooldown_ms)) errors.push(`monster skill missing positive cooldown_ms: ${skill.id}`);
   if (skill.projectile_speed !== undefined) validateProjectileSpeed(skill, boss, errors);
+}
+
+function validateDamageClassification(skill: MonsterSkillDefinition, errors: string[]) {
+  const damageType = skill.damage_type as string | undefined;
+  if (damageType === undefined) {
+    errors.push(`monster skill missing damage_type: ${skill.id}`);
+  } else if (damageType === "attack" || damageType === "spell") {
+    errors.push(`hit_kind must not be used as damage_type: ${skill.id}`);
+  } else if (!MONSTER_DAMAGE_TYPES.has(damageType as MonsterDamageType)) {
+    errors.push(`invalid monster skill damage_type: ${skill.id}/${damageType}`);
+  }
+
+  const damageForm = skill.damage_form as string | undefined;
+  if (damageForm === undefined) {
+    errors.push(`monster skill missing damage_form: ${skill.id}`);
+  } else if (!MONSTER_DAMAGE_FORMS.has(damageForm as MonsterDamageForm)) {
+    errors.push(`invalid monster skill damage_form: ${skill.id}/${damageForm}`);
+  }
 }
 
 function validateRange(id: string, range: MonsterSkillRange | undefined, errors: string[]) {
