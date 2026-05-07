@@ -3115,6 +3115,14 @@ function recalculateFrontendCharacterPanel(playerStats: Record<string, PlayerSta
           const value = Math.max(0, statNumber(playerStats.mana_regen_flat, 0) * (1 + Math.max(0, statNumber(playerStats.mana_regen_add_percent, 0)) / 100));
           return { ...row, value };
         }
+        if (row.stat_id === "armor") {
+          const value = Math.max(0, statNumber(playerStats.armor, 0) * (1 + Math.max(0, statNumber(playerStats.armor_add_percent, 0)) / 100));
+          return { ...row, value };
+        }
+        if (row.stat_id === "evasion") {
+          const value = Math.max(0, statNumber(playerStats.evasion, 0) * (1 + Math.max(0, statNumber(playerStats.evasion_add_percent, 0)) / 100));
+          return { ...row, value };
+        }
         return typeof stat?.value === "number" || typeof stat?.value === "boolean"
           ? { ...row, value: stat.value }
           : row;
@@ -6499,7 +6507,9 @@ function GameApp() {
     const currentMana = statNumber(state?.player_stats?.current_mana, maxMana);
     setRuntimePlayer((current) => ({
       ...current,
-      currentMana: Math.max(current.currentMana, currentMana),
+      currentMana: maxMana > current.maxMana && current.currentMana >= current.maxMana
+        ? Math.max(current.currentMana, currentMana, maxMana)
+        : Math.max(current.currentMana, currentMana),
       maxMana
     }));
   }, [state?.player_stats?.current_mana?.value, state?.player_stats?.max_mana?.value]);
@@ -6509,7 +6519,9 @@ function GameApp() {
     const currentEnergyShield = statNumber(state?.player_stats?.current_energy_shield, maxEnergyShield);
     setRuntimePlayer((current) => ({
       ...current,
-      currentEnergyShield: Math.max(current.currentEnergyShield, currentEnergyShield),
+      currentEnergyShield: maxEnergyShield > current.maxEnergyShield && current.currentEnergyShield >= current.maxEnergyShield
+        ? Math.max(current.currentEnergyShield, currentEnergyShield, maxEnergyShield)
+        : Math.max(current.currentEnergyShield, currentEnergyShield),
       maxEnergyShield
     }));
   }, [state?.player_stats?.current_energy_shield?.value, state?.player_stats?.max_energy_shield?.value]);

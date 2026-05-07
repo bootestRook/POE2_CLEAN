@@ -145,10 +145,16 @@ def test_equipped_player_stats_feed_actual_frontend_combat_runtime() -> None:
     assert "frontendEnergyShieldRechargeDelayMs" in source
     assert "energy_shield_charge_speed_percent" in source
     assert "energy_shield_charge_interval_add_percent" in source
+    assert "maxMana > current.maxMana && current.currentMana >= current.maxMana" in source
+    assert "Math.max(current.currentMana, currentMana, maxMana)" in source
+    assert "maxEnergyShield > current.maxEnergyShield && current.currentEnergyShield >= current.maxEnergyShield" in source
+    assert "Math.max(current.currentEnergyShield, currentEnergyShield, maxEnergyShield)" in source
     assert "statNumber(state?.player_stats?.move_speed, PLAYER_SPEED)" in source
     assert "statNumber(stats?.fire_resistance_percent, 0)" in source
     assert "statNumber(playerStats.elemental_resistance_percent, 0)" in source
     assert "statNumber(stats?.armor, 0)" in source
+    assert "statNumber(playerStats.armor, 0) * (1 + Math.max(0, statNumber(playerStats.armor_add_percent, 0)) / 100)" in source
+    assert "statNumber(playerStats.evasion, 0) * (1 + Math.max(0, statNumber(playerStats.evasion_add_percent, 0)) / 100)" in source
     assert "incoming *= 1 - Math.min(0.9, Math.max(0, resistancePercent) / 100)" in source
 
 
