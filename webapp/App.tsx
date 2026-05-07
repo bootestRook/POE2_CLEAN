@@ -19903,7 +19903,9 @@ function activeDpsToneClass(valueText: string) {
 
 function buildGemTooltipViewModel(gem: Gem) {
   const view = gem.tooltip_view;
-  if (!view || (view.variant !== "active" && view.variant !== "passive")) return view;
+  if (!view) return view;
+  if (view.variant === "support") return normalizeSupportTooltipView(gem, view);
+  if (view.variant !== "active" && view.variant !== "passive") return view;
   return normalizeActiveTooltipView(gem, view);
 }
 
@@ -20097,7 +20099,9 @@ const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS = new Set(["bow", "gun", "cannon"]);
 const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
 
 function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
-  const tags = view.tags.filter((tag) => !HIDDEN_ACTIVE_TOOLTIP_TAG_IDS.has(tag.id ?? ""));
+  const tags = view.tags
+    .filter((tag) => !HIDDEN_ACTIVE_TOOLTIP_TAG_IDS.has(tag.id ?? ""))
+    .map((tag) => frontendDisplayGemKindTag(gem, tag));
   const sections = {
     ...view.sections,
     stats: {
@@ -20113,6 +20117,43 @@ function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
   };
 }
 
+function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
+  return {
+    ...view,
+    tags: view.tags.map((tag) => frontendDisplayGemKindTag(gem, tag)),
+    summary_lines: replaceGemTagRichLines(gem, view.summary_lines),
+    sections: {
+      ...view.sections,
+      conditions: replaceGemTagRichLineSection(gem, view.sections.conditions),
+    },
+  };
+}
+
+function frontendGemKindTagText(gem: Gem) {
+  if (isActiveGem(gem)) return "\u4e3b\u52a8\u6280\u80fd";
+  if (isPassiveGem(gem)) return "\u88ab\u52a8\u6280\u80fd";
+  if (isSupportGem(gem)) return "\u8f85\u52a9\u6280\u80fd";
+  return "\u5b9d\u77f3";
+}
+
+function frontendDisplayGemKindTag(gem: Gem, tag: TooltipTagView): TooltipTagView {
+  if ((tag.id ?? "") !== "gem" && tag.text !== "\u5b9d\u77f3") return tag;
+  return { ...tag, text: frontendGemKindTagText(gem) };
+}
+
+function replaceGemTagRichLineSection(gem: Gem, section: { rich_lines: TooltipRichLine[] } | undefined) {
+  if (!section) return section;
+  return {
+    ...section,
+    rich_lines: replaceGemTagRichLines(gem, section.rich_lines) ?? [],
+  };
+}
+
+function replaceGemTagRichLines(gem: Gem, lines: TooltipRichLine[] | undefined) {
+  return lines?.map((line) => line.map((segment) => (
+    segment.text === "\u5b9d\u77f3" ? { ...segment, text: frontendGemKindTagText(gem) } : segment
+  )));
+}
 function normalizedTooltipSubtitle(subtitle: string, tags: TooltipTagView[]) {
   const parts = subtitle.split("、").filter(Boolean);
   if (parts.length === 0) return subtitle;

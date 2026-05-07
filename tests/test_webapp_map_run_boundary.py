@@ -354,6 +354,20 @@ def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
     assert 'return [{ label_text: "\\u7b49\\u7ea7", value_text: levelText }, ...nextLines]' in level_line_body
 
 
+def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
+    source = _app_source()
+    view_model_body = source.split("function buildGemTooltipViewModel", 1)[1].split("function gemWithFrontendSkillPreviewTooltip", 1)[0]
+    active_normalizer_body = source.split("function normalizeActiveTooltipView", 1)[1].split("function normalizeSupportTooltipView", 1)[0]
+    support_normalizer_body = source.split("function normalizeSupportTooltipView", 1)[1].split("function normalizedTooltipSubtitle", 1)[0]
+
+    assert 'if (view.variant === "support") return normalizeSupportTooltipView(gem, view)' in view_model_body
+    assert ".map((tag) => frontendDisplayGemKindTag(gem, tag))" in active_normalizer_body
+    assert "summary_lines: replaceGemTagRichLines(gem, view.summary_lines)" in support_normalizer_body
+    assert "conditions: replaceGemTagRichLineSection(gem, view.sections.conditions)" in support_normalizer_body
+    assert 'if (isActiveGem(gem)) return "\\u4e3b\\u52a8\\u6280\\u80fd"' in support_normalizer_body
+    assert 'if (isPassiveGem(gem)) return "\\u88ab\\u52a8\\u6280\\u80fd"' in support_normalizer_body
+    assert 'if (isSupportGem(gem)) return "\\u8f85\\u52a9\\u6280\\u80fd"' in support_normalizer_body
+    assert 'tag.text !== "\\u5b9d\\u77f3"' in support_normalizer_body
 def test_frontend_self_centered_damage_zone_releases_after_event_validation() -> None:
     source = _app_source()
     release_body = source.split("function releaseFrontendCanonicalSkill", 1)[1].split("function buildFrontendCanonicalSkillEvents", 1)[0]
