@@ -90,6 +90,7 @@ import { StashGrid } from "./components/inventory/StashGrid";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
+import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
@@ -12441,7 +12442,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const supportPreview = useSupportPreview(state, fullGemById, hoveredGemId, floatingGem);
   const persistentSupportLines = useSupportLines(state, fullGemById);
   const activeTargetLines = useActiveTargetLines(persistentSupportLines, fullGemById, hoveredGemId, floatingGem);
-  const passiveVisualEffects = useMountedPassiveVisualEffects(state, fullGemById);
+  const passiveVisualEffects = useMountedPassiveVisualEffects(state, fullGemById, isPassiveGem);
   const gmGemOptionsById = useMemo(() => new Map((gmOptions?.gems ?? []).map((gem) => [gem.id, gem])), [gmOptions]);
   const bagSlots = inventorySlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
   const equippedItems = equipmentSlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
@@ -22613,16 +22614,6 @@ function PlayerBuffLayer({ buffs, player }: { buffs: PlayerBuff[]; player: Playe
       )}
     </>
   );
-}
-
-function useMountedPassiveVisualEffects(state: AppState | null, fullGemById: Map<string, Gem>) {
-  return useMemo(() => {
-    if (!state) return [];
-    return state.board.cells
-      .flat()
-      .map((cell) => (cell.gem ? fullGemById.get(cell.gem.instance_id) ?? cell.gem : null))
-      .filter((gem): gem is Gem => Boolean(gem && isPassiveGem(gem) && gem.visual_effect));
-  }, [state, fullGemById]);
 }
 
 function cssToken(value: string | undefined) {
