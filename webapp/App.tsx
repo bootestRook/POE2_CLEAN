@@ -619,6 +619,23 @@ type SkillEditorCameraSettings = {
   zoom: number;
 };
 
+type GameResolutionMode = "fullscreen" | "4k" | "2k" | "1080p";
+
+type GameResolutionPreset = {
+  mode: GameResolutionMode;
+  label: string;
+  width: number | null;
+  height: number | null;
+};
+
+type GameViewport = {
+  width: number;
+  height: number;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+};
+
 const DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS: SkillEditorDebugOptions = {
   showLaunchPoints: true,
   showTargetPoint: true,
@@ -628,11 +645,20 @@ const DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS: SkillEditorDebugOptions = {
 };
 
 const SKILL_EDITOR_CAMERA_STORAGE_KEY = "poe.skillEditor.camera";
+const GAME_RESOLUTION_STORAGE_KEY = "poe2.v1.game.resolution";
 const SKILL_EDITOR_CAMERA_MIN_ZOOM = 0.18;
 const SKILL_EDITOR_CAMERA_MAX_ZOOM = 0.6;
 const DEFAULT_SKILL_EDITOR_CAMERA_SETTINGS: SkillEditorCameraSettings = {
   zoom: 0.34
 };
+const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "fullscreen";
+const GAME_RESOLUTION_PRESETS: GameResolutionPreset[] = [
+  { mode: "fullscreen", label: "全屏", width: null, height: null },
+  { mode: "4k", label: "4K", width: 3840, height: 2160 },
+  { mode: "2k", label: "2K", width: 2560, height: 1440 },
+  { mode: "1080p", label: "1080p", width: 1920, height: 1080 }
+];
+const GAME_RESOLUTION_PRESET_BY_MODE = new Map(GAME_RESOLUTION_PRESETS.map((preset) => [preset.mode, preset]));
 
 type SkillEditorSaveResponse = {
   ok: boolean;
@@ -706,6 +732,25 @@ function loadSkillEditorCameraSettings(): SkillEditorCameraSettings {
 function saveSkillEditorCameraSettings(settings: SkillEditorCameraSettings) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(SKILL_EDITOR_CAMERA_STORAGE_KEY, JSON.stringify(normalizeSkillEditorCameraSettings(settings)));
+}
+
+function isGameResolutionMode(value: unknown): value is GameResolutionMode {
+  return typeof value === "string" && GAME_RESOLUTION_PRESET_BY_MODE.has(value as GameResolutionMode);
+}
+
+function loadGameResolutionMode(): GameResolutionMode {
+  if (typeof window === "undefined") return DEFAULT_GAME_RESOLUTION_MODE;
+  try {
+    const raw = window.localStorage.getItem(GAME_RESOLUTION_STORAGE_KEY);
+    return isGameResolutionMode(raw) ? raw : DEFAULT_GAME_RESOLUTION_MODE;
+  } catch {
+    return DEFAULT_GAME_RESOLUTION_MODE;
+  }
+}
+
+function saveGameResolutionMode(mode: GameResolutionMode) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(GAME_RESOLUTION_STORAGE_KEY, mode);
 }
 
 type SkillEvent = {
@@ -20371,7 +20416,7 @@ function GemTooltipPanel({ tooltip, className = "", showCompareHint = false }: {
   const showSubtitle = isActiveTooltip || !isEquipmentTooltip;
   const showIdentity = Boolean(view.type_identity_text) && !isEquipmentTooltip;
   const statLines = isEquipmentTooltip ? equipmentTooltipStatLines(gem, sections.stats.lines) : sections.stats.lines;
-  const bonusLines = isEquipmentTooltip && sections.bonuses ? equipmentTooltipBonusLines(sections.bonuses.lines) : sections.bonuses?.lines ?? [];
+  const bonusLines = isEquipmentTooltip && sections.bonuses ? equipmentTooltipBonusLines(gem, sections.bonuses.lines) : sections.bonuses?.lines ?? [];
   return (
     <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""} ${className}`.trim()} style={{ left, top, transform }}>
       <div className="tooltip-header">
@@ -21136,7 +21181,10 @@ function equipmentTooltipSlotText(gem: Gem) {
   return gem.category_text || gem.gem_type?.display_text || "\u88c5\u5907";
 }
 
-function equipmentTooltipBonusLines(lines: string[]) {
+function equipmentTooltipBonusLines(gem: Gem, lines: string[]) {
+  if (gem.equipment_affixes && gem.equipment_affixes.length > 0) {
+    return gem.equipment_affixes.map((affix) => equipmentTooltipAffixLine(affix.effect, affix.tier));
+  }
   return lines.map(normalizeEquipmentTooltipBonusLine);
 }
 

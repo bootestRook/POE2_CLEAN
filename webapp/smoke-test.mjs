@@ -106,6 +106,13 @@ const createFrontendNewSaveStarterStateBody = functionBody(app, "createFrontendN
 if (!createFrontendNewSaveStarterStateBody.includes("state.stash_pages = createEmptyStashPages();")) {
   throw new Error("New saves must initialize empty stash pages.");
 }
+const createRandomNewSaveStarterGemBody = functionBody(app, "createRandomNewSaveStarterGem");
+if (!app.includes('const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);')) {
+  throw new Error("New save starter gem exclusions must include active_stoneskin.");
+}
+if (!createRandomNewSaveStarterGemBody.includes("!EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS.has(String(gem.base_gem_id ?? gem.instance_id))")) {
+  throw new Error("New save random active starter gems must exclude stoneskin.");
+}
 const appStateFromFrontendSaveBody = functionBody(app, "appStateFromFrontendSave");
 if (!appStateFromFrontendSaveBody.includes("normalizeStashPages(save.stash_pages")) {
   throw new Error("Existing saves must migrate/sanitize stash_pages on load.");

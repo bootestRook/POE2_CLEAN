@@ -382,6 +382,22 @@ def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
     assert 'tag.id === "support_gem"' in support_normalizer_body
 
 
+def test_frontend_stoneskin_tooltip_shows_guard_absorb_values() -> None:
+    source = _app_source()
+    active_tooltip_body = source.split("function gemWithFrontendSkillPreviewTooltip", 1)[1].split("function frontendSupportModifierTooltipLines", 1)[0]
+    guard_tooltip_body = source.split("function frontendGuardTooltipLines", 1)[1].split("function frontendSupportModifierTooltipLines", 1)[0]
+
+    assert "const guardLines = frontendGuardTooltipLines(skill)" in active_tooltip_body
+    assert "...guardLines" in active_tooltip_body
+    assert "guardLines.length === 0" in active_tooltip_body
+    assert "guard_absorb_percent" in guard_tooltip_body
+    assert "guard_absorb_amount" in guard_tooltip_body
+    assert 'label_text: "\\u5438\\u6536\\u4f24\\u5bb3\\u6bd4\\u4f8b"' in guard_tooltip_body
+    assert 'label_text: "\\u5438\\u6536\\u4f24\\u5bb3\\u4e0a\\u9650"' in guard_tooltip_body
+    assert 'value_text: `${formatPreviewNumber(absorbPercent)}%`' in guard_tooltip_body
+    assert "value_text: formatPreviewNumber(absorbAmount)" in guard_tooltip_body
+
+
 def test_frontend_non_damaging_passive_tooltips_hide_damage_tags() -> None:
     source = _app_source()
     tooltip_normalizer_body = source.split("const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS", 1)[1].split("function normalizeSupportTooltipView", 1)[0]
@@ -475,6 +491,21 @@ def test_frontend_channel_damage_zones_require_targets_and_scale_radius() -> Non
     assert "current_channel_stack" in damage_zone_body
     assert "channelRadiusScale" in damage_zone_body
     assert "radius = Number(params.radius ?? skill.hit?.hit_radius ?? 120) * skill.area_multiplier * channelRadiusScale" in damage_zone_body
+
+
+def test_frontend_knockback_pushes_away_from_player_with_visible_base_distance() -> None:
+    source = _app_source()
+    knockback_body = source.split("function frontendKnockbackEventsForTarget", 1)[1].split("function frontendFloatingDamageComponentPayload", 1)[0]
+    active_zone_body = source.split("function activeDamageZoneRuntimeTickEvents", 1)[1].split("function updateActiveDamageZones", 1)[0]
+    forced_movement_body = source.split("function applyForcedMovementEvent", 1)[1].split("function mergeBackendInventoryState", 1)[0]
+
+    assert "const FRONTEND_BASE_KNOCKBACK_DISTANCE = 250" in source
+    assert "const knockbackOrigin = playerStateRef.current" in knockback_body
+    assert "origin_world_position: knockbackOrigin" in knockback_body
+    assert "const knockbackDirection = guideDirection(knockbackOrigin, target)" in knockback_body
+    assert "const knockbackOrigin = playerStateRef.current" in active_zone_body
+    assert "origin_world_position: knockbackOrigin" in active_zone_body
+    assert "const pushDirection = origin ? guideDirection(origin, enemy) : normalizedWorldDirection(event.direction)" in forced_movement_body
 
 
 def test_frontend_damage_zone_pull_events_survive_dynamic_tick_runtime() -> None:
