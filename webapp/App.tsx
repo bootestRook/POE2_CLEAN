@@ -81,6 +81,13 @@ import {
 } from "./frontendEquipmentRuntime";
 import type { FrontendEquipmentAffixRoll, FrontendEquipmentItem, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
 import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
+import { RichText, TooltipSection, TooltipTag } from "./components/tooltips/TooltipPrimitives";
+import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
+import { romanGemLevel } from "./utils/gemDisplay";
+import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
+import { StashGrid } from "./components/inventory/StashGrid";
+import { BagGrid } from "./components/inventory/BagGrid";
+import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 
 type Gem = {
   instance_id: string;
@@ -144,12 +151,6 @@ type TooltipView = {
   };
 };
 
-type TooltipTagView = {
-  id?: string;
-  text: string;
-  tone?: string;
-};
-
 type TooltipStatLine = {
   label_text: string;
   value_text: string;
@@ -159,13 +160,6 @@ type TooltipTargetLine = {
   name_text: string;
   status_text: string;
 };
-
-type TooltipTextSegment = {
-  text: string;
-  tone?: string;
-};
-
-type TooltipRichLine = TooltipTextSegment[];
 
 type ShapeEffectPreview = { id: string; text: string };
 
@@ -13236,43 +13230,37 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                     : null;
                   const isGhost = Boolean(origin && isFloatingOrigin(floatingGem, origin));
                   return item ? (
-                    <button
+                    <EquipmentItemCell
                       key={slot.id}
+                      slot={slot}
+                      slotIndex={slotIndex}
+                      item={item}
+                      isGhost={isGhost}
                       className={equipmentCellClass(slotIndex, hoveredEquipmentSlot, item, hoveredGemId, floatingGem, spansBothWeaponSlots)}
-                      data-equipment-drop-target="true"
-                      data-equipment-slot-index={slotIndex}
-                      data-equipment-slot-id={slot.id}
-                      data-item-instance-id={item.instance_id}
-                      draggable={false}
-                      onDragStart={beginDrag}
-                      onMouseDown={(event) => origin && beginPointerDrag(event, item, origin)}
-                      onMouseEnter={(event) => {
+                      renderGem={(gem) => <GemOrb gem={gem} />}
+                      renderGhost={() => <GemGhost />}
+                      onBeginDrag={beginDrag}
+                      onPointerDrag={(event) => origin && beginPointerDrag(event, item, origin)}
+                      onHover={(event) => {
                         setHoveredEquipmentSlot(slotIndex);
                         onGemHover(event, item, "equipment", slotIndex);
                       }}
-                      onMouseMove={(event) => onGemHover(event, item, "equipment", slotIndex)}
-                      onMouseLeave={() => {
+                      onMove={(event) => onGemHover(event, item, "equipment", slotIndex)}
+                      onLeave={() => {
                         setHoveredEquipmentSlot(null);
                         setHoveredGemId(null);
                         setTooltip(null);
                       }}
-                    >
-                      <span className="equipment-slot-label">{slot.label}</span>
-                      {isGhost ? <GemGhost /> : <GemOrb gem={item} />}
-                    </button>
+                    />
                   ) : (
-                    <div
+                    <EquipmentEmptyCell
                       key={slot.id}
+                      slot={slot}
+                      slotIndex={slotIndex}
                       className={equipmentEmptyCellClass(slotIndex, hoveredEquipmentSlot, floatingGem, slot)}
-                      data-equipment-drop-target="true"
-                      data-equipment-slot-index={slotIndex}
-                      data-equipment-slot-id={slot.id}
-                      title={slot.label}
-                      onMouseEnter={() => setHoveredEquipmentSlot(slotIndex)}
-                      onMouseLeave={() => setHoveredEquipmentSlot(null)}
-                    >
-                      <span className="equipment-slot-label">{slot.label}</span>
-                    </div>
+                      onHover={() => setHoveredEquipmentSlot(slotIndex)}
+                      onLeave={() => setHoveredEquipmentSlot(null)}
+                    />
                   );
                 })}
               </div>
@@ -13330,43 +13318,25 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             </section>
 
             <section className="bag-panel">
-              <div className="bag-grid" data-bag-drop-target="true">
-                {bagSlots.map((gem, slotIndex) => (
-                  gem ? (
-                    <button
-                      key={`bag-${slotIndex}`}
-                      className={bagCellClass(slotIndex, hoveredBagSlot, gem, hoveredGemId, floatingGem)}
-                      data-bag-drop-target="true"
-                      data-bag-slot-index={slotIndex}
-                      data-item-instance-id={gem.instance_id}
-                      draggable={false}
-                      onDragStart={beginDrag}
-                      onMouseDown={(event) => beginPointerDrag(event, gem, { kind: "bag", slotIndex, instanceId: gem.instance_id })}
-                      onMouseEnter={(event) => {
-                        setHoveredBagSlot(slotIndex);
-                        onGemHover(event, gem, "inventory", slotIndex);
-                      }}
-                      onMouseMove={(event) => onGemHover(event, gem, "inventory", slotIndex)}
-                      onMouseLeave={() => {
-                        setHoveredBagSlot(null);
-                        setHoveredGemId(null);
-                        setTooltip(null);
-                      }}
-                    >
-                      {isFloatingOrigin(floatingGem, { kind: "bag", slotIndex, instanceId: gem.instance_id }) ? <GemGhost /> : <GemOrb gem={gem} />}
-                    </button>
-                  ) : (
-                    <div
-                      key={`bag-${slotIndex}`}
-                      className={bagEmptyCellClass(slotIndex, hoveredBagSlot)}
-                      data-bag-drop-target="true"
-                      data-bag-slot-index={slotIndex}
-                      onMouseEnter={() => setHoveredBagSlot(slotIndex)}
-                      onMouseLeave={() => setHoveredBagSlot(null)}
-                    />
-                  )
-                ))}
-              </div>
+              <BagGrid
+                slots={bagSlots}
+                floatingGem={floatingGem}
+                cellClassName={(slotIndex, gem) => bagCellClass(slotIndex, hoveredBagSlot, gem, hoveredGemId, floatingGem)}
+                emptyCellClassName={(slotIndex) => bagEmptyCellClass(slotIndex, hoveredBagSlot)}
+                isFloatingOrigin={isFloatingOrigin}
+                renderGem={(gem) => <GemOrb gem={gem} />}
+                renderGhost={() => <GemGhost />}
+                onBeginDrag={beginDrag}
+                onPointerDrag={beginPointerDrag}
+                onHoverSlot={setHoveredBagSlot}
+                onHoverGem={onGemHover}
+                onLeaveSlot={() => setHoveredBagSlot(null)}
+                onLeaveGem={() => {
+                  setHoveredBagSlot(null);
+                  setHoveredGemId(null);
+                  setTooltip(null);
+                }}
+              />
             </section>
           </section>
           </div>
@@ -13550,37 +13520,22 @@ function StashPanel({
             </button>
           ))}
       </div>
-      <div className="stash-grid" data-stash-columns={STASH_PAGE_COLUMNS} data-stash-drop-target="true">
-            {Array.from({ length: STASH_PAGE_SLOT_COUNT }, (_, slotIndex) => {
-              const instanceId = activeSlots[slotIndex];
-              const gem = instanceId ? fullGemById.get(instanceId) ?? null : null;
-              const origin = gem ? { kind: "stash" as const, pageIndex, slotIndex, instanceId: gem.instance_id } : null;
-              return gem ? (
-                <button
-                  key={`stash-${slotIndex}`}
-                  className={bagCellClass(slotIndex, null, gem, hoveredGemId, floatingGem)}
-                  data-stash-page-index={pageIndex}
-                  data-stash-slot-index={slotIndex}
-                  data-item-instance-id={gem.instance_id}
-                  draggable={false}
-                  onDragStart={onBeginDrag}
-                  onMouseDown={(event) => origin && onPointerDrag(event, gem, origin)}
-                  onMouseEnter={(event) => onHoverGem(event, gem, "stash", slotIndex)}
-                  onMouseMove={(event) => onHoverGem(event, gem, "stash", slotIndex)}
-                  onMouseLeave={onLeaveGem}
-                >
-                  {origin && isFloatingOrigin(floatingGem, origin) ? <GemGhost /> : <GemOrb gem={gem} />}
-                </button>
-              ) : (
-                <div
-                  key={`stash-${slotIndex}`}
-                  className="stash-empty-cell"
-                  data-stash-page-index={pageIndex}
-                  data-stash-slot-index={slotIndex}
-                />
-              );
-            })}
-      </div>
+      <StashGrid
+        pageIndex={pageIndex}
+        activeSlots={activeSlots}
+        fullGemById={fullGemById}
+        floatingGem={floatingGem}
+        slotCount={STASH_PAGE_SLOT_COUNT}
+        columns={STASH_PAGE_COLUMNS}
+        cellClassName={(slotIndex, gem) => bagCellClass(slotIndex, null, gem, hoveredGemId, floatingGem)}
+        isFloatingOrigin={isFloatingOrigin}
+        renderGem={(gem) => <GemOrb gem={gem} />}
+        renderGhost={() => <GemGhost />}
+        onBeginDrag={onBeginDrag}
+        onPointerDrag={onPointerDrag}
+        onHoverGem={onHoverGem}
+        onLeaveGem={onLeaveGem}
+      />
     </section>
   );
 }
@@ -20462,59 +20417,11 @@ function renderBattleEntity(entity: BattleRenderEntity, depthIndex: number, anim
   );
 }
 
-function UnitAnimationSprite({ frame, hitFlash = 0 }: { frame: UnitAnimationFrame; hitFlash?: number }) {
-  const motionStyle = unitAnimationMotionStyle(frame);
-  const showAttackSwipe = frame.animation.state === "attack" && frame.animation.unitId !== "enemy_imp";
-  const flash = clamp(hitFlash, 0, 1);
-  return (
-    <span
-      className={`unit-sprite unit-animation-sprite unit-animation-${frame.animation.state}`}
-      style={{
-        width: frame.animation.frameWidth,
-        height: frame.animation.frameHeight,
-        backgroundImage: `url(${frame.animation.src})`,
-        backgroundPosition: `${-frame.frameIndex * frame.animation.frameWidth}px ${-frame.animation.frameRow * frame.animation.frameHeight}px`,
-        filter: flash > 0
-          ? `brightness(${1 + flash * 1.9}) saturate(${1 - flash * 0.62}) drop-shadow(0 0 ${Math.round(10 + flash * 14)}px rgba(255, 255, 255, ${0.32 + flash * 0.58}))`
-          : undefined,
-        ...motionStyle
-      }}
-      data-animation-frame={frame.frameIndex}
-      aria-hidden="true"
-    >
-      {showAttackSwipe && <span className="unit-attack-swipe" />}
-    </span>
-  );
-}
-
 function enemyHitFlashAmount(lastDamagedAt: number | undefined, elapsedSeconds: number) {
   if (lastDamagedAt === undefined) return 0;
   const age = elapsedSeconds - lastDamagedAt;
   if (age < 0 || age > ENEMY_DAMAGE_FLASH_SECONDS) return 0;
   return 1 - clamp(age / ENEMY_DAMAGE_FLASH_SECONDS, 0, 1);
-}
-
-function unitAnimationMotionStyle(frame: UnitAnimationFrame): CSSProperties {
-  const state = frame.animation.state;
-  if (state === "idle") return {};
-  const direction = frame.animation.direction;
-  const frameIndex = frame.frameIndex;
-  const signX = direction === "left" ? -1 : direction === "right" ? 1 : 0;
-  const signY = direction === "up" ? -1 : direction === "down" ? 1 : 0;
-  const diagonalX = signX || (direction === "up" || direction === "down" ? 0.35 : 0);
-  if (state === "walk") {
-    return {};
-  }
-  const attackPhase = frame.animation.frameCount <= 1 ? 1 : frameIndex / (frame.animation.frameCount - 1);
-  const lunge = Math.sin(attackPhase * Math.PI);
-  const recoil = attackPhase > 0.62 ? -3 * (attackPhase - 0.62) : 0;
-  const forwardX = (signX || diagonalX) * (10 * lunge + recoil);
-  const forwardY = signY * (7 * lunge + recoil * 0.5);
-  const rotate = (signX || 1) * (attackPhase < 0.45 ? -7 : 10) * lunge;
-  const scale = 1 + 0.07 * lunge;
-  return {
-    transform: `translate(${forwardX}px, ${forwardY}px) rotate(${rotate}deg) scale(${scale})`
-  };
 }
 
 function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationFrame, depthIndex: number, renderScale = UNIT_RENDER_SCALE): CSSProperties {
@@ -20673,18 +20580,6 @@ function SupportGemTooltip({ gem, view, left, top, transform }: { gem: Gem; view
         </TooltipSection>
       )}
     </div>
-  );
-}
-
-function RichText({ line, className = "" }: { line: TooltipRichLine; className?: string }) {
-  return (
-    <p className={`tooltip-rich-line ${className}`}>
-      {line.map((segment, index) => (
-        <span key={`${index}-${segment.text}`} className={segment.tone ? `tooltip-tone-${segment.tone}` : undefined}>
-          {segment.text}
-        </span>
-      ))}
-    </p>
   );
 }
 
@@ -21279,18 +21174,6 @@ function ensureReleaseIntervalStatLine(gem: Gem, lines: TooltipStatLine[]) {
   return [...lines.slice(0, insertAfter + 1), line, ...lines.slice(insertAfter + 1)];
 }
 
-function TooltipTag({ tag }: { tag: TooltipTagView }) {
-  return <span className={`tooltip-tag ${tag.tone ? `tooltip-tag-${tag.tone}` : ""}`}>{tag.text}</span>;
-}
-
-function TooltipSection({ children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="tooltip-section">
-      <div className="tooltip-section-content">{children}</div>
-    </section>
-  );
-}
-
 function equipmentRarityTone(rarity: unknown) {
   const key = String(rarity ?? "").trim().toLowerCase();
   if (key === "white" || key === "白色" || key === "普通") return "white";
@@ -21390,33 +21273,6 @@ function gemSudokuDigit(gem: Gem) {
 
 function gemIconSprite(gem: Gem) {
   return sudokuGemIconSprites[gemSudokuDigit(gem)] ?? "";
-}
-
-function romanGemLevel(level: number) {
-  const clamped = Math.max(1, Math.min(20, Math.floor(Number(level) || 1)));
-  const romanByLevel: Record<number, string> = {
-    1: "I",
-    2: "II",
-    3: "III",
-    4: "IV",
-    5: "V",
-    6: "VI",
-    7: "VII",
-    8: "VIII",
-    9: "IX",
-    10: "X",
-    11: "XI",
-    12: "XII",
-    13: "XIII",
-    14: "XIV",
-    15: "XV",
-    16: "XVI",
-    17: "XVII",
-    18: "XVIII",
-    19: "XIX",
-    20: "XX",
-  };
-  return romanByLevel[clamped] ?? "I";
 }
 
 function GemOrb({ gem }: { gem: Gem }) {

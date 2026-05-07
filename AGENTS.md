@@ -44,6 +44,8 @@ Before making changes, Codex must identify:
 - The smallest safe implementation path
 - How the result will be verified
 
+For WebApp work, Codex must also identify the target frontend module before editing. Follow `docs/webapp-module-boundaries.md`; do not add new WebApp features directly into `webapp/App.tsx` unless the plan explicitly explains why no existing or new focused module can hold the change.
+
 If the requirement is ambiguous, stop and ask.
 
 If there are multiple valid interpretations, state them instead of silently choosing one.
