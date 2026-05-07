@@ -5623,7 +5623,6 @@ button {
   top: 0;
   bottom: 0;
   min-width: 0;
-  transition: width 160ms ease-out;
 }
 
 .player-overhead-bar-life span {

@@ -5767,12 +5767,6 @@ function GameApp() {
     currentEnergyShield: 0,
     maxEnergyShield: 0
   });
-  const [playerResources, setPlayerResources] = useState(() => ({
-    hp: 100,
-    maxHp: 100,
-    currentMana: 0,
-    maxMana: 0
-  }));
   const [enemies, setEnemies] = useState<Enemy[]>(() => skillEditorMode ? createSkillTestDummies(1, MAP_WIDTH / 2, MAP_HEIGHT / 2) : []);
   const [bossPortal, setBossPortal] = useState<BossPortal | null>(null);
   const [texts, setTexts] = useState<FloatingText[]>([]);
@@ -5909,15 +5903,9 @@ function GameApp() {
     });
   }
 
-  function setRuntimePlayer(updater: (current: typeof player) => typeof player) {
-    const next = updater(playerStateRef.current);
+  function setRuntimePlayer(updater: (current: PlayerRuntimeState) => PlayerRuntimeState) {
+    const next = normalizePlayerRuntimeResources(updater(playerStateRef.current));
     playerStateRef.current = next;
-    setPlayerResources({
-      hp: next.hp,
-      maxHp: next.maxHp,
-      currentMana: next.currentMana,
-      maxMana: next.maxMana
-    });
     setPlayer(next);
   }
 
@@ -12159,7 +12147,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           </div>
         </div>
         <BattleGeometryCanvas snapshot={battleGeometrySnapshot} />
-        <PlayerOverheadResourceBars player={player} resources={playerResources} camera={battleCamera} />
+        <PlayerOverheadResourceBars player={player} camera={battleCamera} />
         <GroundDropLayer drops={state.drops} displayPositions={dropDisplayPositions.current} camera={battleCamera} onPickup={beginDropPickup} />
         <BossPortalLayer portal={bossPortal} camera={battleCamera} onUse={beginBossPortalUse} />
         {restAreaMapActive && (
@@ -12997,19 +12985,32 @@ function regeneratePlayerResources(player: PlayerRuntimeState, stats: AppState["
   };
 }
 
+function normalizePlayerRuntimeResources(player: PlayerRuntimeState): PlayerRuntimeState {
+  const maxHp = Math.max(0, Number.isFinite(player.maxHp) ? player.maxHp : 0);
+  const maxMana = Math.max(0, Number.isFinite(player.maxMana) ? player.maxMana : 0);
+  const maxEnergyShield = Math.max(0, Number.isFinite(player.maxEnergyShield) ? player.maxEnergyShield : 0);
+  return {
+    ...player,
+    maxHp,
+    hp: clamp(Number.isFinite(player.hp) ? player.hp : maxHp, 0, maxHp),
+    maxMana,
+    currentMana: clamp(Number.isFinite(player.currentMana) ? player.currentMana : maxMana, 0, maxMana),
+    maxEnergyShield,
+    currentEnergyShield: clamp(Number.isFinite(player.currentEnergyShield) ? player.currentEnergyShield : maxEnergyShield, 0, maxEnergyShield)
+  };
+}
+
 function PlayerOverheadResourceBars({
   player,
-  resources,
   camera
 }: {
-  player: { x: number; y: number };
-  resources: Pick<PlayerRuntimeState, "hp" | "maxHp" | "currentMana" | "maxMana">;
+  player: Pick<PlayerRuntimeState, "x" | "y" | "hp" | "maxHp" | "currentMana" | "maxMana">;
   camera: Camera2D;
 }) {
-  const maxLife = Math.max(0, resources.maxHp);
-  const currentLife = clamp(resources.hp, 0, maxLife);
-  const maxMana = Math.max(0, resources.maxMana);
-  const currentMana = clamp(resources.currentMana, 0, maxMana);
+  const maxLife = Math.max(0, player.maxHp);
+  const currentLife = clamp(player.hp, 0, maxLife);
+  const maxMana = Math.max(0, player.maxMana);
+  const currentMana = clamp(player.currentMana, 0, maxMana);
   const style = playerOverheadResourceStyle(player, camera);
 
   return (
