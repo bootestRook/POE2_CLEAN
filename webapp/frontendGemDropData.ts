@@ -5015,23 +5015,23 @@ export const FRONTEND_GEM_DROP_POOL = [
     "description_text": "激活光环，自身和一定范围内的所有友军获得增益：",
     "category_text": "被动技能宝石",
     "gem_type": {
-      "id": "gem_type_8",
-      "number": 8,
-      "display_text": "8???",
-      "identity_text": "????????",
-      "color_key": "cyan"
+      "id": "gem_type_2",
+      "number": 2,
+      "display_text": "2号宝石",
+      "identity_text": "二号预留辅助身份",
+      "color_key": "blue"
     },
     "gem_kind": "passive_skill",
     "gem_kind_text": "被动技能宝石",
-    "sudoku_digit": 8,
+    "sudoku_digit": 2,
     "rarity_text": "普通",
     "level": 1,
     "locked": false,
     "board_position": null,
     "tags": [
       {
-        "id": "gem_type_8",
-        "text": "8???"
+        "id": "gem_type_2",
+        "text": "2号宝石"
       },
       {
         "id": "aura",
@@ -5131,7 +5131,7 @@ export const FRONTEND_GEM_DROP_POOL = [
     "tooltip_view": {
       "variant": "passive",
       "icon_text": "狂",
-      "icon_color_key": "cyan",
+      "icon_color_key": "blue",
       "icon_sprite": "",
       "name_text": "狂猛",
       "subtitle_text": "蓝色、宝石、近战、光环",
@@ -5755,23 +5755,23 @@ export const FRONTEND_GEM_DROP_POOL = [
     "description_text": "激活光环，自身和一定范围内的所有友军获得增益：",
     "category_text": "被动技能宝石",
     "gem_type": {
-      "id": "gem_type_8",
-      "number": 8,
-      "display_text": "8???",
-      "identity_text": "????????",
-      "color_key": "cyan"
+      "id": "gem_type_2",
+      "number": 2,
+      "display_text": "2号宝石",
+      "identity_text": "二号预留辅助身份",
+      "color_key": "blue"
     },
     "gem_kind": "passive_skill",
     "gem_kind_text": "被动技能宝石",
-    "sudoku_digit": 8,
+    "sudoku_digit": 2,
     "rarity_text": "普通",
     "level": 1,
     "locked": false,
     "board_position": null,
     "tags": [
       {
-        "id": "gem_type_8",
-        "text": "8???"
+        "id": "gem_type_2",
+        "text": "2号宝石"
       },
       {
         "id": "aura",
@@ -5884,7 +5884,7 @@ export const FRONTEND_GEM_DROP_POOL = [
     "tooltip_view": {
       "variant": "passive",
       "icon_text": "魔",
-      "icon_color_key": "cyan",
+      "icon_color_key": "blue",
       "icon_sprite": "",
       "name_text": "魔源",
       "subtitle_text": "蓝色、宝石、法术、光环",

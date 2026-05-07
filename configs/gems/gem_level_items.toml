@@ -2887,160 +2887,160 @@ id = "passive_fearless_lv01"
 base_gem_id = "passive_fearless"
 level = 1
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv02"
 base_gem_id = "passive_fearless"
 level = 2
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv03"
 base_gem_id = "passive_fearless"
 level = 3
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv04"
 base_gem_id = "passive_fearless"
 level = 4
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv05"
 base_gem_id = "passive_fearless"
 level = 5
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv06"
 base_gem_id = "passive_fearless"
 level = 6
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv07"
 base_gem_id = "passive_fearless"
 level = 7
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv08"
 base_gem_id = "passive_fearless"
 level = 8
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv09"
 base_gem_id = "passive_fearless"
 level = 9
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv10"
 base_gem_id = "passive_fearless"
 level = 10
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv11"
 base_gem_id = "passive_fearless"
 level = 11
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv12"
 base_gem_id = "passive_fearless"
 level = 12
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv13"
 base_gem_id = "passive_fearless"
 level = 13
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv14"
 base_gem_id = "passive_fearless"
 level = 14
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv15"
 base_gem_id = "passive_fearless"
 level = 15
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv16"
 base_gem_id = "passive_fearless"
 level = 16
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv17"
 base_gem_id = "passive_fearless"
 level = 17
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv18"
 base_gem_id = "passive_fearless"
 level = 18
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv19"
 base_gem_id = "passive_fearless"
 level = 19
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_fearless_lv20"
 base_gem_id = "passive_fearless"
 level = 20
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_frigid_domain_lv01"
@@ -3207,160 +3207,160 @@ id = "passive_magical_source_lv01"
 base_gem_id = "passive_magical_source"
 level = 1
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv02"
 base_gem_id = "passive_magical_source"
 level = 2
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv03"
 base_gem_id = "passive_magical_source"
 level = 3
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv04"
 base_gem_id = "passive_magical_source"
 level = 4
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv05"
 base_gem_id = "passive_magical_source"
 level = 5
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv06"
 base_gem_id = "passive_magical_source"
 level = 6
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv07"
 base_gem_id = "passive_magical_source"
 level = 7
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv08"
 base_gem_id = "passive_magical_source"
 level = 8
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv09"
 base_gem_id = "passive_magical_source"
 level = 9
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv10"
 base_gem_id = "passive_magical_source"
 level = 10
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv11"
 base_gem_id = "passive_magical_source"
 level = 11
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv12"
 base_gem_id = "passive_magical_source"
 level = 12
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv13"
 base_gem_id = "passive_magical_source"
 level = 13
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv14"
 base_gem_id = "passive_magical_source"
 level = 14
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv15"
 base_gem_id = "passive_magical_source"
 level = 15
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv16"
 base_gem_id = "passive_magical_source"
 level = 16
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv17"
 base_gem_id = "passive_magical_source"
 level = 17
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv18"
 base_gem_id = "passive_magical_source"
 level = 18
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv19"
 base_gem_id = "passive_magical_source"
 level = 19
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_magical_source_lv20"
 base_gem_id = "passive_magical_source"
 level = 20
 gem_kind = "passive_skill"
-gem_type = "gem_type_8"
-sudoku_digit = 8
+gem_type = "gem_type_2"
+sudoku_digit = 2
 
 [[items]]
 id = "passive_precise_projectiles_lv01"

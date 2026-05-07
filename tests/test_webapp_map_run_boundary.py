@@ -372,6 +372,20 @@ def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
     assert 'if (isPassiveGem(gem)) return "\\u88ab\\u52a8\\u6280\\u80fd"' in support_normalizer_body
     assert 'if (isSupportGem(gem)) return "\\u8f85\\u52a9\\u6280\\u80fd"' in support_normalizer_body
     assert 'tag.text !== "\\u5b9d\\u77f3"' in support_normalizer_body
+
+def test_frontend_passive_skill_gems_use_type_two_identity() -> None:
+    drop_pool_source = (ROOT / "webapp" / "frontendGemDropData.ts").read_text(encoding="utf-8")
+    fearless_body = drop_pool_source.split('"instance_id": "passive_fearless"', 1)[1].split('"base_gem_id": "passive_fearless"', 1)[0]
+    magical_source_body = drop_pool_source.split('"instance_id": "passive_magical_source"', 1)[1].split('"base_gem_id": "passive_magical_source"', 1)[0]
+
+    for body in [fearless_body, magical_source_body]:
+        assert '"gem_kind": "passive_skill"' in body
+        assert '"id": "gem_type_2"' in body
+        assert '"number": 2' in body
+        assert '"sudoku_digit": 2' in body
+        assert '"icon_color_key": "blue"' in body
+        assert '"gem_type_8"' not in body
+
 def test_frontend_self_centered_damage_zone_releases_after_event_validation() -> None:
     source = _app_source()
     release_body = source.split("function releaseFrontendCanonicalSkill", 1)[1].split("function buildFrontendCanonicalSkillEvents", 1)[0]
