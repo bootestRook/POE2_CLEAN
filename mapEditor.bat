@@ -49,11 +49,23 @@ if errorlevel 1 (
   exit /b 1
 )
 
+for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "for ($p = 8767; $p -le 8780; $p++) { if (-not (Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue)) { Write-Output $p; break } }"') do set "PORT=%%P"
+if "%PORT%"=="" (
+  echo Could not find a free MapEditor port between 8767 and 8780.
+  pause
+  exit /b 1
+)
+
 echo Starting MapEditor...
 set "CACHE_BUST=%RANDOM%%RANDOM%"
 set "BROWSER_URL=http://127.0.0.1:%PORT%/map-editor?clear_cache=1&v=%CACHE_BUST%"
 echo Browser URL: "%BROWSER_URL%"
-start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 2; Start-Process '%BROWSER_URL%'"
-call npm.cmd exec -- vite preview --host 127.0.0.1 --port %PORT%
+start "" "%BROWSER_URL%"
+call npm.cmd exec -- vite preview --host 127.0.0.1 --port %PORT% --strictPort
+if errorlevel 1 (
+  echo MapEditor preview server failed.
+  pause
+  exit /b 1
+)
 
 endlocal
