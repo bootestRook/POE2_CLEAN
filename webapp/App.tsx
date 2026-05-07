@@ -108,6 +108,7 @@ type Gem = {
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   equipment_slot_id?: string;
+  equipment_rarity?: string;
   passive_effects?: FrontendPassiveEffect[];
 };
 
@@ -123,6 +124,7 @@ type TooltipView = {
   icon_text: string;
   icon_color_key?: string;
   icon_sprite?: string;
+  rarity_tone?: string;
   name_text: string;
   subtitle_text: string;
   type_identity_text: string;
@@ -3056,6 +3058,7 @@ function createFrontendItemTooltipView(item: {
   iconText: string;
   iconColorKey?: string;
   iconSprite?: string;
+  rarityTone?: string;
   tags: TooltipTagView[];
   statLines?: TooltipStatLine[];
   bonusLines?: string[];
@@ -3064,6 +3067,7 @@ function createFrontendItemTooltipView(item: {
     icon_text: item.iconText,
     icon_color_key: item.iconColorKey ?? "orange",
     icon_sprite: item.iconSprite,
+    rarity_tone: item.rarityTone,
     name_text: item.nameText,
     subtitle_text: `${item.rarityText} · ${item.categoryText}`,
     type_identity_text: item.identityText,
@@ -11589,6 +11593,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     }
     if (drop.loot_kind === "equipment") {
       const rarityText = drop.rarity_text || "普通";
+      const rarityTone = equipmentRarityTone(drop.equipment_rarity ?? rarityText);
       const sourceText = gmOptions?.equipment_sources.find((source) => source.id === drop.equipment_source)?.name_text
         ?? drop.equipment_source
         ?? "装备";
@@ -11607,7 +11612,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         { id: "equipment", text: "装备", tone: "category" },
         { id: drop.equipment_source ?? "equipment", text: sourceText, tone: "type" },
         ...(isTwoHandedEquipmentSource(drop.equipment_source ?? sourceText) ? [{ id: "two_handed", text: "双手", tone: "type" as const }] : []),
-        { id: String(drop.equipment_rarity ?? "rarity"), text: rarityText }
+        { id: String(drop.equipment_rarity ?? "rarity"), text: rarityText, tone: `rarity-${rarityTone}` }
       ];
       return {
         instance_id: id,
@@ -11623,6 +11628,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         board_position: null,
         level: drop.level,
         equipment_slot_id: equipmentSlotId,
+        equipment_rarity: drop.equipment_rarity,
         tooltip_view: createFrontendItemTooltipView({
           nameText: drop.name_text,
           rarityText,
@@ -11632,6 +11638,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           iconText: sourceText.slice(0, 1),
           iconColorKey: drop.equipment_rarity === "blue" ? "blue" : drop.equipment_rarity === "purple" ? "orange" : "white",
           iconSprite,
+          rarityTone,
           tags,
           statLines: [
             { label_text: "等级", value_text: String(drop.level ?? 1) },
@@ -13656,11 +13663,12 @@ function GroundDropLayer({
       {visibleDrops.map((drop) => {
         const position = battleWorldToViewport(displayPositions.get(drop.drop_id) ?? drop.position!, camera);
         const kind = drop.loot_kind || "gem";
+        const rarityTone = kind === "equipment" ? equipmentRarityTone(drop.equipment_rarity ?? drop.rarity_text) : "";
         return (
           <button
             key={drop.drop_id}
             type="button"
-            className={`ground-drop ground-drop-${cssToken(kind)}`}
+            className={`ground-drop ground-drop-${cssToken(kind)}${rarityTone ? ` ground-drop-rarity-${rarityTone}` : ""}`}
             style={{ left: position.x, top: position.y }}
             onClick={() => onPickup(drop)}
             title={drop.name_text}
@@ -19964,18 +19972,23 @@ function GemTooltip({ tooltip }: { tooltip: Tooltip }) {
     return <SupportGemTooltip gem={gem} view={view} left={left} top={top} transform={transform} />;
   }
   const isActiveTooltip = view.variant === "active" || view.variant === "passive";
+  const equipmentTone = equipmentTooltipRarityTone(gem, view);
+  const titleClassName = isActiveTooltip
+    ? "tooltip-tone-title"
+    : equipmentTone ? `tooltip-rarity-title tooltip-rarity-${equipmentTone}` : undefined;
+  const tooltipTags = isActiveTooltip ? view.tags : normalizedEquipmentTooltipTags(gem, view, equipmentTone);
   const sections = view.sections;
   return (
     <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""}`} style={{ left, top, transform }}>
       <div className="tooltip-header">
         <GemOrb gem={gem} />
         <div className="tooltip-heading">
-          <h3 className={isActiveTooltip ? "tooltip-tone-title" : undefined}>{view.name_text}</h3>
+          <h3 className={titleClassName}>{view.name_text}</h3>
           {isActiveTooltip ? <RichText line={highlightTooltipText(view.subtitle_text)} /> : <p>{view.subtitle_text}</p>}
         </div>
       </div>
       {view.type_identity_text && <p className="tooltip-identity">{view.type_identity_text}</p>}
-      {!isActiveTooltip && <div className="tooltip-tag-list">{view.tags.map((tag) => <TooltipTag key={`${tag.id ?? tag.text}-${tag.text}`} tag={tag} />)}</div>}
+      {!isActiveTooltip && <div className="tooltip-tag-list">{tooltipTags.map((tag) => <TooltipTag key={`${tag.id ?? tag.text}-${tag.text}`} tag={tag} />)}</div>}
       <TooltipSection title={sections.description.title_text}>
         {sections.description.lines.map((line) => isActiveTooltip ? <RichText key={line} line={highlightTooltipText(line)} /> : <p key={line}>{line}</p>)}
       </TooltipSection>
@@ -20625,6 +20638,39 @@ function TooltipSection({ children }: { title: string; children: ReactNode }) {
   );
 }
 
+function equipmentRarityTone(rarity: unknown) {
+  const key = String(rarity ?? "").trim().toLowerCase();
+  if (key === "white" || key === "白色" || key === "普通") return "white";
+  if (key === "blue" || key === "蓝色" || key === "魔法") return "blue";
+  if (key === "purple" || key === "紫色" || key === "稀有") return "purple";
+  if (key === "pink" || key === "粉色" || key === "传奇") return "pink";
+  return "white";
+}
+
+function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
+  if (gem.item_kind !== "equipment") return view?.rarity_tone ?? "";
+  return equipmentRarityTone(gem.equipment_rarity ?? view?.rarity_tone ?? gem.rarity_text ?? view?.subtitle_text.split(" · ")[0]);
+}
+
+function equipmentRarityToneForGem(gem: Gem) {
+  if (gem.item_kind !== "equipment") return "";
+  return equipmentRarityTone(gem.equipment_rarity ?? gem.tooltip_view?.rarity_tone ?? gem.rarity_text);
+}
+
+function normalizedEquipmentTooltipTags(gem: Gem, view: TooltipView, rarityTone: string) {
+  if (gem.item_kind !== "equipment" || !rarityTone) return view.tags;
+  return view.tags.map((tag) => (
+    isEquipmentRarityTag(gem, tag) ? { ...tag, tone: `rarity-${rarityTone}` } : tag
+  ));
+}
+
+function isEquipmentRarityTag(gem: Gem, tag: TooltipTagView) {
+  const id = String(tag.id ?? "").toLowerCase();
+  if (id === "white" || id === "blue" || id === "purple" || id === "pink") return true;
+  const text = tag.text.trim();
+  if (text && text === gem.rarity_text) return true;
+  return frontendEquipmentRarities().some((rarity) => text === rarity.name_text);
+}
 const sudokuGemIconSprites: Record<number, string> = {
   1: new URL("./assets/gems/sudoku-gem-1.png", import.meta.url).href,
   2: new URL("./assets/gems/sudoku-gem-2.png", import.meta.url).href,
@@ -20674,11 +20720,12 @@ function romanGemLevel(level: number) {
 
 function GemOrb({ gem }: { gem: Gem }) {
   const isGem = isGemItem(gem);
+  const equipmentTone = equipmentRarityToneForGem(gem);
   const sprite = gem.tooltip_view?.icon_sprite
     || (isGem ? gemIconSprite(gem) : "")
     || (gem.item_kind === "equipment" ? frontendEquipmentIconSprite(gem.gem_type?.id ?? gem.gem_type?.display_text ?? gem.category_text) : "");
   const className = !isGem
-    ? "item-orb"
+    ? `item-orb ${equipmentTone ? `item-orb-rarity-${equipmentTone}` : ""}`
     : `gem-orb-color-${gem.tooltip_view?.icon_color_key ?? gemColorKey(gem)}`;
   const style = sprite ? ({ "--gem-icon-sprite": `url(${sprite})` } as React.CSSProperties) : undefined;
   const level = isGem ? Math.max(1, Math.floor(Number(gem.level ?? 1))) : 0;
