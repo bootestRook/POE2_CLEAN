@@ -3133,6 +3133,10 @@ function projectileDirection(projectile: BattleGeometryProjectile) {
 
 function projectileShapeSides(projectile: BattleGeometryProjectile) {
   const token = `${projectile.vfxKey ?? ""} ${projectile.damageType ?? ""}`.toLowerCase();
+  if (token.includes("supreme_black") || token.includes("orb")) return 24;
+  if (token.includes("serpent")) return 6;
+  if (token.includes("supreme_white") || token.includes("diamond") || token.includes("flower")) return 4;
+  if (token.includes("needle")) return 3;
   if (!projectile.splitProjectile && token.includes("split_firebolt")) return 4;
   if (token.includes("ice") || token.includes("cold") || token.includes("frost")) return 4;
   if (token.includes("lightning")) return 3;

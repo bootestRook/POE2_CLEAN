@@ -10,6 +10,7 @@ import monsterDefsToml from "../configs/monsters/monster_defs.toml?raw";
 import { generateProceduralMonsterSpawns, isNemesisRarity, parseMonsterDefinitionsToml } from "./mapSpawnRuntime";
 import type { MapSpawnV1Config, MonsterSkillShape, MonsterType, ProceduralSpawnDebugSummary, ProceduralSpawnRarity, ProceduralZoneType } from "./mapSpawnRuntime";
 import monsterSkillsConfig from "../configs/monsters/monster_skills.json";
+import supremeBossSkillsConfig from "../configs/bosses/supreme_boss_skills.json";
 import { allowedFrontendLootKindsForPool, resolveFrontendMonsterDropRule, scaleFrontendDropRarityWeights } from "./frontendMonsterDropRules";
 import {
   createMonsterSkillTimer,
@@ -21,6 +22,14 @@ import {
   validateMonsterSkillConfig
 } from "./monsterSkillRuntime";
 import type { MonsterBossPatternSkill, MonsterDamageForm, MonsterDamageType, MonsterSkillConfig, MonsterSkillDefinition, MonsterSkillRange, MonsterSkillRuntimeTimer } from "./monsterSkillRuntime";
+import {
+  buildSupremeBossSkillEvents,
+  normalizeSupremeBossSkillConfig,
+  supremeBossSkillForMonster,
+  supremeBossSkillIds,
+  validateSupremeBossSkillConfig
+} from "./supremeBossSkillRuntime";
+import type { SupremeBossSkillDefinition, SupremeBossRuntimeEvent } from "./supremeBossSkillRuntime";
 import {
   AUTHORED_MAP_TEMPLATES,
   DEFAULT_AUTHORED_MAP_TEMPLATE_ID,
@@ -1098,6 +1107,7 @@ type Enemy = {
   monsterGuardDamageReductionPercent?: number;
   monsterGuardUntilMs?: number;
   activeMonsterSkillUntilMs?: number;
+  supremeBossInvulnerableUntilMs?: number;
   aggroLocked?: boolean;
   runtimeTier?: EnemyRuntimeTier;
   attackStartedAtMs?: number;
@@ -1164,6 +1174,8 @@ type FireBolt = {
   velocityY?: number;
   trajectory?: string;
   arcHeight?: number;
+  sineAmplitude?: number;
+  sineFrequency?: number;
   projectileVisualMode?: string;
   targetId?: number;
   projectileId?: string;
@@ -1207,7 +1219,19 @@ type FireBolt = {
 type PendingBossDamageZoneHit = {
   id: string;
   boss: Enemy;
-  zones: { x: number; y: number; radius: number }[];
+  zones: {
+    x: number;
+    y: number;
+    radius: number;
+    shape?: "circle" | "rectangle" | "sector";
+    length?: number;
+    width?: number;
+    directionX?: number;
+    directionY?: number;
+    safeDirectionX?: number;
+    safeDirectionY?: number;
+    safeAngleDeg?: number;
+  }[];
   remainingMs: number;
   damageMultiplier: number;
   hitKind: MonsterHitKind;
@@ -1226,6 +1250,13 @@ type BossSkillTimers = {
   basicSeq: number;
   areaSeq: number;
   barrageSeq: number;
+};
+
+type SupremeBossSkillTimer = {
+  readyAtMs: number;
+  sequence: number;
+  activeSkillId?: string;
+  activeUntilMs?: number;
 };
 
 type HitVfx = {
@@ -5727,6 +5758,7 @@ function GameApp() {
   const activeDamageZones = useRef<ActiveDamageZoneRuntime[]>([]);
   const bossSkillTimers = useRef<Map<number, BossSkillTimers>>(new Map());
   const monsterSkillTimers = useRef<Map<number, MonsterSkillRuntimeTimer>>(new Map());
+  const supremeBossSkillTimers = useRef<Map<number, SupremeBossSkillTimer>>(new Map());
   const pendingBossDamageZoneHits = useRef<PendingBossDamageZoneHit[]>([]);
   const onKillRecastCounts = useRef<Map<string, number>>(new Map());
   const runtimePerf = useRef<RuntimePerfSummary>({
@@ -6480,6 +6512,7 @@ function GameApp() {
       enemiesStateRef.current = currentVisualEnemies;
       setEnemies(currentVisualEnemies);
       updateBossSkillRuntime(currentVisualEnemies, nowMs);
+      updateSupremeBossSkillRuntime(currentVisualEnemies, nowMs);
     }
     syncEnemyVisuals(selectRenderableEnemies(currentVisualEnemies, nextPlayer, elapsedRef.current), nextPlayer, elapsedRef.current * 1000);
 
@@ -7140,6 +7173,141 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     }
   }
 
+  function updateSupremeBossSkillRuntime(currentEnemies: Enemy[], nowMs: number) {
+    const liveBosses = currentEnemies.filter((enemy) => enemy.boss && enemy.hp > 0 && supremeBossSkillForMonster(SUPREME_BOSS_SKILL_CONFIG, enemy.monsterId));
+    const liveBossIds = new Set(liveBosses.map((enemy) => enemy.id));
+    for (const [bossId, timer] of supremeBossSkillTimers.current.entries()) {
+      if (!liveBossIds.has(bossId)) {
+        cleanupSupremeBossRuntime(bossId, timer.activeSkillId);
+        supremeBossSkillTimers.current.delete(bossId);
+      }
+    }
+
+    let nextEnemies = currentEnemies;
+    let enemiesChanged = false;
+    const replaceEnemy = (bossId: number, update: (enemy: Enemy) => Enemy) => {
+      nextEnemies = nextEnemies.map((enemy) => enemy.id === bossId ? update(enemy) : enemy);
+      enemiesChanged = true;
+    };
+
+    for (const boss of liveBosses) {
+      const skill = supremeBossSkillForMonster(SUPREME_BOSS_SKILL_CONFIG, boss.monsterId);
+      if (!skill) continue;
+      const timer = supremeBossSkillTimers.current.get(boss.id) ?? {
+        readyAtMs: nowMs + Math.max(1, skill.initial_cooldown_ms),
+        sequence: 0
+      };
+      supremeBossSkillTimers.current.set(boss.id, timer);
+
+      if (timer.activeUntilMs !== undefined && nowMs >= timer.activeUntilMs) {
+        cleanupSupremeBossRuntime(boss.id, timer.activeSkillId);
+        timer.activeSkillId = undefined;
+        timer.activeUntilMs = undefined;
+        timer.readyAtMs = nowMs + Math.max(1, skill.cooldown_ms);
+        replaceEnemy(boss.id, (enemy) => ({
+          ...enemy,
+          supremeBossInvulnerableUntilMs: undefined,
+          activeMonsterSkillUntilMs: enemy.activeMonsterSkillUntilMs && enemy.activeMonsterSkillUntilMs <= nowMs ? undefined : enemy.activeMonsterSkillUntilMs
+        }));
+      }
+
+      if (timer.activeUntilMs !== undefined || nowMs < timer.readyAtMs) continue;
+      const latestBoss = nextEnemies.find((enemy) => enemy.id === boss.id) ?? boss;
+      if (latestBoss.activeMonsterSkillUntilMs !== undefined && nowMs < latestBoss.activeMonsterSkillUntilMs) continue;
+      if (!bossCanTargetPlayer(latestBoss, Math.max(760, battleMap?.meta.grid_size ? battleMap.meta.grid_size * 14 : 760))) continue;
+      startSupremeBossSkill(latestBoss, skill, timer, nowMs);
+      replaceEnemy(latestBoss.id, (enemy) => ({
+        ...enemy,
+        monsterSkillId: skill.id,
+        monsterSkillForm: skill.display_name,
+        activeMonsterSkillUntilMs: nowMs + skill.cast_duration_ms,
+        attackStartedAtMs: nowMs,
+        attackUntilMs: nowMs + skill.cast_duration_ms,
+        velocityX: 0,
+        velocityY: 0,
+        supremeBossInvulnerableUntilMs: skill.id === "supreme_final_converger_all_returns_zero"
+          ? nowMs + skill.cast_duration_ms
+          : enemy.supremeBossInvulnerableUntilMs
+      }));
+    }
+
+    if (enemiesChanged) {
+      enemiesStateRef.current = nextEnemies;
+      setEnemies(nextEnemies);
+    }
+  }
+
+  function startSupremeBossSkill(boss: Enemy, skill: SupremeBossSkillDefinition, timer: SupremeBossSkillTimer, nowMs: number) {
+    const castStartMs = Math.round(nowMs);
+    const events = buildSupremeBossSkillEvents(skill, {
+      boss: {
+        id: boss.id,
+        x: boss.x,
+        y: boss.y,
+        monsterId: boss.monsterId,
+        damageType: boss.damageType
+      },
+      player: playerStateRef.current,
+      arena: {
+        width: battleMap?.meta.world_width ?? MAP_WIDTH,
+        height: battleMap?.meta.world_height ?? MAP_HEIGHT
+      },
+      castStartMs,
+      sequence: timer.sequence
+    }) as SkillEvent[];
+    timer.activeSkillId = skill.id;
+    timer.activeUntilMs = nowMs + skill.cast_duration_ms;
+    timer.sequence += 1;
+    consumeSkillEventTimeline(events);
+    registerSupremeBossPendingDamageZones(boss, events);
+    setNotice(skill.display_name);
+    setCombatLogs((logs) => [`${skill.display_name} 开始。`, ...logs].slice(0, 8));
+  }
+
+  function registerSupremeBossPendingDamageZones(boss: Enemy, events: SkillEvent[]) {
+    const damageZones = events.filter((event) => event.type === "damage_zone" && event.source_entity === "boss" && event.payload?.source_enemy_id === boss.id);
+    for (const event of damageZones) {
+      if (event.payload?.ring === true) continue;
+      const payload = event.payload ?? {};
+      const origin = pointFromUnknown(payload.origin_world_position) ?? event.position;
+      const direction = pointFromUnknown(payload.direction_world) ?? event.direction;
+      const safeDirection = pointFromUnknown(payload.safe_direction);
+      const shapeText = String(payload.shape ?? "circle");
+      const shape = shapeText === "rectangle" ? "rectangle" : shapeText === "sector" ? "sector" : "circle";
+      pendingBossDamageZoneHits.current.push({
+        id: String(payload.zone_id ?? event.event_id),
+        boss,
+        zones: [{
+          x: origin.x,
+          y: origin.y,
+          radius: Math.max(1, Number(payload.radius ?? 120)),
+          shape,
+          length: Number(payload.length ?? payload.radius ?? 120),
+          width: Number(payload.width ?? payload.radius ?? 120),
+          directionX: Number(direction.x ?? event.direction.x),
+          directionY: Number(direction.y ?? event.direction.y),
+          safeDirectionX: safeDirection?.x,
+          safeDirectionY: safeDirection?.y,
+          safeAngleDeg: Number(payload.safe_angle_deg ?? 0)
+        }],
+        remainingMs: Math.max(0, Number(event.delay_ms ?? 0)),
+        damageMultiplier: Math.max(0, Number(payload.player_damage_multiplier ?? 1)),
+        hitKind: "spell",
+        damageType: event.damage_type,
+        sourceText: typeof payload.skill_name === "string" ? payload.skill_name : "至高首领技能",
+        suppressHitVfx: true
+      });
+    }
+  }
+
+  function cleanupSupremeBossRuntime(bossId: number, activeSkillId?: string) {
+    scheduledSkillEvents.current = scheduledSkillEvents.current.filter((scheduled) => scheduled.event.payload?.source_enemy_id !== bossId);
+    pendingBossDamageZoneHits.current = pendingBossDamageZoneHits.current.filter((pending) => pending.boss.id !== bossId);
+    activeDamageZones.current = activeDamageZones.current.filter((zone) => zone.payload.source_enemy_id !== bossId);
+    setBolts((items) => items.filter((bolt) => bolt.sourceEnemyId !== bossId || !bolt.skillId || !SUPREME_BOSS_SKILL_IDS.has(bolt.skillId)));
+    setDamageZones((items) => items.filter((zone) => !zone.skillId || !SUPREME_BOSS_SKILL_IDS.has(zone.skillId) || (activeSkillId && zone.skillId !== activeSkillId)));
+  }
+
   function bossCanTargetPlayer(boss: Enemy, range: number) {
     return distance(boss, playerStateRef.current) <= range;
   }
@@ -7431,7 +7599,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       if (pending.leashRange !== undefined && !monsterSkillHitAllowed({ range: { cast_range: 1, effect_range: 1, leash_range: pending.leashRange } }, distance(pending.boss, playerNow))) {
         continue;
       }
-      const hit = pending.zones.some((zone) => distance(playerNow, zone) <= zone.radius + PLAYER_GEOMETRY_RADIUS);
+      const hit = pending.zones.some((zone) => bossDamageZoneContainsPlayer(zone, playerNow));
       if (hit) {
         hitCount += 1;
         applyBossSkillHitToPlayer(pending.boss, {
@@ -7448,6 +7616,31 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     }
     pendingBossDamageZoneHits.current = remaining;
     return hitCount;
+  }
+
+  function bossDamageZoneContainsPlayer(
+    zone: PendingBossDamageZoneHit["zones"][number],
+    playerNow: { x: number; y: number }
+  ) {
+    if (zone.shape === "rectangle") {
+      const direction = normalizedWorldDirection({ x: zone.directionX ?? 1, y: zone.directionY ?? 0 });
+      const side = { x: -direction.y, y: direction.x };
+      const dx = playerNow.x - zone.x;
+      const dy = playerNow.y - zone.y;
+      const forward = dx * direction.x + dy * direction.y;
+      const lateral = dx * side.x + dy * side.y;
+      return Math.abs(forward) <= Math.max(1, Number(zone.length ?? zone.radius)) * 0.5 + PLAYER_GEOMETRY_RADIUS
+        && Math.abs(lateral) <= Math.max(1, Number(zone.width ?? zone.radius)) * 0.5 + PLAYER_GEOMETRY_RADIUS;
+    }
+    if (zone.shape === "sector") {
+      if (distance(playerNow, zone) > zone.radius + PLAYER_GEOMETRY_RADIUS) return false;
+      const safeDirection = normalizedWorldDirection({ x: zone.safeDirectionX ?? -1, y: zone.safeDirectionY ?? 0 });
+      const toPlayer = normalizedWorldDirection({ x: playerNow.x - zone.x, y: playerNow.y - zone.y });
+      const dot = clamp(safeDirection.x * toPlayer.x + safeDirection.y * toPlayer.y, -1, 1);
+      const angleDeg = Math.acos(dot) * 180 / Math.PI;
+      return angleDeg > Math.max(0, Number(zone.safeAngleDeg ?? 0)) * 0.5;
+    }
+    return distance(playerNow, zone) <= zone.radius + PLAYER_GEOMETRY_RADIUS;
   }
 
   function applyBossSkillHitToPlayer(
@@ -9929,6 +10122,8 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           impactRadius: Number(event.payload?.impact_radius ?? 18),
           trajectory: String(event.payload?.trajectory ?? "linear"),
           arcHeight: Number(event.payload?.arc_height ?? 0),
+          sineAmplitude: Number(event.payload?.sine_amplitude ?? 0),
+          sineFrequency: Number(event.payload?.sine_frequency ?? 0),
           projectileVisualMode: String(event.payload?.projectile_visual_mode ?? "standard"),
           targetId: Number.isFinite(Number(event.target_entity)) ? Number(event.target_entity) : undefined,
           ttl: aliveDuration + projectileExitFadeDuration,
@@ -10048,6 +10243,19 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
         if (hasAcceptedDamage) acceptedDamageDisplayKeys.delete(displayKey);
         const targetEnemy = targetedEnemyForEvent(event, projectedEnemyById);
         const textPosition = targetEnemy ? { x: targetEnemy.x, y: targetEnemy.y - 28 } : event.position;
+        const explicitText = typeof event.payload?.text === "string" ? event.payload.text : typeof event.payload?.floating_text === "string" ? event.payload.floating_text : "";
+        if (explicitText) {
+          nextTexts.push({
+            id: nextTextId.current++,
+            x: textPosition.x,
+            y: textPosition.y,
+            text: explicitText,
+            damageType: event.damage_type,
+            ttl: Math.max(0.3, event.duration_ms / 1000),
+            duration: Math.max(0.3, event.duration_ms / 1000)
+          });
+          continue;
+        }
         const floatingComponents = floatingTextDamageComponents(event);
         floatingComponents.forEach(([damageType, amount], index) => {
           nextTexts.push({
@@ -11131,6 +11339,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     dropDisplayPositions.current = new Map();
     knownDropIds.current = new Set();
     bossSkillTimers.current = new Map();
+    supremeBossSkillTimers.current = new Map();
     pendingBossDamageZoneHits.current = [];
     enemiesStateRef.current = [];
     setEnemies([]);
@@ -11175,6 +11384,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     scheduledSkillEvents.current = [];
     activeDamageZones.current = [];
     bossSkillTimers.current = new Map();
+    supremeBossSkillTimers.current = new Map();
     monsterSkillTimers.current = new Map();
     pendingBossDamageZoneHits.current = [];
     onKillRecastCounts.current.clear();
@@ -11312,6 +11522,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setDamageZones([]);
     setHitVfxs([]);
     bossSkillTimers.current = new Map();
+    supremeBossSkillTimers.current = new Map();
     monsterSkillTimers.current = new Map();
     pendingBossDamageZoneHits.current = [];
     setCombatLogs((logs) => ["已销毁全部测试怪物。", ...logs].slice(0, 8));
@@ -16337,6 +16548,9 @@ type EnemyNavigationHeapNode = {
 };
 
 const MONSTER_SKILL_CONFIG = monsterSkillsConfig as MonsterSkillConfig;
+const SUPREME_BOSS_SKILL_CONFIG = normalizeSupremeBossSkillConfig(supremeBossSkillsConfig);
+const SUPREME_BOSS_SKILL_IDS = new Set(supremeBossSkillIds(SUPREME_BOSS_SKILL_CONFIG));
+const SUPREME_BOSS_SKILL_CONFIG_ERRORS = validateSupremeBossSkillConfig(SUPREME_BOSS_SKILL_CONFIG);
 
 function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: number, selectedMapId: string | null, stage?: MapProgressionStageView | null, instanceSeed?: string) {
   const spawnMap = isEditorRuntimeBattleMap(map) ? {
@@ -17575,6 +17789,7 @@ function enemyHasWalkableLine(map: BakedBattleMapData, from: { x: number; y: num
 }
 
 function damageEventAmountAgainstEnemy(event: SkillEvent, enemy: Enemy) {
+  if (enemy.supremeBossInvulnerableUntilMs !== undefined && event.timestamp_ms < enemy.supremeBossInvulnerableUntilMs) return 0;
   const components = event.payload?.damage_components;
   const multiplier = damageOverTimeAggravationMultiplier(event, enemy);
   const doubleDamageMultiplier = doubleDamageEventMultiplier(event);
@@ -19776,9 +19991,21 @@ function fireBoltWorldPoint(bolt: FireBolt, travel = fireBoltTravel(bolt)) {
       y: bolt.targetY
     };
   }
-  return {
+  const base = {
     x: bolt.x + (bolt.targetX - bolt.x) * travel,
     y: bolt.y + (bolt.targetY - bolt.y) * travel
+  };
+  if (bolt.trajectory !== "sine") return base;
+  const amplitude = Number(bolt.sineAmplitude ?? 0);
+  const frequency = Number(bolt.sineFrequency ?? 0);
+  if (!Number.isFinite(amplitude) || !Number.isFinite(frequency) || amplitude === 0 || frequency === 0) return base;
+  const dx = bolt.targetX - bolt.x;
+  const dy = bolt.targetY - bolt.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const wave = Math.sin(travel * frequency * Math.PI * 2) * amplitude;
+  return {
+    x: base.x + (-dy / length) * wave,
+    y: base.y + (dx / length) * wave
   };
 }
 

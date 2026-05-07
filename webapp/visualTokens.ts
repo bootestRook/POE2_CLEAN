@@ -60,6 +60,13 @@ export type GeometricDamageTone = "physical" | "fire" | "cold" | "lightning" | "
 
 export function geometricToneColor(tone: string | undefined) {
   const token = (tone || "").toLowerCase();
+  if (token.includes("supreme_white")) return "#f6fbff";
+  if (token.includes("supreme_black") || token.includes("supreme_zero")) return "#6e3cff";
+  if (token.includes("supreme_star")) return "#f8d86a";
+  if (token.includes("supreme_flower")) return "#ee79ff";
+  if (token.includes("supreme_insect")) return "#a8f25d";
+  if (token.includes("supreme_thunder_kaleidoscope")) return "#b8f3ff";
+  if (token.includes("supreme_thunder_safe")) return "#77fff1";
   if (token.includes("fire") || token.includes("lava")) return GEOMETRIC_VISUAL_TOKENS.color.fire;
   if (token.includes("cold") || token.includes("ice") || token.includes("frost")) return GEOMETRIC_VISUAL_TOKENS.color.cold;
   if (token.includes("lightning")) return GEOMETRIC_VISUAL_TOKENS.color.lightning;
