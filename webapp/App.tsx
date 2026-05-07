@@ -90,6 +90,7 @@ import { StashGrid } from "./components/inventory/StashGrid";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
+import { AreaNovaLayer, DamageZoneLayer } from "./components/battle/BattleGroundVfxLayers";
 
 type Gem = {
   instance_id: string;
@@ -12890,8 +12891,21 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           {!CANVAS_GEOMETRY_SKILL_EFFECTS && (
             <div className="battle-ground-decal-layer">
               <PassiveAuraLayer effects={passiveVisualEffects} x={player.x} y={player.y} />
-              <DamageZoneLayer zones={damageZones} />
-              <AreaNovaLayer novas={areaNovas} />
+              <DamageZoneLayer
+                zones={damageZones}
+                projectPoint={projectBattleWorldToScreen}
+                directionAngle={worldDirectionToBattleScreenAngle}
+                normalizeVfxScale={normalizedVfxScale}
+                cssToken={cssToken}
+                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 2}
+              />
+              <AreaNovaLayer
+                novas={areaNovas}
+                projectPoint={projectBattleWorldToScreen}
+                normalizeVfxScale={normalizedVfxScale}
+                visualTone={visualTone}
+                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 2}
+              />
               <MeleeArcLayer arcs={meleeArcs} />
               <ChainSegmentLayer
                 segments={chainSegments}
@@ -22618,96 +22632,6 @@ function PassiveAuraLayer({ effects, x, y }: { effects: Gem[]; x: number; y: num
           aria-label={gem.name_text}
         />
       ))}
-    </>
-  );
-}
-
-function DamageZoneLayer({ zones }: { zones: DamageZoneVfx[] }) {
-  return (
-    <>
-      {zones.map((zone) => {
-        const position = projectBattleWorldToScreen(zone.x, zone.y);
-        const progress = clamp(1 - zone.ttl / zone.duration, 0, 1);
-        const elapsedMs = Math.max(0, (zone.duration - zone.ttl) * 1000);
-        const fillProgress = zone.warning
-          ? progress
-          : zone.hitAtMs && zone.hitAtMs > 0
-            ? clamp(elapsedMs / zone.hitAtMs, 0, 1)
-            : 1;
-        const angle = zone.shape === "rectangle"
-          ? worldDirectionToBattleScreenAngle({ x: zone.directionX || 1, y: zone.directionY || 0 }, { x: zone.x, y: zone.y })
-          : 0;
-        const vfxScale = normalizedVfxScale(zone.vfxScale);
-        return (
-          <div
-            key={zone.id}
-            className={`damage-zone-vfx damage-zone-vfx-${zone.shape} damage-zone-${zone.damageType} damage-zone-vfx-${cssToken(zone.vfxKey)} ${zone.warning ? "damage-zone-vfx-warning" : ""}`}
-            style={{
-              left: `${position.x}px`,
-              top: `${position.y}px`,
-              width: `${(zone.shape === "circle" ? zone.radius * 2 : zone.length) * vfxScale}px`,
-              height: `${(zone.shape === "circle" ? zone.radius * 2 : zone.width) * vfxScale}px`,
-              transform: zone.shape === "rectangle"
-                ? `translate(0, -50%) rotate(${angle}rad)`
-                : "translate(-50%, -50%)",
-              opacity: zone.warning ? Math.max(0.2, 0.65 - progress * 0.35) : Math.max(0, 1 - progress * 0.75),
-              zIndex: BATTLE_ENTITY_Z_INDEX_BASE - 2,
-              ["--damage-zone-fill-scale" as string]: fillProgress,
-              ["--whirlwind-angle" as string]: `${elapsedMs * 0.72}deg`,
-            }}
-            data-skill-event={zone.warning ? "damage_zone_prime" : "damage_zone"}
-            data-vfx-key={zone.vfxKey}
-            data-zone-id={zone.zoneId}
-            data-skill-id={zone.skillId}
-            data-damage-type={zone.damageType}
-          >
-            <span className="damage-zone-vfx-core" aria-hidden="true" />
-            <span className="damage-zone-vfx-cracks" aria-hidden="true" />
-            <span className="damage-zone-vfx-spikes" aria-hidden="true" />
-            <span className="damage-zone-vfx-burst" aria-hidden="true" />
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
-function AreaNovaLayer({ novas }: { novas: AreaNova[] }) {
-  return (
-    <>
-      {novas.map((nova) => {
-        const visualPoint = projectBattleWorldToScreen(nova.x, nova.y);
-        const duration = Math.max(0.001, nova.duration);
-        const progress = clamp(1 - nova.ttl / duration, 0, 1);
-        const opacity = Math.max(0, nova.ttl / duration);
-        const vfxScale = normalizedVfxScale(nova.vfxScale);
-        const diameter = Math.max(1, nova.radius * 2 * (0.18 + progress * 0.82) * vfxScale);
-        const ringWidth = Math.max(3, nova.ringWidth * (0.45 + progress * 0.55) * vfxScale);
-        return (
-          <div
-            key={nova.id}
-            className={`player-nova-vfx player-nova-vfx-${visualTone(nova.vfxKey || nova.damageType)}`}
-            style={{
-              left: visualPoint.x,
-              top: visualPoint.y,
-              width: diameter,
-              height: diameter,
-              opacity,
-              borderWidth: ringWidth,
-              zIndex: BATTLE_ENTITY_Z_INDEX_BASE - 2,
-            }}
-            data-skill-event="area_spawn"
-            data-vfx-key={nova.vfxKey}
-            data-area-id={nova.areaId}
-            data-skill-id={nova.skillId}
-            data-center-world-x={nova.x}
-            data-center-world-y={nova.y}
-            data-radius={nova.radius}
-            data-ring-width={nova.ringWidth}
-            aria-hidden="true"
-          />
-        );
-      })}
     </>
   );
 }
