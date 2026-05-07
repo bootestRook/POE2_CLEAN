@@ -4345,12 +4345,12 @@ export const FRONTEND_GEM_DROP_POOL = [
       ]
     },
     "passive_effects": [
-          {
-                "target": "self_stat",
-                "stat": "life_regen_flat",
-                "value": 40,
-                "layer": "additive"
-          }
+      {
+        "target": "self_stat",
+        "stat": "life_regen_flat",
+        "value": 40,
+        "layer": "additive"
+      }
     ],
     "can_affect": {
       "summary_text": "按标签影响匹配的主动技能",
@@ -5624,12 +5624,12 @@ export const FRONTEND_GEM_DROP_POOL = [
       ]
     },
     "passive_effects": [
-          {
-                "target": "self_stat",
-                "stat": "max_energy_shield",
-                "value": 120,
-                "layer": "additive"
-          }
+      {
+        "target": "self_stat",
+        "stat": "max_energy_shield",
+        "value": 120,
+        "layer": "additive"
+      }
     ],
     "can_affect": {
       "summary_text": "按标签影响匹配的主动技能",
@@ -5818,18 +5818,18 @@ export const FRONTEND_GEM_DROP_POOL = [
       ]
     },
     "passive_effects": [
-          {
-                "target": "self_stat",
-                "stat": "max_mana",
-                "value": 50,
-                "layer": "additive"
-          },
-          {
-                "target": "active_skill",
-                "stat": "cast_speed_add_percent",
-                "value": 10,
-                "layer": "additive"
-          }
+      {
+        "target": "self_stat",
+        "stat": "max_mana",
+        "value": 50,
+        "layer": "additive"
+      },
+      {
+        "target": "active_skill",
+        "stat": "cast_speed_add_percent",
+        "value": 10,
+        "layer": "additive"
+      }
     ],
     "can_affect": {
       "summary_text": "按标签影响匹配的主动技能",
@@ -7339,8 +7339,8 @@ export const FRONTEND_GEM_DROP_POOL = [
     "gem_type": {
       "id": "gem_type_8",
       "number": 8,
-      "display_text": "8???",
-      "identity_text": "????????",
+      "display_text": "8号宝石",
+      "identity_text": "八号技能等级身份",
       "color_key": "cyan"
     },
     "gem_kind": "support",
@@ -7357,7 +7357,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       {
         "id": "gem_type_8",
-        "text": "8???"
+        "text": "8号宝石"
       },
       {
         "id": "loot_gem",
@@ -7473,7 +7473,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       "summary_lines": [
         [
           {
-            "text": "??",
+            "text": "8号宝石",
             "tone": "color-cyan"
           },
           {
@@ -7549,13 +7549,13 @@ export const FRONTEND_GEM_DROP_POOL = [
             ],
             [
               {
-                "text": "未配置文案：stat.knockback_chance_percent.name 20%",
+                "text": "击退几率 20%",
                 "tone": "bonus-positive"
               }
             ],
             [
               {
-                "text": "未配置文案：stat.knockback_distance_add_percent.name 40%",
+                "text": "击退距离提高 40%",
                 "tone": "bonus-positive"
               }
             ]
@@ -8114,8 +8114,8 @@ export const FRONTEND_GEM_DROP_POOL = [
     "gem_type": {
       "id": "gem_type_8",
       "number": 8,
-      "display_text": "8???",
-      "identity_text": "????????",
+      "display_text": "8号宝石",
+      "identity_text": "八号技能等级身份",
       "color_key": "cyan"
     },
     "gem_kind": "support",
@@ -8132,7 +8132,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       {
         "id": "gem_type_8",
-        "text": "8???"
+        "text": "8号宝石"
       },
       {
         "id": "loot_gem",
@@ -8140,7 +8140,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       {
         "id": "support_channel",
-        "text": "未配置文案：tag.support_channel.name"
+        "text": "引导辅助"
       },
       {
         "id": "support_damage",
@@ -8241,7 +8241,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       "summary_lines": [
         [
           {
-            "text": "??",
+            "text": "8号宝石",
             "tone": "color-cyan"
           },
           {

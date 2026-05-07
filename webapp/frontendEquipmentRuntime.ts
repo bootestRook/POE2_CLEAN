@@ -85,6 +85,16 @@ const WEAPON_EQUIPMENT_SOURCE_KEYWORDS = [
   "\u9521\u6756",
   "\u9b54\u6756",
 ];
+const NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS = [
+  ["\u5934\u90e8"],
+  ["\u624b\u5957"],
+  ["\u76fe\u724c"],
+  ["\u80f8\u7532"],
+  ["\u978b\u5b50"],
+  ["\u6212"],
+  ["\u8170\u5e26"],
+  ["\u9879\u94fe"],
+];
 
 const RARITY_COUNTS: Record<string, [number, number]> = {
   white: [0, 0],
@@ -152,8 +162,12 @@ export function chooseFrontendEquipmentSource(seed: number) {
 
 export function frontendEquipmentSourceDropBuckets() {
   const weaponSources = SOURCE_OPTIONS.filter(isWeaponEquipmentSource);
-  const otherSources = SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source));
-  return [weaponSources, otherSources];
+  const otherSourceBuckets = NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS
+    .map((keywords) => SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source) && keywords.some((keyword) => source.includes(keyword))))
+    .filter((bucket) => bucket.length > 0);
+  const bucketedOtherSources = new Set(otherSourceBuckets.flat());
+  const fallbackOtherSources = SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source) && !bucketedOtherSources.has(source)).map((source) => [source]);
+  return [weaponSources, ...otherSourceBuckets, ...fallbackOtherSources];
 }
 
 export function generateFrontendEquipment(source: string, level: number, rarity: string, seed: number): FrontendEquipmentItem {

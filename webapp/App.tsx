@@ -2174,7 +2174,7 @@ function frontendPassiveSelfStatEffects(gem: Gem): FrontendPassiveEffect[] {
       }));
   }
   return frontendGemBaseModifiers(gem)
-    .filter((modifier) => String(modifier.target_text ?? "") === "??????")
+    .filter((modifier) => String(modifier.target_text ?? "") === "影响玩家属性")
     .map((modifier) => {
       const stat = frontendRecord(modifier.stat);
       return {

@@ -267,7 +267,9 @@ def test_frontend_equipment_source_rolls_category_then_internal_source() -> None
     assert "bucket.length" in choose_body
     assert "export function frontendEquipmentSourceDropBuckets()" in source
     assert "const weaponSources = SOURCE_OPTIONS.filter(isWeaponEquipmentSource)" in source
-    assert "const otherSources = SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source))" in source
+    assert "NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS" in source
+    assert "const otherSourceBuckets = NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS" in source
+    assert "return [weaponSources, ...otherSourceBuckets, ...fallbackOtherSources]" in source
     assert "WEAPON_EQUIPMENT_SOURCE_KEYWORDS" in source
 
 
@@ -337,6 +339,19 @@ def test_frontend_skill_preview_recalculates_template_damage_for_gem_level() -> 
     assert "actual_interval_ms: timing.actualIntervalMs" in equipment_body
     assert "actual_interval_ms: typeof levelValues.release_interval_ms" not in level_adapter_body
     assert "actual_interval_ms: Math.max(1, Number(skill.actual_interval_ms" not in equipment_body
+
+
+def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
+    source = _app_source()
+    support_tooltip_body = source.split("function SupportGemTooltip", 1)[1].split("function RichText", 1)[0]
+    active_normalizer_body = source.split("function normalizeActiveTooltipView", 1)[1].split("function normalizedTooltipSubtitle", 1)[0]
+    level_line_body = source.split("function ensureGemLevelStatLine", 1)[1].split("function ensureReleaseIntervalStatLine", 1)[0]
+
+    assert "const levelText = frontendGemLevelText(gem)" in support_tooltip_body
+    assert '`\\u7b49\\u7ea7 ${levelText}`' in support_tooltip_body
+    assert "ensureGemLevelStatLine(gem, view.sections.stats.lines)" in active_normalizer_body
+    assert "return { ...line, value_text: levelText }" in level_line_body
+    assert 'return [{ label_text: "\\u7b49\\u7ea7", value_text: levelText }, ...nextLines]' in level_line_body
 
 
 def test_frontend_self_centered_damage_zone_releases_after_event_validation() -> None:
