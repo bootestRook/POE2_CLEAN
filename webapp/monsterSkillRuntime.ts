@@ -35,12 +35,19 @@ export type MonsterSkillDefinition = {
   projectile_count?: number;
   projectile_width?: number;
   projectile_radius?: number;
+  projectile_pattern?: "fan" | "wide_fan" | "ring" | "spiral" | "cross";
   radius?: number;
   arc_angle?: number;
   warning_ms?: number;
+  repeat_count?: number;
+  repeat_interval_ms?: number;
+  zone_pattern?: "single" | "around_player" | "ring" | "cross" | "line";
+  zone_count?: number;
+  zone_spacing?: number;
   buff_radius?: number;
   buff_damage_multiplier?: number;
   buff_duration_ms?: number;
+  heal_percent_max_life?: number;
   guard_damage_reduction_percent?: number;
   guard_duration_ms?: number;
 };
@@ -160,11 +167,18 @@ export function monsterBossPatternFor(config: MonsterSkillConfig, patternId?: st
   return patternId ? config.boss_patterns.find((pattern) => pattern.id === patternId) ?? null : null;
 }
 
-export function monsterSkillDistanceAllowed(skill: Pick<MonsterSkillDefinition, "range">, distancePx: number) {
+export function monsterSkillDistanceAllowed(skill: Pick<MonsterSkillDefinition, "range" | "module" | "damage_multiplier" | "radius">, distancePx: number) {
   if (!Number.isFinite(distancePx)) return false;
-  if (distancePx > skill.range.cast_range) return false;
+  if (distancePx > monsterSkillEffectiveCastRange(skill)) return false;
   if (skill.range.min_cast_range !== undefined && distancePx < skill.range.min_cast_range) return false;
   return true;
+}
+
+function monsterSkillEffectiveCastRange(skill: Pick<MonsterSkillDefinition, "range" | "module" | "damage_multiplier" | "radius">) {
+  if (skill.module === "monster_guard" && Number(skill.damage_multiplier ?? 0) > 0) {
+    return Math.max(1, Number(skill.radius ?? skill.range.effect_range));
+  }
+  return skill.range.cast_range;
 }
 
 export function monsterSkillHitAllowed(skill: Pick<MonsterSkillDefinition, "range">, distancePx: number) {

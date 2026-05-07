@@ -1,4 +1,5 @@
 import map001Document from "../map/map_001.json";
+import monsterTestMapDocument from "../map/map_monster_test.json";
 
 export type AuthoredMapTemplateDefinition = {
   id: string;
@@ -6,11 +7,16 @@ export type AuthoredMapTemplateDefinition = {
 };
 
 export const DEFAULT_AUTHORED_MAP_TEMPLATE_ID = "map_001";
+export const MONSTER_TEST_MAP_TEMPLATE_ID = "map_monster_test";
 
 export const AUTHORED_MAP_TEMPLATES: AuthoredMapTemplateDefinition[] = [
   {
     id: DEFAULT_AUTHORED_MAP_TEMPLATE_ID,
     document: map001Document
+  },
+  {
+    id: MONSTER_TEST_MAP_TEMPLATE_ID,
+    document: monsterTestMapDocument
   }
 ];
 

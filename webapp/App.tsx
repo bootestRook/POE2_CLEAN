@@ -24,6 +24,7 @@ import type { MonsterBossPatternSkill, MonsterDamageForm, MonsterDamageType, Mon
 import {
   AUTHORED_MAP_TEMPLATES,
   DEFAULT_AUTHORED_MAP_TEMPLATE_ID,
+  MONSTER_TEST_MAP_TEMPLATE_ID,
   authoredMapTemplateById,
   defaultAuthoredMapTemplate
 } from "./mapTemplateRegistry";
@@ -653,6 +654,13 @@ function initialMapEditorMode() {
   return path === "/map-editor" || params.get("mode") === "map-editor";
 }
 
+function initialMonsterTestMode() {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  const path = window.location.pathname.replace(/\/+$/, "");
+  return path === "/monster-test" || params.get("mode") === "monster-test";
+}
+
 function clampNumber(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) return min;
   return Math.min(max, Math.max(min, value));
@@ -1192,6 +1200,7 @@ type FireBolt = {
   playerHitKind?: MonsterHitKind;
   playerLeashRange?: number;
   playerHitMarkerId?: string;
+  suppressHitVfx?: boolean;
   collisionRadius?: number;
 };
 
@@ -1207,6 +1216,7 @@ type PendingBossDamageZoneHit = {
   leashRange?: number;
   sourceText?: string;
   hitMarkerId?: string;
+  suppressHitVfx?: boolean;
 };
 
 type BossSkillTimers = {
@@ -2557,6 +2567,21 @@ function createFrontendInitialAppState(): AppState {
   return recalculateFrontendSkillPreview(cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState);
 }
 
+function createMonsterTestAppState(): AppState {
+  const state = cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState;
+  state.player_name = "怪物测试";
+  state.inventory = [];
+  state.drops = [];
+  state.skill_preview = [];
+  state.equipment_slots = Array(EQUIPMENT_SLOT_COUNT).fill(null);
+  state.board = {
+    ...state.board,
+    cells: state.board.cells.map((row) => row.map((cell) => ({ ...cell, gem: null })))
+  };
+  if (state.player_stats?.max_life) state.player_stats.max_life.value = MONSTER_TEST_PLAYER_LIFE;
+  return recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state));
+}
+
 function createFrontendNewGameState(slotId?: number, playerName = DEFAULT_PLAYER_NAME): AppState {
   if (slotId) clearFrontendSaveSlot(slotId);
   else clearFrontendAutosave();
@@ -3053,6 +3078,17 @@ const DEFAULT_RUNTIME_MAP_ID = EDITOR_RUNTIME_MAP_ID;
 const MAP_EDITOR_TILE_OPTIONS: Array<{ id: MapEditorBrush; label: string }> = [
   { id: "ground", label: "地面" },
   { id: "wall", label: "墙壁" }
+];
+
+const MONSTER_TEST_PLAYER_LIFE = 9_999_999;
+const MONSTER_TEST_LEVEL = 86;
+const MONSTER_TEST_SPAWN_OFFSETS = [
+  { x: 360, y: 0 },
+  { x: 300, y: -160 },
+  { x: 300, y: 160 },
+  { x: 430, y: -80 },
+  { x: 430, y: 80 },
+  { x: 520, y: 0 }
 ];
 
 export function clearLaunchCacheIfRequested() {
@@ -5579,8 +5615,9 @@ function directionFromSpriteTestPath(points: { x: number; y: number }[], progres
 function GameApp() {
   const [state, setState] = useState<AppState | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
+  const [monsterTestMode] = useState(() => initialMonsterTestMode());
   const [skillEditorMode] = useState(() => initialSkillEditorMode());
-  const [entryStep, setEntryStep] = useState<"title" | "save" | "map">(() => skillEditorMode ? "map" : "title");
+  const [entryStep, setEntryStep] = useState<"title" | "save" | "map">(() => skillEditorMode || monsterTestMode ? "map" : "title");
   const [saveSlots, setSaveSlots] = useState<FrontendSaveSlotSummary[]>(() => loadFrontendSaveSlotSummaries());
   const [selectedSaveSlotId, setSelectedSaveSlotId] = useState(() => loadActiveFrontendSaveSlotId() ?? latestFrontendSaveSlotId(saveSlots) ?? 1);
   const [saveStartMode, setSaveStartMode] = useState<"continue" | "new">(() => latestFrontendSaveSlotId(saveSlots) ? "continue" : "new");
@@ -5590,7 +5627,7 @@ function GameApp() {
   const [skillEditorGuidePackage, setSkillEditorGuidePackage] = useState<SkillPackageData | null>(null);
   const [skillEditorDebugOptions, setSkillEditorDebugOptions] = useState<SkillEditorDebugOptions>(DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS);
   const [skillEditorCameraSettings, setSkillEditorCameraSettings] = useState<SkillEditorCameraSettings>(() => loadSkillEditorCameraSettings());
-  const [selectedMapId, setSelectedMapId] = useState<string | null>(() => skillEditorMode ? DEFAULT_BAKED_BATTLE_MAP_ID : DEFAULT_RUNTIME_MAP_ID);
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(() => monsterTestMode ? MONSTER_TEST_MAP_TEMPLATE_ID : skillEditorMode ? DEFAULT_BAKED_BATTLE_MAP_ID : DEFAULT_RUNTIME_MAP_ID);
   const [battleMap, setBattleMap] = useState<BakedBattleMapData | null>(null);
   const [mapDebugEnabled, setMapDebugEnabled] = useState(false);
   const [authoredSpawnPlanActive, setAuthoredSpawnPlanActive] = useState(false);
@@ -5660,6 +5697,8 @@ function GameApp() {
   const [gmOpen, setGmOpen] = useState(false);
   const [gmOptions, setGmOptions] = useState<GmOptions | null>(null);
   const [gmAffixes, setGmAffixes] = useState<GmEquipmentAffixResponse | null>(null);
+  const monsterTestOptions = useMemo(() => monsterTestMonsterOptions(), []);
+  const [selectedMonsterTestMonsterId, setSelectedMonsterTestMonsterId] = useState(() => monsterTestOptions[0]?.id ?? "");
   const [inventorySlots, setInventorySlots] = useState<(string | null)[]>(() => Array(INVENTORY_SLOT_COUNT).fill(null));
   const [equipmentSlots, setEquipmentSlots] = useState<(string | null)[]>(() => Array(EQUIPMENT_SLOT_COUNT).fill(null));
   const keys = useRef(new Set<string>());
@@ -6043,7 +6082,10 @@ function GameApp() {
   }
 
   useEffect(() => {
-    if (skillEditorMode) {
+    if (monsterTestMode) {
+      applyServerState(createMonsterTestAppState(), { persist: false });
+      setNotice("怪物测试场景载入中。");
+    } else if (skillEditorMode) {
       const { save, errorText } = loadFrontendAutosaveResult();
       const savedState = appStateFromFrontendSave(save);
       applyServerState(savedState ?? createFrontendInitialAppState(), { persist: false });
@@ -6092,8 +6134,9 @@ function GameApp() {
       return;
     }
 
-    if (selectedMapId === EDITOR_RUNTIME_MAP_ID) {
-      const map = createEditorRuntimeBattleMap(defaultAuthoredMapTemplate().document as unknown as MapEditorFileDocument, { templateId: EDITOR_RUNTIME_MAP_ID });
+    const authoredTemplate = authoredMapTemplateById(selectedMapId);
+    if (authoredTemplate) {
+      const map = createEditorRuntimeBattleMap(authoredTemplate.document as unknown as MapEditorFileDocument, { templateId: authoredTemplate.id });
       setBattleMap(map);
       setAuthoredSpawnPlanActive(false);
       setSpawnPlanWarnings([]);
@@ -6143,10 +6186,35 @@ function GameApp() {
   }, [selectedMapId, skillEditorMode]);
 
   useEffect(() => {
-    const maxLife = statNumber(state?.player_stats?.max_life, 0);
+    if (!monsterTestMode || !battleMap || !state) return;
+    const spawn = battleMap.playerSpawn;
+    resetBattleRuntimeForChallenge(spawn);
+    setRuntimePlayer((current) => ({
+      ...current,
+      x: spawn.x,
+      y: spawn.y,
+      hp: MONSTER_TEST_PLAYER_LIFE,
+      maxHp: MONSTER_TEST_PLAYER_LIFE,
+      currentMana: 0,
+      maxMana: 0,
+      currentEnergyShield: 0,
+      maxEnergyShield: 0
+    }));
+    setAuthoredSpawnPlanActive(true);
+    setAuthoredAggroSources([]);
+    setSpawnPlanWarnings([]);
+    setProceduralSpawnDebug(null);
+    setGameFailureOpen(false);
+    setPlaying(true);
+    setCombatLogs(["怪物测试场景已启动。选择怪物后点击生成。"]);
+    setNotice("怪物测试场景运行中。");
+  }, [monsterTestMode, battleMap, state]);
+
+  useEffect(() => {
+    const maxLife = monsterTestMode ? MONSTER_TEST_PLAYER_LIFE : statNumber(state?.player_stats?.max_life, 0);
     if (!maxLife) return;
     setRuntimePlayer((current) => ({ ...current, hp: Math.max(current.hp, maxLife), maxHp: maxLife }));
-  }, [state?.player_stats?.max_life?.value]);
+  }, [monsterTestMode, state?.player_stats?.max_life?.value]);
 
   useEffect(() => {
     const maxMana = statNumber(state?.player_stats?.max_mana, 0);
@@ -6261,7 +6329,7 @@ function GameApp() {
     };
   }, [battleMap]);
 
-  const activeSkills = state?.skill_preview ?? [];
+  const activeSkills = monsterTestMode ? [] : state?.skill_preview ?? [];
 
   useEffect(() => {
     if (!state?.skill_editor?.selected_id || selectedSkillEditorId) return;
@@ -6590,7 +6658,12 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
 
   function releaseMonsterSkill(currentEnemies: Enemy[], index: number, skill: MonsterSkillDefinition | MonsterBossPatternSkill, sequence: number, nowMs: number) {
     const enemy = currentEnemies[index];
-    const activeUntil = nowMs + Math.max(ENEMY_ATTACK_VISUAL_DURATION_MS, Number(skill.windup_ms ?? 0));
+    const repeatCount = Math.max(1, Math.round(Number(skill.repeat_count ?? 1)));
+    const repeatIntervalMs = Math.max(0, Number(skill.repeat_interval_ms ?? 0));
+    const activeUntil = nowMs + Math.max(
+      ENEMY_ATTACK_VISUAL_DURATION_MS,
+      Number(skill.windup_ms ?? 0) + (repeatCount - 1) * repeatIntervalMs
+    );
     let updatedEnemy: Enemy = {
       ...enemy,
       monsterSkillId: skill.id,
@@ -6620,16 +6693,67 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       const radius = Math.max(1, Number(skill.buff_radius ?? skill.range.effect_range));
       const buffUntilMs = nowMs + Math.max(1, Number(skill.buff_duration_ms ?? 2000));
       const multiplier = Math.max(1, Number(skill.buff_damage_multiplier ?? 1));
+      const healPercent = Math.max(0, Number(skill.heal_percent_max_life ?? 0));
+      const healTexts: FloatingText[] = [];
+      let supportedTargets = 0;
+      let totalHealed = 0;
       for (let allyIndex = 0; allyIndex < currentEnemies.length; allyIndex += 1) {
         const ally = currentEnemies[allyIndex];
         if (ally.hp <= 0 || distance(ally, enemy) > radius) continue;
+        supportedTargets += 1;
+        const healAmount = healPercent > 0 ? Math.max(0, ally.maxHp * healPercent / 100) : 0;
+        const nextHp = healAmount > 0 ? clamp(ally.hp + healAmount, 0, ally.maxHp) : ally.hp;
+        const actualHeal = Math.max(0, nextHp - ally.hp);
+        totalHealed += actualHeal;
         currentEnemies[allyIndex] = {
           ...ally,
+          hp: nextHp,
           monsterSkillDamageMultiplierBonus: multiplier,
-          monsterSkillBuffUntilMs: buffUntilMs
+          monsterSkillBuffUntilMs: multiplier > 1 ? buffUntilMs : ally.monsterSkillBuffUntilMs
         };
+        if (actualHeal > 0) {
+          healTexts.push({
+            id: nextTextId.current++,
+            x: ally.x,
+            y: ally.y - 34,
+            text: `+${Math.max(1, Math.round(actualHeal))}`,
+            damageType: "heal",
+            ttl: 0.9,
+            duration: 0.9
+          });
+        }
       }
-      return { ...currentEnemies[index], ...updatedEnemy };
+      if (healPercent > 0) {
+        setAreaNovas((items) => capRuntimeVisualBudget([...items, {
+          id: nextAreaNovaId.current++,
+          x: updatedEnemy.x,
+          y: updatedEnemy.y,
+          radius,
+          ringWidth: Math.max(4, radius * 0.035),
+          ttl: 0.7,
+          duration: 0.7,
+          damageType: "heal",
+          vfxKey: "monster_heal_pulse",
+          skillId: skill.id
+        }], MAX_RUNTIME_AREA_VFX));
+      }
+      if (healTexts.length > 0) {
+        setTexts((items) => capRuntimeVisualBudget([...items, ...healTexts], MAX_RUNTIME_FLOATING_TEXT));
+      }
+      if (healPercent > 0) {
+        setCombatLogs((logs) => [
+          `${skill.chinese_form}影响 ${supportedTargets} 个友方单位，回复 ${formatPreviewNumber(totalHealed)} 点生命。`,
+          ...logs
+        ].slice(0, 8));
+      }
+      const supportedSelf = currentEnemies[index];
+      return {
+        ...supportedSelf,
+        ...updatedEnemy,
+        hp: supportedSelf.hp,
+        monsterSkillDamageMultiplierBonus: supportedSelf.monsterSkillDamageMultiplierBonus,
+        monsterSkillBuffUntilMs: supportedSelf.monsterSkillBuffUntilMs
+      };
     }
 
     if (skill.module === "monster_charge" || skill.module === "monster_ambush") {
@@ -6660,16 +6784,17 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
   function releaseMonsterSkillProjectiles(enemy: Enemy, skill: MonsterSkillDefinition | MonsterBossPatternSkill, sequence: number, nowMs: number) {
     const count = Math.max(1, Math.round(Number(skill.projectile_count ?? 1)));
     const baseDirection = guideDirection(enemy, playerStateRef.current);
-    const spreadStep = count <= 1 ? 0 : Math.min(16, 54 / Math.max(1, count - 1));
+    const spreadAngles = monsterSkillProjectileSpreadAngles(skill, count, sequence);
     const events: SkillEvent[] = [];
     for (let index = 0; index < count; index += 1) {
-      const offset = (index - (count - 1) / 2) * spreadStep;
+      const offset = spreadAngles[index] ?? 0;
       const direction = normalizedWorldDirection(rotateDirection(baseDirection, offset));
       const speed = Math.max(1, Number(skill.projectile_speed ?? 300));
       const travel = Math.max(1, Number(skill.range.effect_range));
       const lifetimeMs = Math.round(travel / speed * 1000);
       const projectileId = `monster_${enemy.id}_${skill.id}_${sequence}_${index + 1}_${nowMs}`;
       const target = { x: enemy.x + direction.x * travel, y: enemy.y + direction.y * travel };
+      const aimPolicy = monsterSkillProjectileAimPolicy(skill);
       events.push({
         event_id: `${projectileId}.spawn`,
         type: "projectile_spawn",
@@ -6697,7 +6822,10 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
           expire_world_position: target,
           direction_world: direction,
           velocity_world: { x: direction.x * speed, y: direction.y * speed },
+          aim_policy: aimPolicy,
+          spawn_policy: aimPolicy === "target_current_position" ? "source_current_position" : "authored_spawn_position",
           projectile_speed: speed,
+          projectile_range: travel,
           projectile_width: Number(skill.projectile_width ?? skill.projectile_radius ?? 18) * 2,
           projectile_height: Number(skill.projectile_width ?? skill.projectile_radius ?? 18) * 2,
           projectile_radius: Number(skill.projectile_radius ?? 12),
@@ -6714,7 +6842,8 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
           player_hit_kind: skill.hit_kind ?? "attack",
           player_leash_range: skill.range.leash_range,
           damage_form: monsterSkillDamageForm(skill),
-          hit_marker_id: skill.hit_marker_id
+          hit_marker_id: skill.hit_marker_id,
+          suppress_hit_vfx: monsterSkillSuppressHitVfx(skill)
         }
       });
     }
@@ -6722,79 +6851,116 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
   }
 
   function releaseMonsterSkillMeleeZone(enemy: Enemy, skill: MonsterSkillDefinition | MonsterBossPatternSkill, sequence: number, nowMs: number) {
+    const repeatCount = Math.max(1, Math.round(Number(skill.repeat_count ?? 1)));
+    const repeatIntervalMs = Math.max(0, Number(skill.repeat_interval_ms ?? 0));
+    if (repeatCount > 1 && skill.module === "monster_damage_zone") {
+      for (let repeatIndex = 0; repeatIndex < repeatCount; repeatIndex += 1) {
+        const repeatDelayMs = repeatIndex * repeatIntervalMs;
+        if (repeatDelayMs <= 0) {
+          releaseMonsterSkillMeleeZoneInstance(enemy, skill, sequence, nowMs, repeatIndex + 1, repeatCount);
+          continue;
+        }
+        window.setTimeout(() => {
+          const liveEnemy = enemiesStateRef.current.find((candidate) => candidate.id === enemy.id && candidate.hp > 0);
+          if (!liveEnemy || playerStateRef.current.hp <= 0) return;
+          releaseMonsterSkillMeleeZoneInstance(liveEnemy, skill, sequence, performance.now(), repeatIndex + 1, repeatCount);
+        }, repeatDelayMs);
+      }
+      return;
+    }
+    releaseMonsterSkillMeleeZoneInstance(enemy, skill, sequence, nowMs, 1, 1);
+  }
+
+  function releaseMonsterSkillMeleeZoneInstance(
+    enemy: Enemy,
+    skill: MonsterSkillDefinition | MonsterBossPatternSkill,
+    sequence: number,
+    nowMs: number,
+    repeatIndex: number,
+    repeatCount: number
+  ) {
     const radius = Math.max(1, Number(skill.radius ?? skill.range.effect_range));
     const warningMs = Math.max(0, Number(skill.warning_ms ?? 0));
     const windupMs = Math.max(0, Number(skill.windup_ms ?? 0));
     const delayMs = warningMs + windupMs;
     const playerNow = playerStateRef.current;
-    const center = skill.module === "monster_damage_zone" && skill.range.min_cast_range !== undefined
-      ? clampMonsterSkillZoneCenter(enemy, playerNow, skill)
-      : { x: enemy.x, y: enemy.y };
-    const direction = guideDirection(enemy, center);
-    const zoneId = `monster_${enemy.id}_${skill.id}_${sequence}_${nowMs}`;
-    const basePayload = {
-      skill_name: skill.chinese_form,
-      skill_id: skill.id,
-      zone_id: zoneId,
-      shape: "circle",
-      radius,
-      origin_world_position: center,
-      direction_world: direction,
-      vfx_key: monsterSkillVfxKey(skill),
-      damage_amount: monsterOutgoingDamage(enemy) * Math.max(0, Number(skill.damage_multiplier ?? 1)),
-      max_hits: 1,
-      max_hits_per_target: 1,
-      damage_form: monsterSkillDamageForm(skill),
-      hit_marker_id: skill.hit_marker_id,
-      trigger_marker_id: skill.trigger_marker_id
-    };
+    const centers = monsterSkillZoneCenters(enemy, playerNow, skill, repeatIndex);
+    const primaryCenter = centers[0] ?? monsterSkillZoneCenter(enemy, playerNow, skill);
+    const directionTarget = skill.module === "monster_melee_arc" ? playerNow : primaryCenter;
+    const direction = guideDirection(enemy, directionTarget);
+    const zoneId = `monster_${enemy.id}_${skill.id}_${sequence}_${repeatIndex}_${Math.round(nowMs)}`;
     const events: SkillEvent[] = [];
-    if (warningMs > 0) {
+    centers.forEach((center, zoneIndex) => {
+      const indexedZoneId = centers.length > 1 ? `${zoneId}_${zoneIndex + 1}` : zoneId;
+      const basePayload = {
+        skill_name: skill.chinese_form,
+        skill_id: skill.id,
+        zone_id: indexedZoneId,
+        zone_index: zoneIndex + 1,
+        zone_count: centers.length,
+        repeat_index: repeatIndex,
+        repeat_count: repeatCount,
+        shape: "circle",
+        radius,
+        origin_world_position: center,
+        direction_world: direction,
+        vfx_key: monsterSkillVfxKey(skill),
+        damage_amount: monsterOutgoingDamage(enemy) * Math.max(0, Number(skill.damage_multiplier ?? 1)),
+        max_hits: 1,
+        max_hits_per_target: 1,
+        damage_form: monsterSkillDamageForm(skill),
+        hit_marker_id: skill.hit_marker_id,
+        trigger_marker_id: skill.trigger_marker_id,
+        suppress_hit_vfx: monsterSkillSuppressHitVfx(skill)
+      };
+      if (warningMs > 0) {
+        events.push({
+          event_id: `${indexedZoneId}.prime`,
+          type: "damage_zone_prime",
+          timestamp_ms: nowMs,
+          source_entity: "boss",
+          target_entity: "player",
+          position: center,
+          direction,
+          delay_ms: 0,
+          duration_ms: warningMs,
+          amount: null,
+          damage_type: monsterSkillDamageType(skill),
+          skill_instance_id: skill.id,
+          vfx_key: monsterSkillVfxKey(skill),
+          sfx_key: "",
+          reason_key: "monster_skill_damage_zone_prime",
+          payload: basePayload
+        });
+      }
       events.push({
-        event_id: `${zoneId}.prime`,
-        type: "damage_zone_prime",
+        event_id: `${indexedZoneId}.damage_zone`,
+        type: skill.module === "monster_melee_arc" ? "melee_arc" : "damage_zone",
         timestamp_ms: nowMs,
         source_entity: "boss",
         target_entity: "player",
         position: center,
         direction,
-        delay_ms: 0,
-        duration_ms: warningMs,
+        delay_ms: delayMs,
+        duration_ms: Math.max(220, Number(skill.duration_ms ?? 420)),
         amount: null,
         damage_type: monsterSkillDamageType(skill),
         skill_instance_id: skill.id,
         vfx_key: monsterSkillVfxKey(skill),
         sfx_key: "",
-        reason_key: "monster_skill_damage_zone_prime",
-        payload: basePayload
+        reason_key: "monster_skill_damage_zone",
+        payload: {
+          ...basePayload,
+          arc_angle: Number(skill.arc_angle ?? 120),
+          arc_radius: radius,
+          range: radius
+        }
       });
-    }
-    events.push({
-      event_id: `${zoneId}.damage_zone`,
-      type: skill.module === "monster_melee_arc" ? "melee_arc" : "damage_zone",
-      timestamp_ms: nowMs,
-      source_entity: "boss",
-      target_entity: "player",
-      position: center,
-      direction,
-      delay_ms: delayMs,
-      duration_ms: Math.max(220, Number(skill.duration_ms ?? 420)),
-      amount: null,
-      damage_type: monsterSkillDamageType(skill),
-      skill_instance_id: skill.id,
-      vfx_key: monsterSkillVfxKey(skill),
-      sfx_key: "",
-      reason_key: "monster_skill_damage_zone",
-      payload: {
-        ...basePayload,
-        arc_angle: Number(skill.arc_angle ?? 120),
-        range: radius
-      }
     });
     pendingBossDamageZoneHits.current.push({
       id: zoneId,
       boss: enemy,
-      zones: [{ ...center, radius }],
+      zones: centers.map((center) => ({ ...center, radius })),
       remainingMs: delayMs,
       damageMultiplier: Math.max(0, Number(skill.damage_multiplier ?? 1)),
       hitKind: skill.hit_kind ?? "attack",
@@ -6802,9 +6968,78 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       damageForm: monsterSkillDamageForm(skill),
       leashRange: skill.range.leash_range,
       sourceText: skill.chinese_form,
-      hitMarkerId: skill.hit_marker_id
+      hitMarkerId: skill.hit_marker_id,
+      suppressHitVfx: monsterSkillSuppressHitVfx(skill)
     });
     consumeSkillEventTimeline(events);
+  }
+
+  function monsterSkillProjectileSpreadAngles(skill: MonsterSkillDefinition | MonsterBossPatternSkill, count: number, sequence: number) {
+    const pattern = skill.projectile_pattern ?? "fan";
+    if (count <= 1) return [0];
+    if (pattern === "ring") {
+      const step = 360 / count;
+      const phase = (sequence % Math.max(1, count)) * step * 0.5;
+      return Array.from({ length: count }, (_, index) => index * step + phase);
+    }
+    if (pattern === "spiral") {
+      const step = Math.min(48, 360 / count);
+      const start = -step * (count - 1) * 0.5 + (sequence % 5) * 14;
+      return Array.from({ length: count }, (_, index) => start + index * step);
+    }
+    if (pattern === "cross") {
+      const base = [0, 90, -90, 180, 45, -45, 135, -135];
+      return Array.from({ length: count }, (_, index) => base[index % base.length]);
+    }
+    const spreadStep = pattern === "wide_fan"
+      ? Math.min(30, 96 / Math.max(1, count - 1))
+      : Math.min(16, 54 / Math.max(1, count - 1));
+    return Array.from({ length: count }, (_, index) => (index - (count - 1) / 2) * spreadStep);
+  }
+
+  function monsterSkillZoneCenters(enemy: Enemy, target: { x: number; y: number }, skill: MonsterSkillDefinition | MonsterBossPatternSkill, repeatIndex: number) {
+    const primary = monsterSkillZoneCenter(enemy, target, skill);
+    const pattern = skill.zone_pattern ?? "single";
+    const count = Math.max(1, Math.round(Number(skill.zone_count ?? 1)));
+    if (pattern === "single" || count <= 1 || skill.module === "monster_melee_arc") return [primary];
+    const spacing = Math.max(1, Number(skill.zone_spacing ?? Math.max(72, Number(skill.radius ?? skill.range.effect_range) * 1.35)));
+    const direction = normalizedWorldDirection({ x: target.x - enemy.x, y: target.y - enemy.y });
+    const perpendicular = { x: -direction.y, y: direction.x };
+    if (pattern === "ring" || pattern === "around_player") {
+      return Array.from({ length: count }, (_, index) => {
+        const angle = (Math.PI * 2 * index) / count + repeatIndex * 0.38;
+        return { x: primary.x + Math.cos(angle) * spacing, y: primary.y + Math.sin(angle) * spacing };
+      });
+    }
+    if (pattern === "cross") {
+      const offsets = [
+        { x: 0, y: 0 },
+        { x: spacing, y: 0 },
+        { x: -spacing, y: 0 },
+        { x: 0, y: spacing },
+        { x: 0, y: -spacing },
+        { x: spacing * 0.72, y: spacing * 0.72 },
+        { x: -spacing * 0.72, y: -spacing * 0.72 },
+        { x: spacing * 0.72, y: -spacing * 0.72 },
+        { x: -spacing * 0.72, y: spacing * 0.72 }
+      ];
+      return offsets.slice(0, count).map((offset) => ({ x: primary.x + offset.x, y: primary.y + offset.y }));
+    }
+    if (pattern === "line") {
+      return Array.from({ length: count }, (_, index) => {
+        const offset = (index - (count - 1) / 2) * spacing;
+        return { x: primary.x + perpendicular.x * offset, y: primary.y + perpendicular.y * offset };
+      });
+    }
+    return [primary];
+  }
+
+  function monsterSkillZoneCenter(enemy: Enemy, target: { x: number; y: number }, skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    if (skill.id === "mon_skill_poison_weave_mist" || skill.id === "boss_star_mother_triple_mark") return { x: target.x, y: target.y };
+    if (skill.module === "monster_damage_zone" && skill.range.min_cast_range !== undefined) {
+      return clampMonsterSkillZoneCenter(enemy, target, skill);
+    }
+    return { x: enemy.x, y: enemy.y };
   }
 
   function clampMonsterSkillZoneCenter(enemy: Enemy, target: { x: number; y: number }, skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
@@ -6825,11 +7060,23 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
   }
 
   function monsterSkillVfxKey(skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    if (skill.id === "mon_skill_dust_ring_scrape") return "monster_dust_scrape";
+    if (skill.id === "mon_skill_twilight_sentry_bolt") return "monster_twilight_sentry_bolt";
+    if (skill.id === "mon_skill_mirror_amplify") return "monster_mirror_shard";
+    if (skill.module === "monster_melee_arc") return `monster_melee_arc_${monsterSkillDamageType(skill) ?? "physical"}`;
     if (skill.damage_type === "fire") return "skill_event_ignite";
     if (skill.damage_type === "cold") return "skill_event_frost";
     if (skill.damage_type === "lightning") return "skill_event_sparkle_projectile";
     if (skill.damage_type === "chaos") return "skill_event_poison";
     return skill.module === "monster_projectile" ? "skill_event_sparkle_projectile" : "boss_damage_zone";
+  }
+
+  function monsterSkillSuppressHitVfx(skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    return true;
+  }
+
+  function monsterSkillProjectileAimPolicy(skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
+    return skill.id === "mon_skill_frost_crystal_slow_bolt" ? "target_current_position" : "authored_target_position";
   }
 
   function updateBossSkillRuntime(currentEnemies: Enemy[], nowMs: number) {
@@ -7103,8 +7350,14 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       hits.push(bolt);
       return {
         ...bolt,
+        x: point.x,
+        y: point.y,
+        targetX: point.x,
+        targetY: point.y,
+        velocityX: 0,
+        velocityY: 0,
         canHitPlayer: false,
-        ttl: Math.min(bolt.ttl, Math.max(0.08, bolt.fadeDuration ?? 0.12))
+        ttl: Math.min(bolt.ttl, 0.02)
       };
     });
     if (hits.length === 0) return 0;
@@ -7123,7 +7376,8 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         projectileIndex: bolt.projectileIndex,
         projectileCount: bolt.projectileCount,
         vfxKey: bolt.vfxKey,
-        impactRadius: bolt.impactRadius
+        impactRadius: bolt.impactRadius,
+        suppressHitVfx: bolt.suppressHitVfx
       });
     });
     return hits.length;
@@ -7151,10 +7405,11 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
           damageMultiplier: pending.damageMultiplier,
           hitKind: pending.hitKind,
           damageType: pending.damageType,
-          sourceText: "Boss 多点预警伤害",
+          sourceText: pending.sourceText ?? "Boss 多点预警伤害",
           impact: { x: playerNow.x, y: playerNow.y },
           vfxKey: "boss_damage_zone",
-          impactRadius: pending.zones[0]?.radius ?? BOSS_AREA_RADIUS
+          impactRadius: pending.zones[0]?.radius ?? BOSS_AREA_RADIUS,
+          suppressHitVfx: pending.suppressHitVfx
         });
       }
     }
@@ -7175,6 +7430,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       projectileCount?: number;
       vfxKey?: string;
       impactRadius?: number;
+      suppressHitVfx?: boolean;
     }
   ) {
     let nextBuffs = activePlayerBuffsRef.current;
@@ -7203,22 +7459,24 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       setGameFailureOpen(true);
       setNotice("游戏失败。玩家生命已归零。");
     }
-    setHitVfxs((items) => capRuntimeVisualBudget([...items, {
-      id: nextHitVfxId.current++,
-      x: options.impact.x,
-      y: options.impact.y,
-      projectileId: options.projectileId,
-      projectileIndex: options.projectileIndex,
-      projectileCount: options.projectileCount,
-      ttl: projectileVfxKind(options.vfxKey) === "sparkle" ? 0.32 : FIRE_BOLT_IMPACT_DURATION_MS / 1000,
-      duration: projectileVfxKind(options.vfxKey) === "sparkle" ? 0.32 : FIRE_BOLT_IMPACT_DURATION_MS / 1000,
-      damageType: options.damageType,
-      vfxKey: options.vfxKey ?? "boss_hit",
-      skillTemplateId: "boss_skill",
-      impactRadius: options.impactRadius,
-      shapeEffects: [],
-      vfxScale: 1
-    }], MAX_RUNTIME_HIT_VFX));
+    if (options.suppressHitVfx === false) {
+      setHitVfxs((items) => capRuntimeVisualBudget([...items, {
+        id: nextHitVfxId.current++,
+        x: options.impact.x,
+        y: options.impact.y,
+        projectileId: options.projectileId,
+        projectileIndex: options.projectileIndex,
+        projectileCount: options.projectileCount,
+        ttl: projectileVfxKind(options.vfxKey) === "sparkle" ? 0.32 : FIRE_BOLT_IMPACT_DURATION_MS / 1000,
+        duration: projectileVfxKind(options.vfxKey) === "sparkle" ? 0.32 : FIRE_BOLT_IMPACT_DURATION_MS / 1000,
+        damageType: options.damageType,
+        vfxKey: options.vfxKey ?? "boss_hit",
+        skillTemplateId: "boss_skill",
+        impactRadius: options.impactRadius,
+        shapeEffects: [],
+        vfxScale: 1
+      }], MAX_RUNTIME_HIT_VFX));
+    }
     setTexts((items) => capRuntimeVisualBudget([...items, {
       id: nextTextId.current++,
       x: options.impact.x,
@@ -9278,9 +9536,34 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     if (event.payload?.vfx_spawn_policy === "caster_current_position" || event.payload?.spawn_policy === "caster_current_position") {
       return { x: playerStateRef.current.x, y: playerStateRef.current.y };
     }
+    if (event.source_entity === "boss" && event.payload?.spawn_policy === "source_current_position") {
+      const sourceEnemyId = Number(event.payload?.source_enemy_id);
+      const sourceEnemy = enemiesStateRef.current.find((enemy) => enemy.id === sourceEnemyId && enemy.hp > 0);
+      if (sourceEnemy) return { x: sourceEnemy.x, y: sourceEnemy.y };
+    }
     return pointFromUnknown(event.payload?.vfx_spawn_world_position)
       ?? pointFromUnknown(event.payload?.spawn_world_position)
       ?? event.position;
+  }
+
+  function liveMonsterProjectileTrajectoryForEvent(
+    event: SkillEvent,
+    spawnPosition: { x: number; y: number },
+    projectileSpeed: number
+  ) {
+    if (event.source_entity !== "boss" || event.payload?.aim_policy !== "target_current_position") return null;
+    const travel = Math.max(1, Number(event.payload?.projectile_range ?? event.payload?.range ?? event.duration_ms / 1000 * projectileSpeed));
+    const spreadAngle = Number(event.payload?.local_spread_angle ?? 0);
+    const direction = normalizedWorldDirection(rotateDirection(guideDirection(spawnPosition, playerStateRef.current), spreadAngle));
+    const target = {
+      x: spawnPosition.x + direction.x * travel,
+      y: spawnPosition.y + direction.y * travel
+    };
+    return {
+      direction,
+      velocity: { x: direction.x * projectileSpeed, y: direction.y * projectileSpeed },
+      target
+    };
   }
 
   function liveOrbitCenter(payload: Record<string, unknown>, fallback: { x: number; y: number }) {
@@ -9571,19 +9854,20 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
         const velocityPayload = event.payload?.velocity_world as { x?: number; y?: number } | undefined;
         const velocityLength = Math.hypot(Number(velocityPayload?.x ?? 0), Number(velocityPayload?.y ?? 0));
         const projectileSpeed = Number(event.payload?.projectile_speed ?? velocityLength);
-        const directionWorld = velocityLength > 0
+        const liveMonsterTrajectory = liveMonsterProjectileTrajectoryForEvent(event, spawnPosition, projectileSpeed);
+        const directionWorld = liveMonsterTrajectory?.direction ?? (velocityLength > 0
           ? normalizedWorldDirection({ x: Number(velocityPayload?.x ?? 0), y: Number(velocityPayload?.y ?? 0) })
           : payloadDirection
             ? normalizedWorldDirection(payloadDirection)
-            : normalizedWorldDirection(event.direction);
-        const velocityWorld = velocityLength > 0
+            : normalizedWorldDirection(event.direction));
+        const velocityWorld = liveMonsterTrajectory?.velocity ?? (velocityLength > 0
           ? { x: Number(velocityPayload?.x ?? 0), y: Number(velocityPayload?.y ?? 0) }
           : {
               x: directionWorld.x * projectileSpeed,
               y: directionWorld.y * projectileSpeed
-            };
+            });
         const payloadEndPosition = event.payload?.expire_world_position ?? event.payload?.end_position;
-        const endPosition = targetPosition ?? pointFromUnknown(payloadEndPosition) ?? event.position;
+        const endPosition = liveMonsterTrajectory?.target ?? targetPosition ?? pointFromUnknown(payloadEndPosition) ?? event.position;
         const lifetimeMs = Number(event.payload?.lifetime_ms ?? event.duration_ms);
         const aliveDuration = Math.max(0.001, lifetimeMs / 1000);
         const runtimeProjectileVfxKind = projectileVfxKind(event.vfx_key) ?? projectileVfxKind(event.skill_instance_id);
@@ -9632,6 +9916,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           playerHitKind: event.payload?.player_hit_kind === "spell" ? "spell" : "attack",
           playerLeashRange: Number.isFinite(Number(event.payload?.player_leash_range)) ? Number(event.payload?.player_leash_range) : undefined,
           playerHitMarkerId: typeof event.payload?.hit_marker_id === "string" ? event.payload.hit_marker_id : undefined,
+          suppressHitVfx: event.payload?.suppress_hit_vfx === true,
           collisionRadius: Number(event.payload?.collision_radius ?? event.payload?.projectile_radius ?? event.payload?.impact_radius ?? 18),
           sourceSkillName: typeof event.payload?.skill_name === "string" ? event.payload.skill_name : undefined
         });
@@ -10965,6 +11250,39 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice(`${battleMap.displayName} 战斗中。按 C 管理背包。`);
   }
 
+  function spawnSelectedMonsterTestEnemy() {
+    if (!monsterTestMode || !battleMap || !selectedMonsterTestMonsterId) return;
+    const nextEnemy = createMonsterTestEnemy(
+      nextEnemyId.current++,
+      selectedMonsterTestMonsterId,
+      playerStateRef.current,
+      battleMap,
+      enemiesStateRef.current.length
+    );
+    const nextEnemies = [...enemiesStateRef.current, nextEnemy];
+    enemiesStateRef.current = nextEnemies;
+    setEnemies(nextEnemies);
+    setAuthoredSpawnPlanActive(true);
+    setPlaying(true);
+    setCombatLogs((logs) => [`生成 ${selectedMonsterTestMonsterId}。`, ...logs].slice(0, 8));
+  }
+
+  function destroyAllMonsterTestEnemies() {
+    if (!monsterTestMode) return;
+    enemiesStateRef.current = [];
+    setEnemies([]);
+    setBolts([]);
+    setAreaNovas([]);
+    setMeleeArcs([]);
+    setChainSegments([]);
+    setDamageZones([]);
+    setHitVfxs([]);
+    bossSkillTimers.current = new Map();
+    monsterSkillTimers.current = new Map();
+    pendingBossDamageZoneHits.current = [];
+    setCombatLogs((logs) => ["已销毁全部测试怪物。", ...logs].slice(0, 8));
+  }
+
   async function openSkillEditorPanel() {
     setSkillEditorOpen(false);
     setSkillEditorGuidePackage(null);
@@ -11365,6 +11683,27 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         <BossPortalLayer portal={bossPortal} camera={battleCamera} onUse={beginBossPortalUse} />
       </section>
 
+      {monsterTestMode && (
+        <section className="monster-test-panel" aria-label="怪物测试控制">
+          <header>
+            <strong>怪物测试场景</strong>
+            <span>玩家生命 {formatPreviewNumber(player.maxHp)}，存活怪物 {enemies.filter((enemy) => enemy.hp > 0).length}</span>
+          </header>
+          <label>
+            <span>怪物</span>
+            <select value={selectedMonsterTestMonsterId} onChange={(event) => setSelectedMonsterTestMonsterId(event.currentTarget.value)}>
+              {monsterTestOptions.map((monster) => (
+                <option key={monster.id} value={monster.id}>{monster.label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="monster-test-actions">
+            <button type="button" onClick={spawnSelectedMonsterTestEnemy}>生成</button>
+            <button type="button" onClick={destroyAllMonsterTestEnemies}>全部销毁</button>
+          </div>
+        </section>
+      )}
+
       {RELEASE_DEBUG_TOOLS_ENABLED && (
         <header className="top-hud">
           <div>
@@ -11379,7 +11718,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </header>
       )}
 
-      {!skillEditorMode && entryStep === "title" && (
+      {!monsterTestMode && !skillEditorMode && entryStep === "title" && (
         <section className="entry-title-screen" aria-label="开始游戏">
           <div className="entry-title-copy">
             <h2>王阳历险记 V1.0</h2>
@@ -11398,7 +11737,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </section>
       )}
 
-      {!skillEditorMode && entryStep === "save" && (
+      {!monsterTestMode && !skillEditorMode && entryStep === "save" && (
         <SaveSelectionPanel
           slots={saveSlots}
           selectedSlotId={selectedSaveSlotId}
@@ -11430,7 +11769,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </aside>
       ) : null}
 
-      {gameFailureOpen && (
+      {!monsterTestMode && gameFailureOpen && (
         <section className="game-failure-overlay" role="dialog" aria-modal="true" aria-label="游戏失败">
           <div className="game-failure-dialog">
             <span>游戏失败</span>
@@ -11478,7 +11817,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         />
       )}
 
-      {!playing && !skillEditorMode && entryStep === "map" && (
+      {!monsterTestMode && !playing && !skillEditorMode && entryStep === "map" && (
         <MapSelectionPanel
           battleMap={battleMap}
           progression={state.map_progression}
@@ -20757,6 +21096,137 @@ function defaultMonsterOffense(baseDamage: number): Pick<Enemy, "baseDamage" | "
       resistance_penetration_percent: 0
     }
   };
+}
+
+function monsterTestMonsterOptions() {
+  return parseMonsterDefinitionsToml(monsterDefsToml).map((monster) => {
+    const visual = resolveMonsterGeometryVisual(monster.id);
+    return {
+      id: monster.id,
+      label: `${monster.id} · ${visual?.tier ?? monster.monster_type} · ${monster.monster_type}`
+    };
+  });
+}
+
+function createMonsterTestEnemy(
+  id: number,
+  monsterId: string,
+  player: PlayerRuntimeState,
+  map: BakedBattleMapData,
+  spawnIndex: number
+): Enemy {
+  const definitions = new Map(parseMonsterDefinitionsToml(monsterDefsToml).map((monster) => [monster.id, monster]));
+  const definition = definitions.get(monsterId);
+  const visual = resolveMonsterGeometryVisual(monsterId);
+  const rarity = monsterTestRarity(monsterId, definition?.boss_rarity);
+  const monsterType = definition?.monster_type ?? visual?.monsterType ?? "melee";
+  const damageType = monsterTestDamageType(monsterId);
+  const baseDamage = Math.max(1, monsterNormalDamageForLevel(MONSTER_TEST_LEVEL));
+  const maxHp = Math.max(1, Math.round(monsterNormalLifeForLevel(MONSTER_TEST_LEVEL) * monsterTestLifeMultiplier(rarity, monsterType)));
+  const attackStats = monsterAttackStats(monsterType, rarity, monsterNormalAccuracyForLevel(MONSTER_TEST_LEVEL), damageType);
+  const defense = monsterDefenseStats(monsterType, rarity, monsterNormalArmorForLevel(MONSTER_TEST_LEVEL), monsterNormalEnergyShieldForLevel(MONSTER_TEST_LEVEL));
+  const skillAssignment = monsterSkillAssignmentFor(MONSTER_SKILL_CONFIG, monsterId);
+  const baseSkill = monsterSkillDefinitionFor(MONSTER_SKILL_CONFIG, skillAssignment?.skill_id);
+  const offset = MONSTER_TEST_SPAWN_OFFSETS[spawnIndex % MONSTER_TEST_SPAWN_OFFSETS.length] ?? MONSTER_TEST_SPAWN_OFFSETS[0];
+  const spawn = nearestRuntimeWalkablePoint(map, {
+    x: player.x + offset.x,
+    y: player.y + offset.y
+  });
+  return {
+    id,
+    x: spawn.x,
+    y: spawn.y,
+    hp: maxHp,
+    maxHp,
+    monsterId,
+    authored: true,
+    boss: isNemesisRarity(rarity),
+    spawnRarity: rarity,
+    monsterType,
+    movementSpeedMultiplier: monsterTestMovementMultiplier(monsterType),
+    skillShape: isNemesisRarity(rarity) ? "boss" : definition?.skill_shape,
+    nemesis: isNemesisRarity(rarity),
+    lifeMultiplier: 1,
+    damageMultiplier: monsterTestDamageMultiplier(rarity, monsterType),
+    baseDamage,
+    ...attackStats,
+    ...defense,
+    damageType,
+    hitKind: baseSkill?.hit_kind ?? "attack",
+    attackRange: monsterTestAttackRange(monsterType),
+    attackCadenceMs: 1160,
+    offenseModifiers: defaultMonsterOffense(baseDamage).offenseModifiers,
+    monsterSkillId: skillAssignment?.skill_id,
+    bossPatternId: skillAssignment?.boss_pattern_id,
+    monsterSkillForm: skillAssignment?.chinese_form ?? baseSkill?.chinese_form,
+    monsterSkillRange: baseSkill?.range,
+    aggroLocked: true,
+    runtimeTier: "active",
+    nextThinkAt: 0
+  };
+}
+
+function monsterTestRarity(monsterId: string, bossRarity?: string): ProceduralSpawnRarity {
+  if (bossRarity === "supreme_boss" || /^mon_500\d{3}$/.test(monsterId)) return "supreme_boss";
+  if (bossRarity === "legendary_boss" || /^mon_400\d{3}$/.test(monsterId)) return "legendary_boss";
+  if (/^mon_300\d{3}$/.test(monsterId)) return "rare";
+  if (/^mon_200\d{3}$/.test(monsterId)) return "magic";
+  return "normal";
+}
+
+function monsterTestDamageType(monsterId: string) {
+  const skillAssignment = monsterSkillAssignmentFor(MONSTER_SKILL_CONFIG, monsterId);
+  const baseSkill = monsterSkillDefinitionFor(MONSTER_SKILL_CONFIG, skillAssignment?.skill_id);
+  return baseSkill?.damage_type ?? "physical";
+}
+
+function monsterTestLifeMultiplier(rarity: ProceduralSpawnRarity, monsterType: MonsterType) {
+  const rarityMultiplier = rarity === "supreme_boss" ? 120
+    : rarity === "legendary_boss" ? 80
+      : rarity === "rare" ? 12
+        : rarity === "magic" ? 4
+          : 1;
+  const typeMultiplier = monsterType === "tank" ? 1.72
+    : monsterType === "minion" ? 0.72
+      : monsterType === "ranged" ? 0.82
+        : monsterType === "assassin" ? 0.86
+          : monsterType === "support" ? 0.92
+            : 1;
+  return rarityMultiplier * typeMultiplier;
+}
+
+function monsterTestDamageMultiplier(rarity: ProceduralSpawnRarity, monsterType: MonsterType) {
+  const rarityMultiplier = rarity === "supreme_boss" ? 3.3
+    : rarity === "legendary_boss" ? 2.8
+      : rarity === "rare" ? 2
+        : rarity === "magic" ? 1.5
+          : 1;
+  const typeMultiplier = monsterType === "charger" ? 1.18
+    : monsterType === "assassin" ? 1.28
+      : monsterType === "tank" ? 0.82
+        : monsterType === "support" ? 0.68
+          : monsterType === "minion" ? 0.72
+            : monsterType === "ranged" ? 0.9
+              : 1;
+  return rarityMultiplier * typeMultiplier;
+}
+
+function monsterTestMovementMultiplier(monsterType: MonsterType) {
+  if (monsterType === "charger") return 1.34;
+  if (monsterType === "assassin") return 1.24;
+  if (monsterType === "minion") return 1.06;
+  if (monsterType === "ranged") return 0.82;
+  if (monsterType === "tank") return 0.66;
+  if (monsterType === "support") return 0.92;
+  return 1;
+}
+
+function monsterTestAttackRange(monsterType: MonsterType) {
+  if (monsterType === "ranged") return 42 * 4.8;
+  if (monsterType === "support") return 42 * 3.2;
+  if (monsterType === "charger") return 42 * 1.22;
+  if (monsterType === "tank") return 42 * 1.05;
+  return 42;
 }
 
 function randomEnemySpawnPoint(map: BakedBattleMapData | null, spawnKind: "normal" | "elite") {

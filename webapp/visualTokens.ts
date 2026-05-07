@@ -65,6 +65,6 @@ export function geometricToneColor(tone: string | undefined) {
   if (token.includes("lightning")) return GEOMETRIC_VISUAL_TOKENS.color.lightning;
   if (token.includes("corrosive") || token.includes("corrosion") || token.includes("chaos")) return GEOMETRIC_VISUAL_TOKENS.color.corrosive;
   if (token.includes("spore") || token.includes("fungal")) return GEOMETRIC_VISUAL_TOKENS.color.spore;
-  if (token.includes("vitality")) return GEOMETRIC_VISUAL_TOKENS.color.vitality;
+  if (token.includes("heal") || token.includes("vitality")) return GEOMETRIC_VISUAL_TOKENS.color.spore;
   return GEOMETRIC_VISUAL_TOKENS.color.physical;
 }

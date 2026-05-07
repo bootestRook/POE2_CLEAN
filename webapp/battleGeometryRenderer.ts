@@ -5,6 +5,7 @@ import { MonsterGeometryShape, MonsterGeometryTier, resolveMonsterGeometryVisual
 const PLAYER_IDLE_ROTATION_RADIANS_PER_SECOND = Math.PI / 6;
 const PLAYER_MOVING_ROTATION_RADIANS_PER_SECOND = Math.PI * 5 / 6;
 const PLAYER_INITIAL_ROTATION_RADIANS = -Math.PI / 2;
+const MONSTER_WARNING_COLOR = "#ff3d3d";
 const PLAYER_ROTATION_BY_CANVAS = new WeakMap<HTMLCanvasElement, { frameTimeMs: number; rotation: number }>();
 
 export type BattleGeometryCamera = {
@@ -681,6 +682,14 @@ function drawProjectileMarkers(context: CanvasRenderingContext2D, snapshot: Batt
       drawSparkleProjectile(context, x, y, direction, size, progress, speedAlpha, scale);
       continue;
     }
+    if (family === "monster_twilight_sentry_bolt") {
+      drawMonsterTwilightSentryProjectile(context, x, y, direction, size, progress, speedAlpha, scale);
+      continue;
+    }
+    if (family === "monster_mirror_shard") {
+      drawMonsterMirrorShardProjectile(context, x, y, direction, size, progress, speedAlpha, scale);
+      continue;
+    }
     drawProjectileTrail(context, x, y, direction, color, progress, speedAlpha, scale);
 
     context.save();
@@ -724,6 +733,111 @@ function drawProjectileTrail(
       y - direction.y * (offset + 6 * scale)
     );
   }
+  context.restore();
+}
+
+function drawMonsterTwilightSentryProjectile(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  direction: { x: number; y: number },
+  size: number,
+  progress: number,
+  alpha: number,
+  scale: number
+) {
+  const angle = Math.atan2(direction.y, direction.x);
+  const length = Math.max(24 * scale, size * 3.8);
+  const body = Math.max(5 * scale, size * 0.92);
+  const pulseAmount = 0.78 + pulse(progress * 2.4) * 0.22;
+
+  context.save();
+  context.translate(x, y);
+  context.rotate(angle);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  const trail = context.createLinearGradient(-length * 1.15, 0, -body * 0.2, 0);
+  trail.addColorStop(0, "rgba(42, 35, 67, 0)");
+  trail.addColorStop(0.44, "rgba(83, 71, 114, 0.16)");
+  trail.addColorStop(1, "rgba(143, 119, 177, 0.38)");
+  context.globalAlpha = alpha * 0.74;
+  context.strokeStyle = trail;
+  context.lineWidth = Math.max(4 * scale, body * 0.82);
+  line(context, -length, 0, -body * 0.32, 0);
+
+  context.shadowColor = "rgba(125, 107, 170, 0.42)";
+  context.shadowBlur = 8 * scale;
+  context.globalAlpha = alpha * pulseAmount;
+  context.fillStyle = "rgba(109, 97, 141, 0.92)";
+  context.strokeStyle = "rgba(203, 192, 226, 0.58)";
+  context.lineWidth = Math.max(1.4 * scale, body * 0.12);
+  context.beginPath();
+  context.moveTo(body * 1.34, 0);
+  context.lineTo(body * 0.12, -body * 0.72);
+  context.lineTo(-body * 0.86, 0);
+  context.lineTo(body * 0.12, body * 0.72);
+  context.closePath();
+  context.fill();
+  context.stroke();
+
+  context.globalAlpha = alpha * 0.48;
+  context.fillStyle = "rgba(234, 228, 244, 0.78)";
+  circlePath(context, body * 0.18, 0, Math.max(1.8 * scale, body * 0.2));
+  context.fill();
+  context.restore();
+}
+
+function drawMonsterMirrorShardProjectile(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  direction: { x: number; y: number },
+  size: number,
+  progress: number,
+  alpha: number,
+  scale: number
+) {
+  const angle = Math.atan2(direction.y, direction.x);
+  const length = Math.max(30 * scale, size * 4.4);
+  const body = Math.max(6 * scale, size * 1.08);
+  const glint = 0.72 + pulse(progress * 3.2) * 0.28;
+
+  context.save();
+  context.translate(x, y);
+  context.rotate(angle);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  const trail = context.createLinearGradient(-length, 0, -body * 0.25, 0);
+  trail.addColorStop(0, "rgba(189, 202, 214, 0)");
+  trail.addColorStop(0.52, "rgba(173, 192, 210, 0.18)");
+  trail.addColorStop(1, "rgba(228, 237, 244, 0.44)");
+  context.globalAlpha = alpha * 0.66;
+  context.strokeStyle = trail;
+  context.lineWidth = Math.max(3.2 * scale, body * 0.48);
+  line(context, -length, 0, -body * 0.2, 0);
+
+  context.shadowColor = "rgba(205, 225, 244, 0.48)";
+  context.shadowBlur = 8 * scale;
+  context.globalAlpha = alpha * glint;
+  context.fillStyle = "rgba(177, 194, 208, 0.9)";
+  context.strokeStyle = "rgba(245, 250, 255, 0.72)";
+  context.lineWidth = Math.max(1.2 * scale, body * 0.1);
+  context.beginPath();
+  context.moveTo(body * 1.55, 0);
+  context.lineTo(body * 0.2, -body * 0.46);
+  context.lineTo(-body * 1.02, -body * 0.16);
+  context.lineTo(-body * 0.54, body * 0.28);
+  context.lineTo(body * 0.24, body * 0.5);
+  context.closePath();
+  context.fill();
+  context.stroke();
+
+  context.globalAlpha = alpha * 0.42;
+  context.strokeStyle = "rgba(255, 255, 255, 0.82)";
+  context.lineWidth = Math.max(0.9 * scale, body * 0.08);
+  line(context, -body * 0.52, -body * 0.04, body * 0.76, -body * 0.1);
   context.restore();
 }
 
@@ -932,7 +1046,7 @@ function drawAreaMarkers(context: CanvasRenderingContext2D, snapshot: BattleGeom
     const overEntityArea = area.kind === "melee-arc" || family === "blizzard";
     if (layer === "under-entities" && overEntityArea) continue;
     if (layer === "over-entities" && !overEntityArea) continue;
-    const color = geometricToneColor(area.vfxKey || area.damageType);
+    const color = area.warning ? MONSTER_WARNING_COLOR : geometricToneColor(area.vfxKey || area.damageType);
     const progress = clamp(1 - area.ttl / Math.max(0.001, area.duration), 0, 1);
     context.save();
     context.globalAlpha = area.warning ? 0.18 + pulse(progress) * 0.18 : 0.16 + (1 - progress) * 0.18;
@@ -1016,7 +1130,7 @@ function drawHitMarkers(context: CanvasRenderingContext2D, snapshot: BattleGeome
   context.globalAlpha = 1;
 }
 
-type SkillEffectFamily = "burning_shot" | "split_firebolt" | "fire_bolt" | "flame_slash" | "ice_shards" | "frost_nova" | "ring_of_ice" | "blizzard" | "penetrating_shot" | "lightning_shot" | "lightning_chain" | "sparkle" | "thundercloud" | "whirlwind" | "ground_spike" | "fungal_petards" | "lava_orb" | "corrosive_shot" | "black_hole";
+type SkillEffectFamily = "burning_shot" | "split_firebolt" | "fire_bolt" | "flame_slash" | "monster_dust_scrape" | "monster_melee_arc" | "monster_twilight_sentry_bolt" | "monster_mirror_shard" | "ice_shards" | "frost_nova" | "ring_of_ice" | "blizzard" | "penetrating_shot" | "lightning_shot" | "lightning_chain" | "sparkle" | "thundercloud" | "whirlwind" | "ground_spike" | "fungal_petards" | "lava_orb" | "corrosive_shot" | "black_hole";
 
 function skillEffectFamily(token: string | undefined): SkillEffectFamily {
   const value = (token || "").toLowerCase();
@@ -1026,6 +1140,10 @@ function skillEffectFamily(token: string | undefined): SkillEffectFamily {
   if (value.includes("sparkle")) return "sparkle";
   if (value.includes("lightning_shot")) return "lightning_shot";
   if (value.includes("corrosive_shot") || value.includes("corrosive") || value.includes("corrosion")) return "corrosive_shot";
+  if (value.includes("monster_dust_scrape")) return "monster_dust_scrape";
+  if (value.includes("monster_melee_arc")) return "monster_melee_arc";
+  if (value.includes("monster_twilight_sentry_bolt")) return "monster_twilight_sentry_bolt";
+  if (value.includes("monster_mirror_shard")) return "monster_mirror_shard";
   if (value.includes("flame_slash")) return "flame_slash";
   if (value.includes("thundercloud")) return "thundercloud";
   if (value.includes("whirlwind")) return "whirlwind";
@@ -1758,6 +1876,10 @@ function drawDamageZoneRect(context: CanvasRenderingContext2D, area: BattleGeome
 
 function drawDamageZoneCircle(context: CanvasRenderingContext2D, area: BattleGeometryArea, radius: number, color: string, progress: number) {
   if (area.x === undefined || area.y === undefined) return;
+  if (area.warning) {
+    drawGenericDamageZoneCircle(context, area, radius, color, progress);
+    return;
+  }
   if (isBurningShotIgnitedExplosion(area.vfxKey)) {
     context.save();
     context.translate(area.x, area.y);
@@ -1791,6 +1913,12 @@ function drawDamageZoneCircle(context: CanvasRenderingContext2D, area: BattleGeo
     return;
   }
 
+  drawGenericDamageZoneCircle(context, area, radius, color, progress);
+}
+
+function drawGenericDamageZoneCircle(context: CanvasRenderingContext2D, area: BattleGeometryArea, radius: number, color: string, progress: number) {
+  if (area.x === undefined || area.y === undefined) return;
+  const family = skillEffectFamily(area.vfxKey || area.damageType);
   context.save();
   context.translate(area.x, area.y);
   context.strokeStyle = color;
@@ -2390,6 +2518,14 @@ function drawMeleeArc(context: CanvasRenderingContext2D, area: BattleGeometryAre
     drawFlameSlashSwing(context, area.x, area.y, angle, radius, arc, progress);
     return;
   }
+  if (family === "monster_dust_scrape") {
+    drawMonsterDustScrape(context, area.x, area.y, angle, radius, arc, progress);
+    return;
+  }
+  if (family === "monster_melee_arc") {
+    drawMonsterMeleeArc(context, area.x, area.y, angle, radius, arc, progress, area.vfxKey || area.damageType);
+    return;
+  }
   const visualScale = family === "flame_slash" ? 1 : Math.max(1, area.vfxScale ?? 1);
   const alpha = Math.max(0, 1 - progress * 0.76);
   const slam = Math.sin(Math.min(1, progress / 0.35) * Math.PI);
@@ -2454,6 +2590,88 @@ function drawMeleeArc(context: CanvasRenderingContext2D, area: BattleGeometryAre
   context.arc(0, 0, trailInnerRadius, -arc * 0.32, arc * 0.32);
   context.stroke();
   context.restore();
+}
+
+function drawMonsterDustScrape(context: CanvasRenderingContext2D, x: number, y: number, angle: number, radius: number, arc: number, progress: number) {
+  const alpha = Math.max(0, 1 - progress * 0.9);
+  const strike = Math.sin(Math.min(1, progress / 0.34) * Math.PI);
+  const outerRadius = Math.max(1, radius);
+  const innerRadius = outerRadius * 0.72;
+  const startAngle = -arc * 0.5;
+  const endAngle = arc * 0.5;
+  context.save();
+  context.translate(x, y);
+  context.rotate(angle);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  context.globalAlpha = alpha * (0.14 + strike * 0.1);
+  context.fillStyle = "#9C8B71";
+  meleeArcWedgePath(context, 0, 0, innerRadius, outerRadius, startAngle, endAngle);
+  context.fill();
+
+  context.globalAlpha = alpha * 0.52;
+  context.strokeStyle = "#C9BEA8";
+  context.lineWidth = Math.max(2, outerRadius * 0.022);
+  context.beginPath();
+  context.arc(0, 0, outerRadius * 0.94, startAngle * 0.92, endAngle * 0.92);
+  context.stroke();
+
+  context.globalAlpha = alpha * 0.32;
+  context.strokeStyle = "#766D5F";
+  context.lineWidth = Math.max(1.5, outerRadius * 0.014);
+  for (const offset of [0.18, 0.3]) {
+    context.beginPath();
+    context.arc(0, 0, outerRadius * (1 - offset), startAngle * 0.74, endAngle * 0.74);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawMonsterMeleeArc(context: CanvasRenderingContext2D, x: number, y: number, angle: number, radius: number, arc: number, progress: number, token: string | undefined) {
+  const palette = monsterMeleeArcPalette(token);
+  const alpha = Math.max(0, 1 - progress * 0.86);
+  const strike = Math.sin(Math.min(1, progress / 0.36) * Math.PI);
+  const outerRadius = Math.max(1, radius);
+  const innerRadius = outerRadius * 0.68;
+  const startAngle = -arc * 0.5;
+  const endAngle = arc * 0.5;
+  context.save();
+  context.translate(x, y);
+  context.rotate(angle);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  context.globalAlpha = alpha * (0.18 + strike * 0.08);
+  context.fillStyle = palette.fill;
+  meleeArcWedgePath(context, 0, 0, innerRadius, outerRadius, startAngle, endAngle);
+  context.fill();
+
+  context.globalAlpha = alpha * 0.56;
+  context.strokeStyle = palette.edge;
+  context.lineWidth = Math.max(2, outerRadius * 0.024);
+  context.beginPath();
+  context.arc(0, 0, outerRadius * 0.95, startAngle * 0.9, endAngle * 0.9);
+  context.stroke();
+
+  context.globalAlpha = alpha * 0.28;
+  context.strokeStyle = palette.trail;
+  context.lineWidth = Math.max(1.5, outerRadius * 0.013);
+  for (const radiusScale of [0.8, 0.64]) {
+    context.beginPath();
+    context.arc(0, 0, outerRadius * radiusScale, startAngle * 0.72, endAngle * 0.72);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function monsterMeleeArcPalette(token: string | undefined) {
+  const value = (token || "").toLowerCase();
+  if (value.includes("fire")) return { fill: "#8E4931", edge: "#D9975C", trail: "#6B3B2E" };
+  if (value.includes("cold")) return { fill: "#506F7B", edge: "#A9CAD2", trail: "#405761" };
+  if (value.includes("lightning")) return { fill: "#5E5977", edge: "#C5BCE8", trail: "#4C4866" };
+  if (value.includes("chaos")) return { fill: "#566E50", edge: "#AFC69A", trail: "#465B42" };
+  return { fill: "#707070", edge: "#C7C7C7", trail: "#565656" };
 }
 
 function drawFlameSlashSwing(context: CanvasRenderingContext2D, x: number, y: number, angle: number, radius: number, arc: number, progress: number) {

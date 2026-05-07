@@ -482,6 +482,28 @@ button {
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.4) 0 8px, transparent 8px 24px);
 }
 
+.damage-zone-vfx-warning {
+  border-color: rgba(255, 61, 61, 0.98) !important;
+  filter: drop-shadow(0 0 18px rgba(255, 61, 61, 0.62)) drop-shadow(0 0 8px rgba(0, 0, 0, 0.72));
+}
+
+.damage-zone-vfx-warning.damage-zone-vfx-circle::before {
+  background:
+    radial-gradient(circle, rgba(255, 104, 104, 0.3), rgba(255, 42, 42, 0.2) 54%, transparent 72%) !important;
+}
+
+.damage-zone-vfx-warning.damage-zone-vfx-circle::after {
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255, 220, 220, 0.5) 0deg 4deg, transparent 4deg 42deg),
+    radial-gradient(circle, rgba(255, 55, 55, 0.2), transparent 68%) !important;
+}
+
+.damage-zone-vfx-warning.damage-zone-vfx-rectangle {
+  background:
+    linear-gradient(90deg, rgba(255, 65, 65, 0.42), rgba(120, 20, 20, 0.16)),
+    repeating-linear-gradient(90deg, rgba(255, 230, 230, 0.42) 0 8px, transparent 8px 24px) !important;
+}
+
 .damage-zone-physical {
   border-color: rgba(226, 214, 184, 0.82);
 }
@@ -4359,6 +4381,10 @@ button {
   color: #dce6df;
 }
 
+.floating-text-heal {
+  color: #77f28a;
+}
+
 /* abstract-geometric HUD skin rollback marker: see openspec/changes/migrate-abstract-geometric-visual-system/rollback.md */
 .top-hud {
   position: absolute;
@@ -7733,4 +7759,63 @@ h3 {
     align-items: stretch;
     flex-direction: column;
   }
+}
+.monster-test-panel {
+  position: fixed;
+  left: 24px;
+  top: 24px;
+  z-index: 30;
+  width: min(360px, calc(100vw - 48px));
+  padding: 14px;
+  border: 1px solid rgba(214, 228, 214, 0.24);
+  border-radius: 8px;
+  background: rgba(18, 24, 24, 0.88);
+  color: #eef5ed;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.monster-test-panel header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.monster-test-panel header span,
+.monster-test-panel label span {
+  font-size: 12px;
+  color: rgba(238, 245, 237, 0.72);
+}
+
+.monster-test-panel label {
+  display: grid;
+  gap: 6px;
+}
+
+.monster-test-panel select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid rgba(214, 228, 214, 0.24);
+  border-radius: 6px;
+  background: rgba(8, 12, 12, 0.86);
+  color: #eef5ed;
+}
+
+.monster-test-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.monster-test-actions button {
+  min-height: 36px;
+  border: 1px solid rgba(214, 228, 214, 0.26);
+  border-radius: 6px;
+  background: rgba(214, 228, 214, 0.12);
+  color: #eef5ed;
+}
+
+.monster-test-actions button:hover {
+  background: rgba(214, 228, 214, 0.2);
 }
