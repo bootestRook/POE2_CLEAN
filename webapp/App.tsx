@@ -93,6 +93,7 @@ import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
 import { clampNumber } from "./utils/number";
+import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
@@ -22627,29 +22628,6 @@ function createEnemy(
     aggroLocked: true,
     runtimeTier: "active"
   };
-}
-
-function runtimeDebugMonsterCornerTestEnabled() {
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("debugMonsterCorner") === "1";
-}
-
-function runtimeDebugMonsterBoundaryTestEnabled() {
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("debugMonsterBoundary") === "1";
-}
-
-function runtimeDebugMapInstanceSeed() {
-  if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get("debugMapSeed") ?? "";
-}
-
-function runtimeDebugMapInstanceRotation(): MapInstanceRotation | null {
-  if (typeof window === "undefined") return null;
-  const rawValue = new URLSearchParams(window.location.search).get("debugMapRotation");
-  if (rawValue === null) return null;
-  const value = Number(rawValue);
-  return value === 0 || value === 90 || value === 180 || value === 270 ? value : null;
 }
 
 function runtimeDebugCornerPlayerSpawn(map: BakedBattleMapData) {
