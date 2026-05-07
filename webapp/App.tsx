@@ -91,6 +91,7 @@ import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
+import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
@@ -679,35 +680,6 @@ type SkillTestArenaResponse = {
   message_text: string;
   result: SkillTestArenaResult | null;
 };
-
-function initialSkillEditorOpen() {
-  return false;
-}
-
-function initialSkillEditorMode() {
-  return false;
-}
-
-function initialSpriteTestMode() {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  const path = window.location.pathname.replace(/\/+$/, "");
-  return path === "/sprite-test" || params.get("mode") === "sprite-test";
-}
-
-function initialMapEditorMode() {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  const path = window.location.pathname.replace(/\/+$/, "");
-  return path === "/map-editor" || params.get("mode") === "map-editor";
-}
-
-function initialMonsterTestMode() {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  const path = window.location.pathname.replace(/\/+$/, "");
-  return path === "/monster-test" || params.get("mode") === "monster-test";
-}
 
 function clampNumber(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) return min;
