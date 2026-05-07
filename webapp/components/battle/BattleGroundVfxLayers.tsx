@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 type ScreenPoint = {
   x: number;
   y: number;
@@ -37,6 +39,29 @@ type AreaNovaView = {
   areaId?: string;
   skillId?: string;
   damageType: string;
+};
+
+type MeleeArcView = {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  ttl: number;
+  duration: number;
+  directionX: number;
+  directionY: number;
+  arcAngle: number;
+  vfxScale?: unknown;
+  vfxKey?: string;
+  arcId?: string;
+  skillId?: string;
+  damageType: string;
+};
+
+type PassiveAuraView = {
+  instance_id: string;
+  visual_effect?: string;
+  name_text: string;
 };
 
 export function DamageZoneLayer<TZone extends DamageZoneView>({
@@ -151,6 +176,90 @@ export function AreaNovaLayer<TNova extends AreaNovaView>({
           />
         );
       })}
+    </>
+  );
+}
+
+export function MeleeArcLayer<TArc extends MeleeArcView>({
+  arcs,
+  projectPoint,
+  directionAngle,
+  normalizeVfxScale,
+  visualTone,
+  zIndex
+}: {
+  arcs: TArc[];
+  projectPoint: (worldX: number, worldY: number) => ScreenPoint;
+  directionAngle: (direction: { x: number; y: number }, origin: { x: number; y: number }) => number;
+  normalizeVfxScale: (value: unknown) => number;
+  visualTone: (value: string | undefined) => string;
+  zIndex: number;
+}) {
+  return (
+    <>
+      {arcs.map((arc) => {
+        const visualPoint = projectPoint(arc.x, arc.y);
+        const duration = Math.max(0.001, arc.duration);
+        const progress = clamp(1 - arc.ttl / duration, 0, 1);
+        const opacity = Math.max(0, arc.ttl / duration);
+        const vfxScale = normalizeVfxScale(arc.vfxScale);
+        const diameter = Math.max(1, arc.radius * 2 * vfxScale);
+        const angle = directionAngle({ x: arc.directionX, y: arc.directionY }, { x: arc.x, y: arc.y }) * 180 / Math.PI;
+        return (
+          <div
+            key={arc.id}
+            className={`melee-arc-vfx melee-arc-vfx-${visualTone(arc.vfxKey || arc.damageType)}`}
+            style={{
+              left: visualPoint.x,
+              top: visualPoint.y,
+              width: diameter,
+              height: diameter,
+              opacity,
+              transform: `translate(-50%, -50%) rotate(${angle}deg) scale(${0.82 + progress * 0.18})`,
+              ["--arc-angle" as string]: `${arc.arcAngle}deg`,
+              zIndex,
+            }}
+            data-skill-event="melee_arc"
+            data-vfx-key={arc.vfxKey}
+            data-arc-id={arc.arcId}
+            data-skill-id={arc.skillId}
+            data-origin-world-x={arc.x}
+            data-origin-world-y={arc.y}
+            data-arc-angle={arc.arcAngle}
+            data-arc-radius={arc.radius}
+            aria-hidden="true"
+          />
+        );
+      })}
+    </>
+  );
+}
+
+export function PassiveAuraLayer<TEffect extends PassiveAuraView>({
+  effects,
+  x,
+  y,
+  projectPoint,
+  visualTone
+}: {
+  effects: TEffect[];
+  x: number;
+  y: number;
+  projectPoint: (worldX: number, worldY: number) => ScreenPoint;
+  visualTone: (value: string | undefined) => string;
+}) {
+  const visualPoint = projectPoint(x, y);
+  return (
+    <>
+      {effects.map((effect, index) => (
+        <div
+          key={effect.instance_id}
+          className={`passive-aura passive-aura-${visualTone(effect.visual_effect || effect.instance_id)}`}
+          style={{ left: visualPoint.x, top: visualPoint.y, "--aura-index": index } as CSSProperties}
+          data-passive-effect={effect.visual_effect}
+          aria-label={effect.name_text}
+        />
+      ))}
     </>
   );
 }

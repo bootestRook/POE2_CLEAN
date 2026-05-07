@@ -90,7 +90,7 @@ import { StashGrid } from "./components/inventory/StashGrid";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
-import { AreaNovaLayer, DamageZoneLayer } from "./components/battle/BattleGroundVfxLayers";
+import { AreaNovaLayer, DamageZoneLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 
 type Gem = {
   instance_id: string;
@@ -12890,7 +12890,13 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           </div>
           {!CANVAS_GEOMETRY_SKILL_EFFECTS && (
             <div className="battle-ground-decal-layer">
-              <PassiveAuraLayer effects={passiveVisualEffects} x={player.x} y={player.y} />
+              <PassiveAuraLayer
+                effects={passiveVisualEffects}
+                x={player.x}
+                y={player.y}
+                projectPoint={projectBattleWorldToScreen}
+                visualTone={visualTone}
+              />
               <DamageZoneLayer
                 zones={damageZones}
                 projectPoint={projectBattleWorldToScreen}
@@ -12906,7 +12912,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                 visualTone={visualTone}
                 zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 2}
               />
-              <MeleeArcLayer arcs={meleeArcs} />
+              <MeleeArcLayer
+                arcs={meleeArcs}
+                projectPoint={projectBattleWorldToScreen}
+                directionAngle={worldDirectionToBattleScreenAngle}
+                normalizeVfxScale={normalizedVfxScale}
+                visualTone={visualTone}
+                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 1}
+              />
               <ChainSegmentLayer
                 segments={chainSegments}
                 projectPoint={projectBattleWorldToScreen}
@@ -22619,23 +22632,6 @@ function FireBoltAlignmentDebug({
   );
 }
 
-function PassiveAuraLayer({ effects, x, y }: { effects: Gem[]; x: number; y: number }) {
-  const visualPoint = projectBattleWorldToScreen(x, y);
-  return (
-    <>
-      {effects.map((gem, index) => (
-        <div
-          key={gem.instance_id}
-          className={`passive-aura passive-aura-${visualTone(gem.visual_effect || gem.instance_id)}`}
-          style={{ left: visualPoint.x, top: visualPoint.y, "--aura-index": index } as CSSProperties}
-          data-passive-effect={gem.visual_effect}
-          aria-label={gem.name_text}
-        />
-      ))}
-    </>
-  );
-}
-
 function PlayerBuffLayer({ buffs, player }: { buffs: PlayerBuff[]; player: PlayerRuntimeState }) {
   const guard = buffs.find((buff) => buff.buffType === "guard");
   const channelMove = buffs.find((buff) => buff.buffType === "channel_move_speed");
@@ -22682,47 +22678,6 @@ function PlayerBuffLayer({ buffs, player }: { buffs: PlayerBuff[]; player: Playe
           <span className="player-buff-label" style={{ opacity: guardLabelOpacity }}>石肤术</span>
         </div>
       )}
-    </>
-  );
-}
-
-function MeleeArcLayer({ arcs }: { arcs: MeleeArcVfx[] }) {
-  return (
-    <>
-      {arcs.map((arc) => {
-        const visualPoint = projectBattleWorldToScreen(arc.x, arc.y);
-        const duration = Math.max(0.001, arc.duration);
-        const progress = clamp(1 - arc.ttl / duration, 0, 1);
-        const opacity = Math.max(0, arc.ttl / duration);
-        const vfxScale = normalizedVfxScale(arc.vfxScale);
-        const diameter = Math.max(1, arc.radius * 2 * vfxScale);
-        const angle = worldDirectionToBattleScreenAngle({ x: arc.directionX, y: arc.directionY }, { x: arc.x, y: arc.y }) * 180 / Math.PI;
-        return (
-          <div
-            key={arc.id}
-            className={`melee-arc-vfx melee-arc-vfx-${visualTone(arc.vfxKey || arc.damageType)}`}
-            style={{
-              left: visualPoint.x,
-              top: visualPoint.y,
-              width: diameter,
-              height: diameter,
-              opacity,
-              transform: `translate(-50%, -50%) rotate(${angle}deg) scale(${0.82 + progress * 0.18})`,
-              ["--arc-angle" as string]: `${arc.arcAngle}deg`,
-              zIndex: BATTLE_ENTITY_Z_INDEX_BASE - 1,
-            }}
-            data-skill-event="melee_arc"
-            data-vfx-key={arc.vfxKey}
-            data-arc-id={arc.arcId}
-            data-skill-id={arc.skillId}
-            data-origin-world-x={arc.x}
-            data-origin-world-y={arc.y}
-            data-arc-angle={arc.arcAngle}
-            data-arc-radius={arc.radius}
-            aria-hidden="true"
-          />
-        );
-      })}
     </>
   );
 }
