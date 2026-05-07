@@ -412,6 +412,30 @@ def test_damaging_guard_counters_warn_and_cast_inside_hit_radius() -> None:
     assert "return Math.max(1, Number(skill.radius ?? skill.range.effect_range))" in runtime_source
     assert "return true" in suppress_body
     assert 'type: "damage_zone_prime"' in release_body
+    assert "const delayMs = warningMs > 0 ? warningMs : windupMs" in release_body
+    assert "remainingMs: delayMs" in release_body
+
+
+def test_monster_warning_damage_zones_release_when_warning_ends() -> None:
+    source = _app_source()
+    release_body = source.split("function releaseMonsterSkillMeleeZoneInstance", 1)[1].split("function monsterSkillProjectileSpreadAngles", 1)[0]
+    monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
+    all_monster_skills = [
+        *(monster_skill_config["skills"]),
+        *(skill for pattern in monster_skill_config["boss_patterns"] for skill in pattern["skills"]),
+    ]
+    warning_zone_skills = [
+        skill for skill in all_monster_skills
+        if skill.get("module") in {"monster_damage_zone", "monster_guard"}
+        and float(skill.get("damage_multiplier", 0)) > 0
+        and int(skill.get("warning_ms", 0)) > 0
+    ]
+
+    assert warning_zone_skills
+    assert "const delayMs = warningMs > 0 ? warningMs : windupMs" in release_body
+    assert "delay_ms: delayMs" in release_body
+    assert "remainingMs: delayMs" in release_body
+    assert "const delayMs = warningMs + windupMs" not in release_body
 
 
 def test_all_monster_skill_hits_suppress_hit_vfx() -> None:
@@ -438,13 +462,51 @@ def test_monster_damage_zone_warnings_render_red() -> None:
     draw_zone_body = renderer_source.split("function drawDamageZoneCircle", 1)[1].split("function isBurningShotIgnitedExplosion", 1)[0]
 
     assert 'const MONSTER_WARNING_COLOR = "#ff3d3d"' in renderer_source
-    assert "const color = area.warning ? MONSTER_WARNING_COLOR : geometricToneColor(area.vfxKey || area.damageType)" in draw_area_body
+    assert "const color = area.warning ? MONSTER_WARNING_COLOR : geometricToneColor(area.damageType || area.vfxKey)" in draw_area_body
     assert "if (area.warning) {" in draw_zone_body
     assert "drawGenericDamageZoneCircle(context, area, radius, color, progress)" in draw_zone_body
+    assert "drawWarningDamageZoneInnerCircle(context, radius, color, fillProgress, progress)" in draw_zone_body
+    assert "const innerRadius = radius * clamp(fillProgress, 0.04, 1)" in renderer_source
     assert ".damage-zone-vfx-warning" in styles_source
     assert "rgba(255, 61, 61, 0.98)" in styles_source
     assert ".damage-zone-vfx-warning.damage-zone-vfx-circle::before" in styles_source
     assert ".damage-zone-vfx-warning.damage-zone-vfx-rectangle" in styles_source
+
+
+def test_generic_damage_zone_vfx_uses_damage_typed_burst_layers() -> None:
+    source = _app_source()
+    renderer_source = (ROOT / "webapp" / "battleGeometryRenderer.ts").read_text(encoding="utf-8")
+    styles_source = (ROOT / "webapp" / "styles.css").read_text(encoding="utf-8")
+    layer_body = source.split("function DamageZoneLayer", 1)[1].split("function AreaNovaLayer", 1)[0]
+
+    for token in [
+        'data-damage-type={zone.damageType}',
+        'damage-zone-vfx-core',
+        'damage-zone-vfx-cracks',
+        'damage-zone-vfx-spikes',
+        'damage-zone-vfx-burst',
+    ]:
+        assert token in layer_body
+    for damage_type in ["physical", "fire", "cold", "lightning", "chaos"]:
+        assert f".damage-zone-{damage_type}" in styles_source
+    for token in [
+        "--damage-zone-primary",
+        "--damage-zone-secondary",
+        "conic-gradient",
+        "repeating-radial-gradient",
+        ".damage-zone-vfx-spikes",
+        ".damage-zone-vfx-burst",
+    ]:
+        assert token in styles_source
+    for token in [
+        "geometricToneColor(area.damageType || area.vfxKey)",
+        "function drawGenericDamageZoneCracks",
+        "function drawGenericDamageZoneSpikes",
+        "function drawGenericDamageZoneBurst",
+        "drawRadialSpikes(context, radius *",
+        "rgbaColor(color",
+    ]:
+        assert token in renderer_source
 
 
 def test_blood_mark_guard_has_active_damage_counter() -> None:

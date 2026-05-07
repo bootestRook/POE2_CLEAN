@@ -6948,7 +6948,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const radius = Math.max(1, Number(skill.radius ?? skill.range.effect_range));
     const warningMs = Math.max(0, Number(skill.warning_ms ?? 0));
     const windupMs = Math.max(0, Number(skill.windup_ms ?? 0));
-    const delayMs = warningMs + windupMs;
+    const delayMs = warningMs > 0 ? warningMs : windupMs;
     const playerNow = playerStateRef.current;
     const centers = monsterSkillZoneCenters(enemy, playerNow, skill, repeatIndex);
     const primaryCenter = centers[0] ?? monsterSkillZoneCenter(enemy, playerNow, skill);
@@ -21029,7 +21029,13 @@ function DamageZoneLayer({ zones }: { zones: DamageZoneVfx[] }) {
             data-vfx-key={zone.vfxKey}
             data-zone-id={zone.zoneId}
             data-skill-id={zone.skillId}
-          />
+            data-damage-type={zone.damageType}
+          >
+            <span className="damage-zone-vfx-core" aria-hidden="true" />
+            <span className="damage-zone-vfx-cracks" aria-hidden="true" />
+            <span className="damage-zone-vfx-spikes" aria-hidden="true" />
+            <span className="damage-zone-vfx-burst" aria-hidden="true" />
+          </div>
         );
       })}
     </>

@@ -1046,7 +1046,7 @@ function drawAreaMarkers(context: CanvasRenderingContext2D, snapshot: BattleGeom
     const overEntityArea = area.kind === "melee-arc" || family === "blizzard";
     if (layer === "under-entities" && overEntityArea) continue;
     if (layer === "over-entities" && !overEntityArea) continue;
-    const color = area.warning ? MONSTER_WARNING_COLOR : geometricToneColor(area.vfxKey || area.damageType);
+    const color = area.warning ? MONSTER_WARNING_COLOR : geometricToneColor(area.damageType || area.vfxKey);
     const progress = clamp(1 - area.ttl / Math.max(0.001, area.duration), 0, 1);
     context.save();
     context.globalAlpha = area.warning ? 0.18 + pulse(progress) * 0.18 : 0.16 + (1 - progress) * 0.18;
@@ -1934,12 +1934,118 @@ function drawGenericDamageZoneCircle(context: CanvasRenderingContext2D, area: Ba
     : area.hitAtMs && area.hitAtMs > 0
       ? clamp(elapsedMs / area.hitAtMs, 0, 1)
       : 1;
-  context.globalAlpha *= area.warning ? 0.18 : 0.24;
+  const burstOpacity = area.warning ? 0.18 : 0.24;
+  context.globalAlpha *= burstOpacity;
+  if (area.warning) {
+    drawWarningDamageZoneInnerCircle(context, radius, color, fillProgress, progress);
+  }
+  const fill = context.createRadialGradient(0, 0, radius * 0.08, 0, 0, radius * Math.max(0.2, fillProgress));
+  fill.addColorStop(0, rgbaColor(color, area.warning ? 0.4 : 0.54));
+  fill.addColorStop(0.45, rgbaColor(color, area.warning ? 0.22 : 0.28));
+  fill.addColorStop(1, rgbaColor(color, 0));
+  context.fillStyle = fill;
   circlePath(context, 0, 0, radius * fillProgress);
   context.fill();
+  drawGenericDamageZoneCracks(context, radius, color, fillProgress, area.warning);
+  drawGenericDamageZoneSpikes(context, radius, color, fillProgress, progress, area.warning);
+  drawGenericDamageZoneBurst(context, radius, color, fillProgress, progress, area.warning);
   if (family === "frost_nova") {
     drawFrostNovaZonePattern(context, radius, color, fillProgress, area.warning);
   }
+  context.restore();
+}
+
+function drawWarningDamageZoneInnerCircle(context: CanvasRenderingContext2D, radius: number, color: string, fillProgress: number, progress: number) {
+  const innerRadius = radius * clamp(fillProgress, 0.04, 1);
+  context.save();
+  context.globalAlpha *= 0.88;
+  context.fillStyle = rgbaColor(color, 0.48);
+  context.strokeStyle = rgbaColor(color, 0.96);
+  context.shadowColor = color;
+  context.shadowBlur = 10 + pulse(progress) * 8;
+  context.lineWidth = Math.max(2, radius * 0.01);
+  circlePath(context, 0, 0, innerRadius);
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function rgbaColor(color: string, alpha: number) {
+  const parsed = parseHexColor(color);
+  if (!parsed) return color;
+  return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${clamp(alpha, 0, 1)})`;
+}
+
+function drawGenericDamageZoneCracks(context: CanvasRenderingContext2D, radius: number, color: string, fillProgress: number, warning?: boolean) {
+  const crackCount = warning ? 8 : 13;
+  context.save();
+  context.globalAlpha *= warning ? 0.46 : 0.72;
+  context.strokeStyle = rgbaColor(color, warning ? 0.86 : 0.96);
+  context.shadowColor = color;
+  context.shadowBlur = warning ? 3 : 8;
+  context.lineWidth = Math.max(1.2, radius * (warning ? 0.006 : 0.009));
+  for (let index = 0; index < crackCount; index += 1) {
+    const angle = index * Math.PI * 2 / crackCount + (index % 2) * 0.18;
+    const inner = radius * (0.12 + (index % 4) * 0.055) * fillProgress;
+    const mid = radius * (0.36 + (index % 3) * 0.075) * fillProgress;
+    const outer = radius * (0.58 + (index % 5) * 0.035) * fillProgress;
+    context.beginPath();
+    context.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+    context.lineTo(Math.cos(angle + 0.08) * mid, Math.sin(angle + 0.08) * mid);
+    context.lineTo(Math.cos(angle - 0.06) * outer, Math.sin(angle - 0.06) * outer);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawGenericDamageZoneSpikes(context: CanvasRenderingContext2D, radius: number, color: string, fillProgress: number, progress: number, warning?: boolean) {
+  const spikeCount = warning ? 10 : 16;
+  const spikeScale = warning ? 0.5 + pulse(progress) * 0.3 : 0.72 + (1 - progress) * 0.3;
+  context.save();
+  context.globalAlpha *= warning ? 0.28 : 0.62;
+  context.fillStyle = rgbaColor(color, warning ? 0.72 : 0.9);
+  context.strokeStyle = rgbaColor(color, warning ? 0.86 : 1);
+  context.shadowColor = color;
+  context.shadowBlur = warning ? 4 : 11;
+  for (let index = 0; index < spikeCount; index += 1) {
+    const angle = index * Math.PI * 2 / spikeCount + 0.16;
+    const baseRadius = radius * (0.48 + (index % 3) * 0.045) * fillProgress;
+    const length = radius * (0.1 + (index % 4) * 0.018) * spikeScale;
+    const width = Math.max(3, radius * (0.014 + (index % 2) * 0.004));
+    const tip = {
+      x: Math.cos(angle) * (baseRadius + length),
+      y: Math.sin(angle) * (baseRadius + length)
+    };
+    const left = {
+      x: Math.cos(angle - 0.035) * baseRadius - Math.sin(angle) * width,
+      y: Math.sin(angle - 0.035) * baseRadius + Math.cos(angle) * width
+    };
+    const right = {
+      x: Math.cos(angle + 0.035) * baseRadius + Math.sin(angle) * width,
+      y: Math.sin(angle + 0.035) * baseRadius - Math.cos(angle) * width
+    };
+    context.beginPath();
+    context.moveTo(tip.x, tip.y);
+    context.lineTo(left.x, left.y);
+    context.lineTo(right.x, right.y);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
+function drawGenericDamageZoneBurst(context: CanvasRenderingContext2D, radius: number, color: string, fillProgress: number, progress: number, warning?: boolean) {
+  const alpha = warning ? 0.36 + pulse(progress) * 0.16 : Math.max(0.18, 0.62 - progress * 0.34);
+  context.save();
+  context.globalAlpha *= alpha;
+  context.strokeStyle = rgbaColor(color, warning ? 0.84 : 0.96);
+  context.shadowColor = color;
+  context.shadowBlur = warning ? 5 : 14;
+  context.lineWidth = Math.max(1.4, radius * (warning ? 0.007 : 0.012));
+  circlePath(context, 0, 0, radius * (0.62 + fillProgress * 0.28));
+  context.stroke();
+  context.lineWidth = Math.max(1, radius * 0.006);
+  drawRadialSpikes(context, radius * (0.72 + fillProgress * 0.18), warning ? 12 : 18);
   context.restore();
 }
 
