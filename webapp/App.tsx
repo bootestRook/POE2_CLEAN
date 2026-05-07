@@ -6628,6 +6628,13 @@ function GameApp() {
           closeRestAreaPanel();
           return;
         }
+        if (!playing && entryStep === "rest" && !skillEditorMode && !monsterTestMode) {
+          setRestAreaInteractionTarget(null);
+          setEntryStep("title");
+          refreshFrontendSaveSlots();
+          setNotice("已返回主菜单。");
+          return;
+        }
         if (playableBattleActive) {
           setBattlePauseOpen(true);
           setNotice("游戏已暂停。");
@@ -6670,7 +6677,7 @@ function GameApp() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [bagOpen, battleMap, battlePauseOpen, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, tooltip]);
+  }, [bagOpen, battleMap, battlePauseOpen, bossPortal, entryStep, gameFailureOpen, hoveredGemId, monsterTestMode, playing, restAreaPanel, skillEditorMode, state?.drops, tooltip]);
 
   useEffect(() => {
     playerStateRef.current = player;
@@ -11769,12 +11776,13 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
     if (!playing || !battleMap || skillEditorMode || monsterTestMode) return;
 
+    const keyboardWorldInteractionRadius = REST_AREA_INTERACTION_RADIUS / Math.max(0.1, battleCamera.zoom || 1);
     const candidates: Array<{ distance: number; interact: () => void }> = [];
     for (const drop of state?.drops ?? []) {
       if (drop.picked_up || !drop.position) continue;
       const target = dropDisplayPositions.current.get(drop.drop_id) ?? drop.position;
       const distanceToDrop = Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y);
-      if (distanceToDrop > REST_AREA_INTERACTION_RADIUS) continue;
+      if (distanceToDrop > keyboardWorldInteractionRadius) continue;
       candidates.push({
         distance: distanceToDrop,
         interact: () => {
@@ -11784,7 +11792,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     }
     if (bossPortal && !bossPortal.used) {
       const distanceToPortal = Math.hypot(bossPortal.position.x - currentPlayer.x, bossPortal.position.y - currentPlayer.y);
-      if (distanceToPortal <= REST_AREA_INTERACTION_RADIUS) {
+      if (distanceToPortal <= keyboardWorldInteractionRadius) {
         candidates.push({
           distance: distanceToPortal,
           interact: () => {
