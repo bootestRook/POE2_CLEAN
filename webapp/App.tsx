@@ -12036,6 +12036,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
       <div className="help-text">
         <p>C：打开/关闭背包</p>
+        <p>M：打开/关闭小地图</p>
         <p>WASD：移动</p>
         <p>拖拽：放置宝石</p>
         <p>左键：拾取</p>
