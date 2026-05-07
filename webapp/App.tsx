@@ -92,6 +92,7 @@ import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/Eq
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
+import { clampNumber } from "./utils/number";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
@@ -680,11 +681,6 @@ type SkillTestArenaResponse = {
   message_text: string;
   result: SkillTestArenaResult | null;
 };
-
-function clampNumber(value: number, min: number, max: number) {
-  if (!Number.isFinite(value)) return min;
-  return Math.min(max, Math.max(min, value));
-}
 
 function normalizeSkillEditorCameraSettings(value: unknown): SkillEditorCameraSettings {
   const source = value && typeof value === "object" ? value as Partial<SkillEditorCameraSettings> : {};
