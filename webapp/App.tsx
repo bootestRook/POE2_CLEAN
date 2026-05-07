@@ -83,11 +83,13 @@ import type { FrontendEquipmentAffixRoll, FrontendEquipmentItem, FrontendEquipme
 import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 import { RichText, TooltipSection, TooltipTag } from "./components/tooltips/TooltipPrimitives";
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
-import { romanGemLevel } from "./utils/gemDisplay";
+import { GemOrbView } from "./components/tooltips/GemOrb";
+import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashGrid } from "./components/inventory/StashGrid";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
+import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 
 type Gem = {
   instance_id: string;
@@ -12891,7 +12893,13 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               <DamageZoneLayer zones={damageZones} />
               <AreaNovaLayer novas={areaNovas} />
               <MeleeArcLayer arcs={meleeArcs} />
-              <ChainSegmentLayer segments={chainSegments} />
+              <ChainSegmentLayer
+                segments={chainSegments}
+                projectPoint={projectBattleWorldToScreen}
+                normalizeVfxScale={normalizedVfxScale}
+                visualTone={visualTone}
+                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 1}
+              />
             </div>
           )}
           <div className="battle-entity-layer">
@@ -21267,10 +21275,6 @@ const sudokuGemIconSprites: Record<number, string> = {
   9: new URL("./assets/gems/sudoku-gem-9.png", import.meta.url).href,
 };
 
-function gemSudokuDigit(gem: Gem) {
-  return gem.sudoku_digit ?? gem.gem_type?.number ?? Number((gem.gem_type?.id ?? gem.tags.find((tag) => tag.id?.startsWith("gem_type_"))?.id ?? "").split("_").pop());
-}
-
 function gemIconSprite(gem: Gem) {
   return sudokuGemIconSprites[gemSudokuDigit(gem)] ?? "";
 }
@@ -21284,45 +21288,15 @@ function GemOrb({ gem }: { gem: Gem }) {
   const className = !isGem
     ? `item-orb ${equipmentTone ? `item-orb-rarity-${equipmentTone}` : ""}`
     : `gem-orb-color-${gem.tooltip_view?.icon_color_key ?? gemColorKey(gem)}`;
-  const style = sprite ? ({ "--gem-icon-sprite": `url(${sprite})` } as React.CSSProperties) : undefined;
   const level = isGem ? Math.max(1, Math.floor(Number(gem.level ?? 1))) : 0;
   return (
-    <span className={`gem-orb ${className} ${sprite ? "gem-orb-sprite" : ""}`} style={style}>
-      {sprite ? <span className="gem-orb-label">{gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}</span> : gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}
-      {level > 0 ? <span className="gem-orb-roman-level">{romanGemLevel(level)}</span> : null}
-    </span>
+    <GemOrbView
+      className={className}
+      sprite={sprite}
+      iconText={gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}
+      levelText={level > 0 ? romanGemLevel(level) : ""}
+    />
   );
-}
-
-function gemColorKey(gem: Gem) {
-  const number = gemSudokuDigit(gem);
-  const colorByType: Record<number, string> = {
-    1: "red",
-    2: "blue",
-    3: "green",
-    4: "pink",
-    5: "yellow",
-    6: "white",
-    7: "black",
-    8: "cyan",
-    9: "orange"
-  };
-  return colorByType[number] ?? "white";
-}
-
-function gemColorValue(gem: Gem) {
-  const colors: Record<string, string> = {
-    red: "#FF4D4D",
-    blue: "#4DA3FF",
-    green: "#5CDB7A",
-    pink: "#FF5FD2",
-    yellow: "#FFD84D",
-    white: "#D8D8D8",
-    black: "#B08CFF",
-    cyan: "#4DDFFF",
-    orange: "#FF9A3D"
-  };
-  return colors[gem.tooltip_view?.icon_color_key ?? gemColorKey(gem)] ?? "#A8A6FF";
 }
 
 function usesSkillEventPipeline(skill: SkillPreview) {
@@ -22821,43 +22795,6 @@ function MeleeArcLayer({ arcs }: { arcs: MeleeArcVfx[] }) {
             data-origin-world-y={arc.y}
             data-arc-angle={arc.arcAngle}
             data-arc-radius={arc.radius}
-            aria-hidden="true"
-          />
-        );
-      })}
-    </>
-  );
-}
-
-function ChainSegmentLayer({ segments }: { segments: ChainSegmentVfx[] }) {
-  return (
-    <>
-      {segments.map((segment) => {
-        const start = projectBattleWorldToScreen(segment.startX, segment.startY);
-        const end = projectBattleWorldToScreen(segment.endX, segment.endY);
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const length = Math.max(1, Math.hypot(dx, dy));
-        const angle = Math.atan2(dy, dx);
-        const progress = clamp(1 - segment.ttl / Math.max(0.001, segment.duration), 0, 1);
-        const vfxScale = normalizedVfxScale(segment.vfxScale);
-        return (
-          <div
-            key={segment.id}
-            className={`chain-segment-vfx chain-segment-vfx-${visualTone(segment.vfxKey || segment.damageType)}`}
-            style={{
-              left: start.x,
-              top: start.y,
-              width: length,
-              opacity: Math.max(0, 1 - progress * 0.65),
-              transform: `rotate(${angle}rad) scaleY(${vfxScale})`,
-              zIndex: BATTLE_ENTITY_Z_INDEX_BASE - 1,
-            }}
-            data-skill-event="chain_segment"
-            data-vfx-key={segment.vfxKey}
-            data-chain-segment-index={segment.segmentIndex}
-            data-segment-id={segment.segmentId}
-            data-skill-id={segment.skillId}
             aria-hidden="true"
           />
         );
