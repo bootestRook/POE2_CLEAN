@@ -7281,6 +7281,10 @@ button {
   box-shadow: var(--geo-ui-shadow);
 }
 
+.game-viewport-shell[data-resolution-mode="original"] .right-workbench {
+  width: var(--inventory-workbench-width);
+}
+
 .equipment-panel,
 .board-panel,
 .bag-panel {
