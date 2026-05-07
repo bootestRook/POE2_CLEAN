@@ -619,7 +619,7 @@ type SkillEditorCameraSettings = {
   zoom: number;
 };
 
-type GameResolutionMode = "fullscreen" | "4k" | "2k" | "1080p";
+type GameResolutionMode = "original" | "fullscreen" | "4k" | "2k" | "1080p";
 
 type GameResolutionPreset = {
   mode: GameResolutionMode;
@@ -653,6 +653,7 @@ const DEFAULT_SKILL_EDITOR_CAMERA_SETTINGS: SkillEditorCameraSettings = {
 };
 const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "fullscreen";
 const GAME_RESOLUTION_PRESETS: GameResolutionPreset[] = [
+  { mode: "original", label: "原始尺寸", width: null, height: null },
   { mode: "fullscreen", label: "全屏", width: 1920, height: 1080 },
   { mode: "4k", label: "4K", width: 3840, height: 2160 },
   { mode: "2k", label: "2K", width: 2560, height: 1440 },
@@ -789,12 +790,22 @@ function useGameViewport(mode: GameResolutionMode): GameViewport {
 }
 
 function GameViewportFrame({ viewport, mode, children }: { viewport: GameViewport; mode: GameResolutionMode; children: ReactNode }) {
+  const inventoryFitScale = mode === "original"
+    ? Math.min(1, viewport.width / 1800, viewport.height / 1200)
+    : 1;
+  const inventoryStageScale = inventoryFitScale;
+  const inventoryStageWidth = mode === "original" ? viewport.width / inventoryStageScale : viewport.width;
+  const inventoryStageHeight = mode === "original" ? viewport.height / inventoryStageScale : viewport.height;
   const style = {
     "--game-viewport-width": `${viewport.width}px`,
     "--game-viewport-height": `${viewport.height}px`,
     "--game-viewport-scale": viewport.scale,
     "--game-viewport-offset-x": `${viewport.offsetX}px`,
-    "--game-viewport-offset-y": `${viewport.offsetY}px`
+    "--game-viewport-offset-y": `${viewport.offsetY}px`,
+    "--inventory-fit-scale": inventoryFitScale,
+    "--inventory-stage-scale": inventoryStageScale,
+    "--inventory-stage-width": `${inventoryStageWidth}px`,
+    "--inventory-stage-height": `${inventoryStageHeight}px`
   } as CSSProperties;
 
   return (
@@ -13048,7 +13059,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                       onClick={() => void applyGameResolutionMode(preset.mode)}
                     >
                       <strong>{preset.label}</strong>
-                      <small>{preset.width && preset.height ? `${preset.width} x ${preset.height}` : "跟随屏幕"}</small>
+                      <small>{preset.width && preset.height ? `${preset.width} x ${preset.height}` : "100vw x 100vh"}</small>
                     </button>
                   ))}
                 </div>
@@ -13141,6 +13152,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
       {bagOpen && (
         <section className="inventory-overlay" aria-label="背包界面">
+          <div className="inventory-stage">
           {RELEASE_DEBUG_TOOLS_ENABLED && (
             <>
               <div className="gm-tool-anchor">
@@ -13357,6 +13369,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               </div>
             </section>
           </section>
+          </div>
 
           {tooltip && !floatingGem && <GemTooltip tooltip={tooltip} compareModifierHeld={compareModifierHeld} />}
           {floatingGem && <FloatingGemView floatingGem={floatingGem} />}

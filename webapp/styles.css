@@ -6786,9 +6786,41 @@ button {
   inset: 0;
   z-index: 50;
   pointer-events: none;
+  overflow: hidden;
   background:
     linear-gradient(90deg, rgba(11, 13, 16, 0.92), rgba(11, 13, 16, 0.24) 28%, transparent 48%),
     linear-gradient(180deg, rgba(74, 163, 255, 0.06), transparent 46%);
+}
+
+.inventory-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.game-viewport-shell[data-resolution-mode="original"] .inventory-stage {
+  --game-viewport-width: var(--inventory-stage-width);
+  --game-viewport-height: var(--inventory-stage-height);
+  --inventory-fit-scale: 1;
+  --slot-size: 60px;
+  --equipment-slot-size: 60px;
+  --equipment-slot-column-gap: 16px;
+  --equipment-slot-row-gap: 60px;
+  --board-grid-width: calc(var(--slot-size) * 9 + 4px);
+  --bag-grid-width: calc(var(--slot-size) * 12 + 4px);
+  --equipment-grid-width: calc(var(--equipment-slot-size) * 2 + var(--equipment-slot-column-gap) + 2px);
+  --equipment-grid-height: calc(var(--equipment-slot-size) * 5 + var(--equipment-slot-row-gap) * 4 + 2px);
+  --right-frame-width: calc(var(--bag-grid-width) + 36px);
+  --inventory-character-panel-width: clamp(420px, calc(var(--inventory-stage-width) - var(--right-frame-width) - 90px), 620px);
+  --inventory-workbench-width: calc(var(--right-frame-width) + 25px);
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  width: var(--inventory-stage-width);
+  height: var(--inventory-stage-height);
+  transform: translate(-50%, -50%) scale(var(--inventory-stage-scale, 1));
+  transform-origin: center;
 }
 
 .right-workbench,
@@ -6980,8 +7012,8 @@ button {
   bottom: 5px;
   left: 5px;
   width: var(--inventory-character-panel-width);
-  min-width: 420px;
-  padding: 22px 24px 24px;
+  min-width: calc(420px * var(--inventory-fit-scale, 1));
+  padding: calc(22px * var(--inventory-fit-scale, 1)) calc(24px * var(--inventory-fit-scale, 1)) calc(24px * var(--inventory-fit-scale, 1));
   overflow: hidden auto;
   border: 1px solid var(--geo-ui-border-strong);
   border-top-color: var(--geo-ui-blue);
@@ -7002,15 +7034,15 @@ button {
 
 .character-info-header {
   display: grid;
-  grid-template-columns: 1fr 140px 1fr;
+  grid-template-columns: 1fr calc(140px * var(--inventory-fit-scale, 1)) 1fr;
   align-items: start;
-  gap: 18px;
-  margin-bottom: 24px;
+  gap: calc(18px * var(--inventory-fit-scale, 1));
+  margin-bottom: calc(24px * var(--inventory-fit-scale, 1));
 }
 
 .character-meta,
 .character-attributes {
-  font-size: 25px;
+  font-size: calc(25px * var(--inventory-fit-scale, 1));
   line-height: 1.38;
 }
 
@@ -7030,9 +7062,9 @@ button {
 .character-identity {
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--inventory-fit-scale, 1));
   color: var(--geo-ui-text);
-  font-size: 25px;
+  font-size: calc(25px * var(--inventory-fit-scale, 1));
   line-height: 1;
   text-align: center;
 }
@@ -7041,8 +7073,8 @@ button {
   position: relative;
   display: grid;
   place-items: center;
-  width: 92px;
-  height: 92px;
+  width: calc(92px * var(--inventory-fit-scale, 1));
+  height: calc(92px * var(--inventory-fit-scale, 1));
   overflow: hidden;
   border: 1px solid var(--geo-ui-border-strong);
   border-radius: 6px;
@@ -7064,8 +7096,8 @@ button {
 .character-attributes {
   display: grid;
   justify-self: end;
-  min-width: 150px;
-  gap: 4px;
+  min-width: calc(150px * var(--inventory-fit-scale, 1));
+  gap: calc(4px * var(--inventory-fit-scale, 1));
 }
 
 .character-attributes div,
@@ -7090,16 +7122,16 @@ button {
 .character-core-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  margin-bottom: 28px;
+  gap: calc(8px * var(--inventory-fit-scale, 1));
+  margin-bottom: calc(28px * var(--inventory-fit-scale, 1));
 }
 
 .character-core-card {
   display: grid;
   grid-column: span 2;
   place-items: center;
-  min-height: 118px;
-  padding: 12px;
+  min-height: calc(118px * var(--inventory-fit-scale, 1));
+  padding: calc(12px * var(--inventory-fit-scale, 1));
   border: 1px solid var(--geo-ui-border);
   border-radius: 4px;
   background: rgba(11, 13, 16, 0.46);
@@ -7116,23 +7148,23 @@ button {
 }
 
 .character-core-card strong {
-  margin-top: 8px;
-  font-size: 25px;
+  margin-top: calc(8px * var(--inventory-fit-scale, 1));
+  font-size: calc(25px * var(--inventory-fit-scale, 1));
   line-height: 1.1;
 }
 
 .character-core-card span:last-child {
-  margin-top: 4px;
+  margin-top: calc(4px * var(--inventory-fit-scale, 1));
   color: var(--geo-ui-muted);
-  font-size: 21px;
+  font-size: calc(21px * var(--inventory-fit-scale, 1));
   line-height: 1;
 }
 
 .character-stat-icon {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: calc(46px * var(--inventory-fit-scale, 1));
+  height: calc(46px * var(--inventory-fit-scale, 1));
   border: 1px solid var(--geo-ui-border-strong);
   border-radius: 6px;
   color: var(--geo-ui-text);
@@ -7178,47 +7210,47 @@ button {
 }
 
 .character-resistance-section {
-  margin-bottom: 24px;
+  margin-bottom: calc(24px * var(--inventory-fit-scale, 1));
 }
 
 .character-resistance-section h2,
 .character-detail-group h2 {
   margin: 0;
   color: var(--geo-ui-text);
-  font-size: 25px;
+  font-size: calc(25px * var(--inventory-fit-scale, 1));
   line-height: 1.2;
 }
 
 .character-resistance-section h2 {
-  margin-bottom: 14px;
+  margin-bottom: calc(14px * var(--inventory-fit-scale, 1));
   text-align: center;
 }
 
 .character-resistance-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 38px;
-  row-gap: 18px;
+  column-gap: calc(38px * var(--inventory-fit-scale, 1));
+  row-gap: calc(18px * var(--inventory-fit-scale, 1));
 }
 
 .character-resistance-row {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: calc(52px * var(--inventory-fit-scale, 1)) 1fr auto;
   align-items: center;
-  gap: 12px;
-  min-height: 54px;
+  gap: calc(12px * var(--inventory-fit-scale, 1));
+  min-height: calc(54px * var(--inventory-fit-scale, 1));
   color: var(--geo-ui-text);
-  font-size: 25px;
+  font-size: calc(25px * var(--inventory-fit-scale, 1));
 }
 
 .character-resistance-row strong {
   color: var(--geo-ui-text);
-  font-size: 21px;
+  font-size: calc(21px * var(--inventory-fit-scale, 1));
 }
 
 .character-detail-list {
   display: grid;
-  gap: 22px;
+  gap: calc(22px * var(--inventory-fit-scale, 1));
 }
 
 .character-detail-group h2 {
@@ -7228,9 +7260,9 @@ button {
 
 .character-detail-group dl {
   display: grid;
-  gap: 8px;
-  margin: 10px 0 0;
-  font-size: 18px;
+  gap: calc(8px * var(--inventory-fit-scale, 1));
+  margin: calc(10px * var(--inventory-fit-scale, 1)) 0 0;
+  font-size: calc(18px * var(--inventory-fit-scale, 1));
   line-height: 1.25;
 }
 
