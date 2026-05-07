@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 260" role="img" aria-label="王阳">
+  <defs>
+    <linearGradient id="skin" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffc79b"/>
+      <stop offset="1" stop-color="#f0a873"/>
+    </linearGradient>
+    <linearGradient id="cloak" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#8a461f"/>
+      <stop offset="1" stop-color="#3d170b"/>
+    </linearGradient>
+    <linearGradient id="tunic" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffe2a5"/>
+      <stop offset="1" stop-color="#c99955"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="92" cy="247" rx="48" ry="9" fill="#000" opacity=".22"/>
+  <path d="M61 62 39 116 19 145 43 143 65 111 84 80Z" fill="#fff" stroke="#36324e" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M54 78 42 119 35 135" fill="none" stroke="#4a4764" stroke-width="5" stroke-linecap="round"/>
+  <path d="M70 43 34 66 15 118 26 161 66 162 87 126 101 72Z" fill="#fff" stroke="#36324e" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M45 82 29 122 36 150" fill="none" stroke="#4a4764" stroke-width="5" stroke-linecap="round"/>
+  <path d="M62 92 47 150" fill="none" stroke="#4a4764" stroke-width="5" stroke-linecap="round"/>
+  <path d="M58 77 89 49 126 56 151 102 139 159 102 177 55 151 45 101Z" fill="url(#cloak)" stroke="#080606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M54 112 28 137 16 203 52 185 68 130Z" fill="url(#cloak)" stroke="#080606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M126 124 154 157 143 200 111 181 104 139Z" fill="url(#cloak)" stroke="#080606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M66 105 111 105 128 144 111 172 69 171 52 141Z" fill="url(#tunic)" stroke="#080606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M55 150 125 151 126 169 52 168Z" fill="#693111" stroke="#080606" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M75 166 106 166 97 239 63 239Z" fill="#1e1c19" stroke="#070606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M109 166 130 177 137 230 110 234 100 220Z" fill="#2b251c" stroke="#070606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M57 170 43 222 68 219 74 170Z" fill="#f3cf8c" stroke="#080606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M122 170 142 221 118 218 110 171Z" fill="#f3cf8c" stroke="#080606" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="45" cy="216" r="16" fill="url(#skin)" stroke="#070606" stroke-width="6"/>
+  <circle cx="141" cy="213" r="16" fill="url(#skin)" stroke="#070606" stroke-width="6"/>
+  <path d="M58 235 91 236 96 254 86 259 54 259 46 249Z" fill="#7b3b18" stroke="#070606" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M112 232 144 239 162 255 142 260 109 250Z" fill="#7b3b18" stroke="#070606" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="121" cy="76" r="43" fill="url(#skin)" stroke="#070606" stroke-width="6"/>
+  <circle cx="128" cy="69" r="8" fill="#2693ac"/>
+  <path d="M100 19 139 5 176 33 159 75 132 66 109 93 84 76 101 43Z" fill="#fff" stroke="#36324e" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M91 51 68 96 93 123 114 81Z" fill="#f6f6fb" stroke="#4a4764" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M140 57 154 59" stroke="#070606" stroke-width="6" stroke-linecap="round"/>
+  <path d="M157 88 170 96" stroke="#070606" stroke-width="6" stroke-linecap="round"/>
+</svg>

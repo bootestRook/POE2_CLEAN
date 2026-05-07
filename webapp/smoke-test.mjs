@@ -43,7 +43,7 @@ function pngSize(path) {
 }
 
 function functionBody(source, functionName) {
-  const signature = new RegExp(`function ${functionName}[\\s\\S]*?\\) \\{`);
+  const signature = new RegExp(`function ${functionName}[\\s\\S]*?\\)[^{]*\\{`);
   const match = signature.exec(source);
   const start = match?.index ?? -1;
   if (start < 0) throw new Error(`Missing function: ${functionName}`);
@@ -71,6 +71,88 @@ const requiredText = [
 for (const text of requiredText) {
   if (!app.includes(text) && !html.includes(text)) {
     throw new Error(`Missing required page text: ${text}`);
+  }
+}
+
+const wangYangSpritePath = join(root, "webapp", "assets", "rest-area-wang-yang.svg");
+if (!existsSync(wangYangSpritePath)) {
+  throw new Error("Rest area must include the Wang Yang NPC sprite asset.");
+}
+
+for (const requiredRestAreaCode of [
+  "const STASH_PAGE_COUNT = 5",
+  "const STASH_PAGE_SLOT_COUNT = 100",
+  "const STASH_PAGE_COLUMNS = 10",
+  "const REST_AREA_INTERACTABLES",
+  "label: \"\u738b\u9633\"",
+  "WANG_YANG_NPC_SPRITE",
+  "function RestAreaScene",
+  "function StashPanel",
+  "setEntryStep(\"rest\")",
+  "restAreaPanel === \"stage\"",
+  "restAreaPanel === \"stash\"",
+  "onStart(stage.id)"
+]) {
+  if (!app.includes(requiredRestAreaCode)) {
+    throw new Error(`Rest area/stash flow missing code: ${requiredRestAreaCode}`);
+  }
+}
+
+const frontendSavePayloadBody = functionBody(app, "frontendSavePayloadFromState");
+if (!frontendSavePayloadBody.includes("stash_pages: sanitized.stash_pages")) {
+  throw new Error("Frontend save payload must persist stash_pages.");
+}
+const createFrontendNewSaveStarterStateBody = functionBody(app, "createFrontendNewSaveStarterState");
+if (!createFrontendNewSaveStarterStateBody.includes("state.stash_pages = createEmptyStashPages();")) {
+  throw new Error("New saves must initialize empty stash pages.");
+}
+const appStateFromFrontendSaveBody = functionBody(app, "appStateFromFrontendSave");
+if (!appStateFromFrontendSaveBody.includes("normalizeStashPages(save.stash_pages")) {
+  throw new Error("Existing saves must migrate/sanitize stash_pages on load.");
+}
+const sanitizeFrontendStorageStateBody = functionBody(app, "sanitizeFrontendStorageState");
+for (const requiredSanitizerCode of [
+  "sanitizeEquipmentSlotsForState",
+  "normalizeStashPages(equipmentState.stash_pages, equipmentState)"
+]) {
+  if (!sanitizeFrontendStorageStateBody.includes(requiredSanitizerCode)) {
+    throw new Error(`Stash duplicate ownership sanitizer missing: ${requiredSanitizerCode}`);
+  }
+}
+const normalizeStashPagesBody = functionBody(app, "normalizeStashPages");
+for (const requiredNormalizeCode of [
+  "const used = new Set<string>();",
+  "!used.has(instanceId)",
+  "!equippedIds.has(instanceId)",
+  "!boardedIds.has(instanceId)",
+  "next[pageIndex][slotIndex] = instanceId"
+]) {
+  if (!normalizeStashPagesBody.includes(requiredNormalizeCode)) {
+    throw new Error(`Stash page normalization must reject duplicate/foreign ownership: ${requiredNormalizeCode}`);
+  }
+}
+const placeItemInStashBody = functionBody(app, "placeItemInStash");
+for (const requiredStashTransferCode of [
+  "moveItemToStashSlot",
+  "removeItemsFromEquipmentSlots",
+  "removeItemsFromInventorySlots",
+  "stash_pages"
+]) {
+  if (!placeItemInStashBody.includes(requiredStashTransferCode)) {
+    throw new Error(`Stash transfer must preserve item ownership via: ${requiredStashTransferCode}`);
+  }
+}
+for (const requiredRestAreaCss of [
+  ".rest-area-scene",
+  ".rest-area-room",
+  ".rest-area-name-label",
+  ".stash-overlay",
+  ".stash-page-tabs",
+  "--stash-slot-size:",
+  "grid-template-columns: repeat(10, var(--stash-slot-size));"
+]) {
+  if (!css.includes(requiredRestAreaCss)) {
+    throw new Error(`Rest area/stash CSS missing: ${requiredRestAreaCss}`);
   }
 }
 

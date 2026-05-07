@@ -34,6 +34,7 @@ import {
   AUTHORED_MAP_TEMPLATES,
   DEFAULT_AUTHORED_MAP_TEMPLATE_ID,
   MONSTER_TEST_MAP_TEMPLATE_ID,
+  REST_AREA_MAP_TEMPLATE_ID,
   authoredMapTemplateById,
   defaultAuthoredMapTemplate
 } from "./mapTemplateRegistry";
@@ -769,6 +770,7 @@ type SecondaryHitConfig = {
 type AppState = {
   player_name?: string;
   inventory: Gem[];
+  stash_pages?: (string | null)[][];
   board: {
     cells: Cell[][];
     prompts: string[];
@@ -811,6 +813,7 @@ type FrontendSavePayload = {
   saved_at?: string;
   player_name?: string;
   inventory?: Gem[];
+  stash_pages?: (string | null)[][];
   board?: AppState["board"];
   skill_preview?: SkillPreview[];
   skill_error?: string | null;
@@ -1432,7 +1435,8 @@ type Tooltip = {
 type FloatingOrigin =
   | { kind: "board"; row: number; column: number }
   | { kind: "bag"; slotIndex: number; instanceId: string }
-  | { kind: "equipment"; slotIndex: number; slotId: string; instanceId: string };
+  | { kind: "equipment"; slotIndex: number; slotId: string; instanceId: string }
+  | { kind: "stash"; pageIndex: number; slotIndex: number; instanceId: string };
 
 type FloatingGem = {
   gem: Gem;
@@ -1447,6 +1451,7 @@ type DropTarget =
   | { kind: "board"; row: number; column: number }
   | { kind: "bag"; slotIndex: number }
   | { kind: "equipment"; slotIndex: number; slotId: string }
+  | { kind: "stash"; pageIndex: number; slotIndex: number }
   | { kind: "map"; position: { x: number; y: number } }
   | { kind: "invalid" };
 
@@ -1670,6 +1675,17 @@ const UNIT_RENDER_SCALE = 0.7;
 const FLOATING_GEM_OFFSET = { x: 18, y: 18 };
 const INVENTORY_SLOT_COUNT = 60;
 const INVENTORY_COLUMNS = 12;
+const STASH_PAGE_COUNT = 5;
+const STASH_PAGE_SLOT_COUNT = 100;
+const STASH_PAGE_COLUMNS = 10;
+const REST_AREA_WIDTH = 1640;
+const REST_AREA_HEIGHT = 1000;
+const REST_AREA_INTERACTION_RADIUS = 96;
+const REST_AREA_INTERACTABLES = {
+  wangYang: { kind: "stage" as const, id: "wang-yang", label: "王阳", x: 330, y: 330 },
+  stash: { kind: "stash" as const, id: "stash", label: "仓库", x: 760, y: 335 }
+} as const;
+const WANG_YANG_NPC_SPRITE = new URL("./assets/rest-area-wang-yang.svg", import.meta.url).href;
 const EQUIPMENT_SLOT_SPECS = [
   { id: "head", label: "头部", accepts: ["head", "helmet", "helm", "头部", "头盔"] },
   { id: "chest", label: "胸甲", accepts: ["chest", "body", "armor", "armour", "胸甲", "护甲", "衣服"] },
@@ -1706,6 +1722,61 @@ type FrontendSaveSlotSummary = {
 function cloneFrontendData<T>(value: T): T {
   if (typeof structuredClone === "function") return structuredClone(value);
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function createEmptyStashPages() {
+  return Array.from({ length: STASH_PAGE_COUNT }, () => Array.from({ length: STASH_PAGE_SLOT_COUNT }, () => null as string | null));
+}
+
+function normalizeStashPages(value: unknown, state?: Pick<AppState, "inventory" | "equipment_slots" | "board">) {
+  const sourcePages = Array.isArray(value) ? value : [];
+  const next = createEmptyStashPages();
+  const used = new Set<string>();
+  const inventoryIds = state ? new Set(state.inventory.map((item) => item.instance_id)) : null;
+  const equippedIds = state ? new Set(normalizeEquipmentSlots(state.equipment_slots ?? []).filter(Boolean) as string[]) : new Set<string>();
+  const boardedIds = state ? new Set(state.board.cells.flat().map((cell) => cell.gem?.instance_id).filter(Boolean) as string[]) : new Set<string>();
+  for (let pageIndex = 0; pageIndex < STASH_PAGE_COUNT; pageIndex += 1) {
+    const sourceSlots = Array.isArray(sourcePages[pageIndex]) ? sourcePages[pageIndex] : [];
+    for (let slotIndex = 0; slotIndex < STASH_PAGE_SLOT_COUNT; slotIndex += 1) {
+      const instanceId = typeof sourceSlots[slotIndex] === "string" ? sourceSlots[slotIndex] : "";
+      if (
+        instanceId
+        && !used.has(instanceId)
+        && (!inventoryIds || inventoryIds.has(instanceId))
+        && !equippedIds.has(instanceId)
+        && !boardedIds.has(instanceId)
+      ) {
+        next[pageIndex][slotIndex] = instanceId;
+        used.add(instanceId);
+      }
+    }
+  }
+  return next;
+}
+
+function stashItemIds(stashPages: (string | null)[][] | undefined) {
+  return new Set(normalizeStashPages(stashPages).flat().filter(Boolean) as string[]);
+}
+
+function removeItemsFromStashPages(stashPages: (string | null)[][] | undefined, instanceIds: string[]) {
+  const idSet = new Set(instanceIds.filter(Boolean));
+  return normalizeStashPages(stashPages).map((page) => page.map((instanceId) => (instanceId && idSet.has(instanceId) ? null : instanceId)));
+}
+
+function moveItemToStashSlot(stashPages: (string | null)[][] | undefined, instanceId: string, pageIndex: number, slotIndex: number) {
+  const next = removeItemsFromStashPages(stashPages, [instanceId]);
+  const safePageIndex = clamp(Math.floor(pageIndex), 0, STASH_PAGE_COUNT - 1);
+  const safeSlotIndex = clamp(Math.floor(slotIndex), 0, STASH_PAGE_SLOT_COUNT - 1);
+  next[safePageIndex][safeSlotIndex] = instanceId;
+  return next;
+}
+
+function sanitizeFrontendStorageState(state: AppState): AppState {
+  const equipmentState = sanitizeEquipmentSlotsForState(state);
+  return {
+    ...equipmentState,
+    stash_pages: normalizeStashPages(equipmentState.stash_pages, equipmentState)
+  };
 }
 
 function frontendSkillTagForGem(gem: Gem) {
@@ -2598,13 +2669,14 @@ function frontendExpectedCritMultiplier(skill: SkillPreview, skillStats: Record<
 }
 
 function createFrontendInitialAppState(): AppState {
-  return recalculateFrontendSkillPreview(cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState);
+  return sanitizeFrontendStorageState(recalculateFrontendSkillPreview(cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState));
 }
 
 function createMonsterTestAppState(): AppState {
   const state = cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState;
   state.player_name = "怪物测试";
   state.inventory = [];
+  state.stash_pages = createEmptyStashPages();
   state.drops = [];
   state.skill_preview = [];
   state.equipment_slots = Array(EQUIPMENT_SLOT_COUNT).fill(null);
@@ -2613,7 +2685,7 @@ function createMonsterTestAppState(): AppState {
     cells: state.board.cells.map((row) => row.map((cell) => ({ ...cell, gem: null })))
   };
   if (state.player_stats?.max_life) state.player_stats.max_life.value = MONSTER_TEST_PLAYER_LIFE;
-  return recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state));
+  return sanitizeFrontendStorageState(recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state)));
 }
 
 function createFrontendNewGameState(slotId?: number, playerName = DEFAULT_PLAYER_NAME): AppState {
@@ -2626,6 +2698,7 @@ function createFrontendNewSaveStarterState(slotId?: number, playerName = DEFAULT
   const state = cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState;
   state.player_name = normalizePlayerName(playerName);
   state.inventory = [];
+  state.stash_pages = createEmptyStashPages();
   state.drops = [];
   state.equipment_slots = Array(EQUIPMENT_SLOT_COUNT).fill(null);
   state.board = {
@@ -2638,7 +2711,7 @@ function createFrontendNewSaveStarterState(slotId?: number, playerName = DEFAULT
     const cell = state.board.cells[STARTER_GEM_BOARD_POSITION.row]?.[STARTER_GEM_BOARD_POSITION.column];
     if (cell) cell.gem = starterGem;
   }
-  return recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state));
+  return sanitizeFrontendStorageState(recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state)));
 }
 
 function createRandomNewSaveStarterGem(slotId?: number): Gem | null {
@@ -2774,13 +2847,19 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
   if (!save || Number(save.version) !== FRONTEND_SAVE_VERSION) return null;
   const legacyState = save.app_state;
   if (legacyState && typeof legacyState === "object") {
-    return recalculateFrontendSkillPreview(sanitizeEquipmentSlotsForState(legacyState as AppState));
+    return recalculateFrontendSkillPreview(sanitizeFrontendStorageState(legacyState as AppState));
   }
   const initial = createFrontendInitialAppState();
-  return recalculateFrontendSkillPreview(sanitizeEquipmentSlotsForState({
+  return recalculateFrontendSkillPreview(sanitizeFrontendStorageState({
     ...initial,
     player_name: normalizePlayerName(save.player_name ?? initial.player_name),
     inventory: Array.isArray(save.inventory) ? save.inventory : initial.inventory,
+    stash_pages: normalizeStashPages(save.stash_pages, {
+      ...initial,
+      inventory: Array.isArray(save.inventory) ? save.inventory : initial.inventory,
+      board: save.board ?? initial.board,
+      equipment_slots: Array.isArray(save.equipment_slots) ? save.equipment_slots : initial.equipment_slots
+    }),
     board: save.board ?? initial.board,
     skill_preview: Array.isArray(save.skill_preview) ? save.skill_preview : initial.skill_preview,
     skill_error: save.skill_error ?? null,
@@ -2797,21 +2876,23 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
 }
 
 function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
+  const sanitized = sanitizeFrontendStorageState(state);
   return {
     version: FRONTEND_SAVE_VERSION,
     saved_at: new Date().toISOString(),
-    player_name: normalizePlayerName(state.player_name),
-    inventory: state.inventory,
-    board: state.board,
-    skill_preview: state.skill_preview,
-    skill_error: state.skill_error,
-    drops: state.drops,
-    logs: state.logs,
-    player_stats: state.player_stats,
-    character_panel: state.character_panel,
-    equipment_slots: state.equipment_slots,
-    map_progression: state.map_progression,
-    ui_text: state.ui_text
+    player_name: normalizePlayerName(sanitized.player_name),
+    inventory: sanitized.inventory,
+    stash_pages: sanitized.stash_pages,
+    board: sanitized.board,
+    skill_preview: sanitized.skill_preview,
+    skill_error: sanitized.skill_error,
+    drops: sanitized.drops,
+    logs: sanitized.logs,
+    player_stats: sanitized.player_stats,
+    character_panel: sanitized.character_panel,
+    equipment_slots: sanitized.equipment_slots,
+    map_progression: sanitized.map_progression,
+    ui_text: sanitized.ui_text
   };
 }
 
@@ -3108,7 +3189,7 @@ const MAP_EDITOR_ZONE_TYPES: Array<{ id: ProceduralZoneType; label: string }> = 
   { id: "exit_area", label: "出口区域" }
 ];
 const EDITOR_RUNTIME_MAP_ID = DEFAULT_AUTHORED_MAP_TEMPLATE_ID;
-const DEFAULT_RUNTIME_MAP_ID = EDITOR_RUNTIME_MAP_ID;
+const DEFAULT_RUNTIME_MAP_ID = REST_AREA_MAP_TEMPLATE_ID;
 const MAP_EDITOR_TILE_OPTIONS: Array<{ id: MapEditorBrush; label: string }> = [
   { id: "ground", label: "地面" },
   { id: "wall", label: "墙壁" }
@@ -3936,6 +4017,7 @@ function MapEditorScene() {
           />
         ) : null}
       </section>
+
     </main>
   );
 }
@@ -4534,8 +4616,8 @@ function createEditorRuntimeBattleMap(source: MapEditorFileDocument, options: Ed
     .map((point) => editorRuntimeCoordinatePoint(point.x, point.y, gridSize));
 
   return {
-    id: EDITOR_RUNTIME_MAP_ID,
-    displayName: source.name || "map_001",
+    id: meta.id,
+    displayName: source.name || meta.id,
     backgroundUrl: "",
     meta,
     gridWidth,
@@ -5651,7 +5733,9 @@ function GameApp() {
   const [bagOpen, setBagOpen] = useState(false);
   const [monsterTestMode] = useState(() => initialMonsterTestMode());
   const [skillEditorMode] = useState(() => initialSkillEditorMode());
-  const [entryStep, setEntryStep] = useState<"title" | "save" | "map">(() => skillEditorMode || monsterTestMode ? "map" : "title");
+  const [entryStep, setEntryStep] = useState<"title" | "save" | "rest">(() => skillEditorMode || monsterTestMode ? "rest" : "title");
+  const [restAreaPanel, setRestAreaPanel] = useState<"stage" | "stash" | null>(null);
+  const [restAreaInteractionTarget, setRestAreaInteractionTarget] = useState<"stage" | "stash" | null>(null);
   const [saveSlots, setSaveSlots] = useState<FrontendSaveSlotSummary[]>(() => loadFrontendSaveSlotSummaries());
   const [selectedSaveSlotId, setSelectedSaveSlotId] = useState(() => loadActiveFrontendSaveSlotId() ?? latestFrontendSaveSlotId(saveSlots) ?? 1);
   const [saveStartMode, setSaveStartMode] = useState<"continue" | "new">(() => latestFrontendSaveSlotId(saveSlots) ? "continue" : "new");
@@ -5702,6 +5786,7 @@ function GameApp() {
   const [kills, setKills] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [combatLogs, setCombatLogs] = useState<string[]>([]);
+  const restAreaMapEntryKey = useRef<string | null>(null);
   const [runtimePerfSummary, setRuntimePerfSummary] = useState<RuntimePerfSummary>({
     frame_ms: 0,
     logic_ms: 0,
@@ -5737,6 +5822,7 @@ function GameApp() {
   const [selectedMonsterTestMonsterId, setSelectedMonsterTestMonsterId] = useState(() => monsterTestOptions[0]?.id ?? "");
   const [inventorySlots, setInventorySlots] = useState<(string | null)[]>(() => Array(INVENTORY_SLOT_COUNT).fill(null));
   const [equipmentSlots, setEquipmentSlots] = useState<(string | null)[]>(() => Array(EQUIPMENT_SLOT_COUNT).fill(null));
+  const [stashPageIndex, setStashPageIndex] = useState(0);
   const keys = useRef(new Set<string>());
   const floatingGemRef = useRef<FloatingGem | null>(null);
   const dropInProgressRef = useRef(false);
@@ -5807,7 +5893,7 @@ function GameApp() {
 
   function applyServerState(nextState: AppState, options: { persist?: boolean } = {}) {
     const persist = options.persist ?? true;
-    const recalculated = recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(nextState));
+    const recalculated = sanitizeFrontendStorageState(recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(nextState)));
     setState(recalculated);
     if (persist) saveFrontendAutosave(recalculated);
   }
@@ -5817,7 +5903,7 @@ function GameApp() {
       if (!current) return current;
       const next = updater(current);
       if (!next) return current;
-      const recalculated = recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(next));
+      const recalculated = sanitizeFrontendStorageState(recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(next)));
       saveFrontendAutosave(recalculated);
       return recalculated;
     });
@@ -6178,7 +6264,8 @@ function GameApp() {
   useEffect(() => {
     if (!state) return;
     const equippedIds = new Set(equipmentSlots.filter(Boolean) as string[]);
-    setInventorySlots((current) => reconcileInventorySlots(current, state, floatingGemRef.current?.gem.instance_id ?? null, equippedIds));
+    const stashIds = stashItemIds(state.stash_pages);
+    setInventorySlots((current) => reconcileInventorySlots(current, state, floatingGemRef.current?.gem.instance_id ?? null, new Set([...equippedIds, ...stashIds])));
   }, [state, floatingGem?.gem.instance_id, equipmentSlots]);
 
   useEffect(() => {
@@ -6242,6 +6329,35 @@ function GameApp() {
       cancelled = true;
     };
   }, [selectedMapId, skillEditorMode]);
+
+  useEffect(() => {
+    const restAreaMapActive = Boolean(!monsterTestMode && !skillEditorMode && !playing && entryStep === "rest" && battleMap);
+    if (!restAreaMapActive || !battleMap) {
+      if (playing || entryStep !== "rest") restAreaMapEntryKey.current = null;
+      return;
+    }
+    if (selectedMapId !== REST_AREA_MAP_TEMPLATE_ID) {
+      setSelectedMapId(REST_AREA_MAP_TEMPLATE_ID);
+      return;
+    }
+    if (battleMap.id !== REST_AREA_MAP_TEMPLATE_ID) {
+      const template = authoredMapTemplateById(REST_AREA_MAP_TEMPLATE_ID);
+      if (template) {
+        setBattleMap(createEditorRuntimeBattleMap(template.document as unknown as MapEditorFileDocument, { templateId: REST_AREA_MAP_TEMPLATE_ID }));
+      }
+      return;
+    }
+    const entryKey = `${battleMap.id}:${battleMap.mapInstance?.instanceSeed ?? "rest"}`;
+    if (restAreaMapEntryKey.current === entryKey) return;
+    restAreaMapEntryKey.current = entryKey;
+    resetBattleRuntimeForChallenge(battleMap.playerSpawn, battleMap);
+    setEnemies([]);
+    enemiesStateRef.current = [];
+    setAuthoredSpawnPlanActive(false);
+    setAuthoredAggroSources([]);
+    setSpawnPlanWarnings([]);
+    setProceduralSpawnDebug(null);
+  }, [battleMap, entryStep, monsterTestMode, playing, skillEditorMode]);
 
   useEffect(() => {
     if (!monsterTestMode || !battleMap || !state) return;
@@ -6350,6 +6466,7 @@ function GameApp() {
       if (key === "c") {
         event.preventDefault();
         setBagOpen((current) => !current);
+        setRestAreaPanel(null);
         setTooltip(null);
         setHoveredGemId(null);
         return;
@@ -6370,6 +6487,54 @@ function GameApp() {
   useEffect(() => {
     playerStateRef.current = player;
   }, [player]);
+
+  useEffect(() => {
+    if (monsterTestMode || skillEditorMode || playing || entryStep !== "rest") return;
+    let frame = 0;
+    let lastNow: number | null = null;
+    function tick(now: number) {
+      if (lastNow === null) lastNow = now;
+      const dt = Math.min(0.05, (now - lastNow) / 1000);
+      lastNow = now;
+      setRuntimePlayer((current) => {
+        const manualVector = playerInputVector(keys.current);
+        const target = restAreaInteractionTarget ? restAreaInteractablePosition(restAreaInteractionTarget, battleMap) : null;
+        const targetVector = target ? { x: target.x - current.x, y: target.y - current.y } : null;
+        const targetDistance = targetVector ? Math.hypot(targetVector.x, targetVector.y) : 0;
+        if ((manualVector.x !== 0 || manualVector.y !== 0) && restAreaInteractionTarget) {
+          setRestAreaInteractionTarget(null);
+          return current;
+        }
+        if (target && targetVector && targetDistance <= REST_AREA_INTERACTION_RADIUS) {
+          setRestAreaInteractionTarget(null);
+          setRestAreaPanel(restAreaInteractionTarget);
+          if (restAreaInteractionTarget === "stash") setBagOpen(true);
+          setNotice(restAreaInteractionTarget === "stage" ? "王阳正在整理关卡情报。" : "仓库已打开。");
+          return current;
+        }
+        const moveVector = target && targetVector && targetDistance > REST_AREA_INTERACTION_RADIUS
+          ? { x: targetVector.x / targetDistance, y: targetVector.y / targetDistance }
+          : manualVector;
+        syncPlayerVisual(moveVector);
+        const length = Math.hypot(moveVector.x, moveVector.y) || 1;
+        const playerSpeed = statNumber(state?.player_stats?.move_speed, PLAYER_SPEED) * playerMovementSpeedMultiplier();
+        const mapWidth = battleMap?.meta.world_width ?? MAP_WIDTH;
+        const mapHeight = battleMap?.meta.world_height ?? MAP_HEIGHT;
+        const nextPosition = resolveWalkableMove(battleMap, current, {
+          x: clamp(current.x + moveVector.x / length * playerSpeed * dt, 40, mapWidth - 40),
+          y: clamp(current.y + moveVector.y / length * playerSpeed * dt, 40, mapHeight - 40)
+        });
+        return {
+          ...current,
+          x: nextPosition.x,
+          y: nextPosition.y
+        };
+      });
+      frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [battleMap, entryStep, monsterTestMode, playing, restAreaInteractionTarget, skillEditorMode, state?.player_stats?.move_speed?.value]);
 
   useEffect(() => {
     enemiesStateRef.current = enemies;
@@ -6653,6 +6818,8 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     setRuntimePlayer(() => nextPlayer);
     if (defeated) {
       setPlaying(false);
+      setEntryStep("rest");
+      setRestAreaPanel(null);
       setBagOpen(false);
       setGameFailureOpen(true);
       setNotice("游戏失败。玩家生命已归零。");
@@ -10486,6 +10653,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     applyFrontendState((current) => ({
       ...current,
       inventory: nextState.inventory,
+      stash_pages: nextState.stash_pages ?? current.stash_pages,
       board: nextState.board,
       skill_preview: nextState.skill_preview,
       skill_error: nextState.skill_error,
@@ -10671,7 +10839,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
 
 async function placeFloatingItem(current: FloatingGem, target: DropTarget, event: globalThis.MouseEvent): Promise<PlacementResult> {
     if (target.kind === "invalid") return { type: "reject" };
-    if (isDropBackToOrigin(current, target, state, inventorySlots, equipmentSlots)) return { type: "place" };
+    if (isDropBackToOrigin(current, target, state, inventorySlots, equipmentSlots, state?.stash_pages)) return { type: "place" };
     if (target.kind === "map") {
       setItemDiscardPrompt({
         item: current.gem,
@@ -10681,6 +10849,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return { type: "place" };
     }
     if (target.kind === "bag") return await placeItemInBag(current, target.slotIndex);
+    if (target.kind === "stash") return await placeItemInStash(current, target.pageIndex, target.slotIndex);
     if (target.kind === "equipment") return await placeItemInEquipmentSlot(current, target.slotIndex, event);
     return await placeItemOnBoard(current, target.row, target.column, event);
   }
@@ -10694,24 +10863,51 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return { type: "reject" };
     }
     const targetItem = inventoryItemById(state, inventorySlots[slotIndex]);
-    const previousState = state;
-    const previousInventorySlots = inventorySlots;
-    const previousEquipmentSlots = equipmentSlots;
     setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
     setInventorySlots((slots) => moveItemToInventorySlot(slots, instanceId, slotIndex));
     if (!dragged.board_position) {
-      if (equipmentSlots.includes(instanceId)) {
-        applyFrontendState((currentState) => ({
-          ...currentState,
-          equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots), [instanceId]),
-        }));
-      }
+      applyFrontendState((currentState) => ({
+        ...currentState,
+        stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots), [instanceId]),
+      }));
       return targetItem ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "bag", slotIndex, instanceId: targetItem.instance_id } } : { type: "place" };
     }
 
-    applyFrontendState((currentState) => optimisticUnmountBoardItem(currentState, instanceId));
+    applyFrontendState((currentState) => ({
+      ...optimisticUnmountBoardItem(currentState, instanceId),
+      stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId])
+    }));
     setNotice(`已取下${dragged.name_text}。`);
     return targetItem ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "bag", slotIndex, instanceId: targetItem.instance_id } } : { type: "place" };
+  }
+
+  async function placeItemInStash(current: FloatingGem, pageIndex: number, slotIndex: number): Promise<PlacementResult> {
+    if (!state) return { type: "reject" };
+    const instanceId = current.gem.instance_id;
+    const dragged = inventoryItemById(state, instanceId);
+    if (!dragged) {
+      setNotice("没有找到这个物品。");
+      return { type: "reject" };
+    }
+    const normalizedPages = normalizeStashPages(state.stash_pages, state);
+    const safePageIndex = clamp(Math.floor(pageIndex), 0, STASH_PAGE_COUNT - 1);
+    const safeSlotIndex = clamp(Math.floor(slotIndex), 0, STASH_PAGE_SLOT_COUNT - 1);
+    const targetItem = inventoryItemById(state, normalizedPages[safePageIndex]?.[safeSlotIndex]);
+    setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
+    setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
+    applyFrontendState((currentState) => {
+      const unmountedState = dragged.board_position ? optimisticUnmountBoardItem(currentState, instanceId) : currentState;
+      return {
+        ...unmountedState,
+        stash_pages: moveItemToStashSlot(unmountedState.stash_pages, instanceId, safePageIndex, safeSlotIndex),
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(unmountedState.equipment_slots), [instanceId])
+      };
+    });
+    setNotice(`已将${dragged.name_text}放入仓库。`);
+    return targetItem
+      ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "stash", pageIndex: safePageIndex, slotIndex: safeSlotIndex, instanceId: targetItem.instance_id } }
+      : { type: "place" };
   }
 
   async function placeItemInEquipmentSlot(current: FloatingGem, slotIndex: number, event: globalThis.MouseEvent): Promise<PlacementResult> {
@@ -10745,6 +10941,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
     applyFrontendState((currentState) => ({
       ...currentState,
+      stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
       equipment_slots: moveItemToEquipmentSlot(
         removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots), displacedIds),
         instanceId,
@@ -10777,7 +10974,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const previousState = state;
     const previousInventorySlots = inventorySlots;
     const previousEquipmentSlots = equipmentSlots;
-    applyFrontendState((currentState) => optimisticPlaceItemOnBoard(currentState, instanceId, row, column, targetItem?.instance_id));
+    applyFrontendState((currentState) => ({
+      ...optimisticPlaceItemOnBoard(currentState, instanceId, row, column, targetItem?.instance_id),
+      stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId, targetItem?.instance_id ?? ""])
+    }));
     setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
     setNotice(`已将${dragged.name_text}放入第${row + 1}行第${column + 1}列。`);
     return targetItem ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "board", row, column } } : { type: "place" };
@@ -11344,6 +11544,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     enemiesStateRef.current = [];
     setEnemies([]);
     setPlaying(false);
+    setEntryStep("rest");
+    setRestAreaPanel(null);
     setBagOpen(false);
     setGameFailureOpen(false);
     setAuthoredAggroSources([]);
@@ -11425,6 +11627,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     encounterMonsterPalette.current = nextEncounterPalette;
     setGameFailureOpen(false);
     setPlaying(true);
+    setRestAreaPanel(null);
+    setRestAreaInteractionTarget(null);
     setBagOpen(false);
     if (!skillEditorMode) {
       const selectedStage = selectedFrontendMapStage(stageIdOverride);
@@ -11547,7 +11751,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setFloatingItem(gem, origin, event.clientX, event.clientY);
   }
 
-  function onGemHover(event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment", slotIndex?: number) {
+  function onGemHover(event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number) {
     setHoveredGemId(gem.instance_id);
     const preview = state?.skill_preview.find((skill) => skill.active_gem_instance_id === gem.instance_id);
     setTooltip({ gem: gemWithFrontendSkillPreviewTooltip(gem, preview), ...resolveTooltipPosition(event.currentTarget as HTMLElement, source, slotIndex) });
@@ -11576,6 +11780,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const gmGemOptionsById = useMemo(() => new Map((gmOptions?.gems ?? []).map((gem) => [gem.id, gem])), [gmOptions]);
   const bagSlots = inventorySlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
   const equippedItems = equipmentSlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
+  const stashPages = normalizeStashPages(state?.stash_pages, state ?? undefined);
+  const activeStashSlots = stashPages[stashPageIndex] ?? [];
 
   async function loadGmEquipmentAffixes(source: string, level: number) {
     const affixes = await requestGmEquipmentAffixes(source, level);
@@ -11684,8 +11890,9 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       const nextState = createFrontendNewGameState(selectedSaveSlotId, playerName);
       applyServerState(nextState);
       refreshFrontendSaveSlots();
-      setEntryStep("map");
-      setNotice(`已在存档 ${selectedSaveSlotId} 开始新游戏，请选择地图。`);
+      setEntryStep("rest");
+      setRestAreaPanel(null);
+      setNotice(`已在存档 ${selectedSaveSlotId} 开始新游戏，已进入休息区。`);
       return;
     }
     if (!slot?.save) {
@@ -11698,8 +11905,34 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return;
     }
     applyServerState(savedState, { persist: false });
-    setEntryStep("map");
-    setNotice(`已读取存档 ${selectedSaveSlotId}，请选择地图。`);
+    setEntryStep("rest");
+    setRestAreaPanel(null);
+    setNotice(`已读取存档 ${selectedSaveSlotId}，已进入休息区。`);
+  }
+
+  function interactWithRestArea(kind: "stage" | "stash") {
+    const target = restAreaInteractablePosition(kind, battleMap);
+    const currentPlayer = playerStateRef.current;
+    const targetDistance = Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y);
+    setTooltip(null);
+    setBagOpen(false);
+    if (targetDistance <= REST_AREA_INTERACTION_RADIUS) {
+      setRestAreaInteractionTarget(null);
+      setRestAreaPanel(kind);
+      if (kind === "stash") setBagOpen(true);
+      setNotice(kind === "stage" ? "王阳正在整理关卡情报。" : "仓库已打开。");
+      return;
+    }
+    setRestAreaInteractionTarget(kind);
+    setNotice(kind === "stage" ? "正在走向王阳。" : "正在走向仓库。");
+  }
+
+  function closeRestAreaPanel() {
+    setRestAreaPanel(null);
+    setBagOpen(false);
+    setTooltip(null);
+    setHoveredGemId(null);
+    setNotice("已回到休息区。");
   }
 
   if (!state) return <main className="game-screen loading">{notice}</main>;
@@ -11726,9 +11959,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const runtimeBoundaryScanLine = runtimeDebugMonsterBoundaryTestEnabled()
     ? runtimeBoundaryMonsterScanLine(runtimeBoundaryScan)
     : null;
-  const playableMinimapVisible = Boolean(battleMap && playing && !monsterTestMode && !skillEditorMode);
+  const restAreaMapActive = Boolean(!monsterTestMode && !skillEditorMode && !playing && entryStep === "rest");
+  const playableMinimapVisible = Boolean(battleMap && (playing || restAreaMapActive) && !monsterTestMode && !skillEditorMode);
   const terrainWidth = battleMap?.meta.world_width ?? MAP_VISUAL_WIDTH;
   const terrainHeight = battleMap?.meta.world_height ?? MAP_VISUAL_HEIGHT;
+  const showBattleMapLayer = playing || restAreaMapActive || skillEditorMode || monsterTestMode;
   const battleGeometrySnapshot: BattleGeometrySnapshot = {
     width: terrainWidth,
     height: terrainHeight,
@@ -11876,7 +12111,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   return (
     <main className="game-screen">
       {activeBossEnemy && <BossHealthBar enemy={activeBossEnemy} />}
-      <section className="map-layer" aria-label="可玩地图">
+      {showBattleMapLayer && <section className="map-layer" aria-label="可玩地图">
         <div
           className="terrain"
           data-map-template-id={battleMap?.id ?? ""}
@@ -11927,6 +12162,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         <PlayerOverheadResourceBars player={player} resources={playerResources} camera={battleCamera} />
         <GroundDropLayer drops={state.drops} displayPositions={dropDisplayPositions.current} camera={battleCamera} onPickup={beginDropPickup} />
         <BossPortalLayer portal={bossPortal} camera={battleCamera} onUse={beginBossPortalUse} />
+        {restAreaMapActive && (
+          <RestAreaMapInteractableLayer
+            map={battleMap}
+            camera={battleCamera}
+            interactionTarget={restAreaInteractionTarget}
+            onInteract={interactWithRestArea}
+          />
+        )}
         {playableMinimapVisible && battleMap && (
           <PlayableBattleMinimap
             map={battleMap}
@@ -11935,7 +12178,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             mode={playableMinimapMode}
           />
         )}
-      </section>
+      </section>}
 
       {monsterTestMode && (
         <section className="monster-test-panel" aria-label="怪物测试控制">
@@ -12029,7 +12272,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             <span>游戏失败</span>
             <h2>玩家生命已归零</h2>
             <p>本次战斗已经结束。</p>
-            <button type="button" onClick={() => startGame()}>重新挑战</button>
+            <button type="button" onClick={() => setGameFailureOpen(false)}>返回休息区</button>
           </div>
         </section>
       )}
@@ -12072,11 +12315,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         />
       )}
 
-      {!monsterTestMode && !playing && !skillEditorMode && entryStep === "map" && (
+      {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "stage" && (
         <MapSelectionPanel
           battleMap={battleMap}
           progression={state.map_progression}
           onStart={startGame}
+          onClose={closeRestAreaPanel}
         />
       )}
 
@@ -12116,6 +12360,25 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             </>
           )}
           <CharacterInfoPanel state={state} player={player} />
+          {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "stash" && (
+            <StashPanel
+              pageIndex={stashPageIndex}
+              pages={stashPages}
+              activeSlots={activeStashSlots}
+              fullGemById={fullGemById}
+              floatingGem={floatingGem}
+              hoveredGemId={hoveredGemId}
+              onPageChange={setStashPageIndex}
+              onClose={closeRestAreaPanel}
+              onBeginDrag={beginDrag}
+              onPointerDrag={beginPointerDrag}
+              onHoverGem={onGemHover}
+              onLeaveGem={() => {
+                setHoveredGemId(null);
+                setTooltip(null);
+              }}
+            />
+          )}
           <section className="right-workbench">
             <section className="equipment-panel" aria-label="装备栏">
               <div className="equipment-grid" data-equipment-drop-target="true">
@@ -12312,6 +12575,184 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </section>
       )}
     </main>
+  );
+}
+
+function RestAreaScene({
+  player,
+  playerRotation,
+  interactionTarget,
+  onInteract
+}: {
+  player: { x: number; y: number };
+  playerRotation: number;
+  interactionTarget: "stage" | "stash" | null;
+  onInteract: (kind: "stage" | "stash") => void;
+}) {
+  return (
+    <section className="rest-area-scene" aria-label="休息区" data-rest-area="true">
+      <div className="rest-area-room" style={{ width: REST_AREA_WIDTH, height: REST_AREA_HEIGHT }}>
+        <div className="rest-area-floor" aria-hidden="true" />
+        <button
+          type="button"
+          className={`rest-area-name-label rest-area-wang-yang-label${interactionTarget === "stage" ? " pending" : ""}`}
+          style={{ left: REST_AREA_INTERACTABLES.wangYang.x, top: REST_AREA_INTERACTABLES.wangYang.y - 62 }}
+          onClick={() => onInteract("stage")}
+        >
+          {REST_AREA_INTERACTABLES.wangYang.label}
+        </button>
+        <div className="rest-area-npc" style={{ left: REST_AREA_INTERACTABLES.wangYang.x, top: REST_AREA_INTERACTABLES.wangYang.y }}>
+          <img src={WANG_YANG_NPC_SPRITE} alt="王阳" draggable={false} />
+        </div>
+        <button
+          type="button"
+          className={`rest-area-name-label rest-area-stash-label${interactionTarget === "stash" ? " pending" : ""}`}
+          style={{ left: REST_AREA_INTERACTABLES.stash.x, top: REST_AREA_INTERACTABLES.stash.y - 48 }}
+          onClick={() => onInteract("stash")}
+        >
+          {REST_AREA_INTERACTABLES.stash.label}
+        </button>
+        <div className="rest-area-stash-prop" style={{ left: REST_AREA_INTERACTABLES.stash.x, top: REST_AREA_INTERACTABLES.stash.y }} aria-hidden="true">
+          <span />
+        </div>
+        <div className="rest-area-player-marker" style={{ left: player.x, top: player.y, "--rest-player-rotation": `${playerRotation}rad` } as CSSProperties} aria-label="玩家" />
+      </div>
+    </section>
+  );
+}
+
+function RestAreaMapInteractableLayer({
+  map,
+  camera,
+  interactionTarget,
+  onInteract
+}: {
+  map: BakedBattleMapData | null;
+  camera: Camera2D;
+  interactionTarget: "stage" | "stash" | null;
+  onInteract: (kind: "stage" | "stash") => void;
+}) {
+  const wangYang = battleWorldToViewport(restAreaInteractablePosition("stage", map), camera);
+  const stash = battleWorldToViewport(restAreaInteractablePosition("stash", map), camera);
+  return (
+    <div className="rest-area-map-interactable-layer" aria-label="休息区交互点">
+      <button
+        type="button"
+        className={`rest-area-map-label${interactionTarget === "stage" ? " pending" : ""}`}
+        style={{ left: wangYang.x, top: wangYang.y - 58 }}
+        onClick={() => onInteract("stage")}
+      >
+        {REST_AREA_INTERACTABLES.wangYang.label}
+      </button>
+      <img
+        className="rest-area-map-npc"
+        src={WANG_YANG_NPC_SPRITE}
+        alt=""
+        draggable={false}
+        style={{ left: wangYang.x, top: wangYang.y }}
+      />
+      <button
+        type="button"
+        className={`rest-area-map-label${interactionTarget === "stash" ? " pending" : ""}`}
+        style={{ left: stash.x, top: stash.y - 44 }}
+        onClick={() => onInteract("stash")}
+      >
+        {REST_AREA_INTERACTABLES.stash.label}
+      </button>
+      <span className="rest-area-map-stash" style={{ left: stash.x, top: stash.y }} aria-hidden="true" />
+    </div>
+  );
+}
+
+function restAreaInteractablePosition(kind: "stage" | "stash", map: BakedBattleMapData | null | undefined) {
+  if (!map) return REST_AREA_INTERACTABLES[kind === "stage" ? "wangYang" : "stash"];
+  const offset = kind === "stage" ? { x: -220, y: -40 } : { x: 220, y: -40 };
+  return {
+    x: clamp(map.playerSpawn.x + offset.x, 80, map.meta.world_width - 80),
+    y: clamp(map.playerSpawn.y + offset.y, 80, map.meta.world_height - 80)
+  };
+}
+
+function StashPanel({
+  pageIndex,
+  pages,
+  activeSlots,
+  fullGemById,
+  floatingGem,
+  hoveredGemId,
+  onPageChange,
+  onClose,
+  onBeginDrag,
+  onPointerDrag,
+  onHoverGem,
+  onLeaveGem
+}: {
+  pageIndex: number;
+  pages: (string | null)[][];
+  activeSlots: (string | null)[];
+  fullGemById: Map<string, Gem>;
+  floatingGem: FloatingGem | null;
+  hoveredGemId: string | null;
+  onPageChange: (pageIndex: number) => void;
+  onClose: () => void;
+  onBeginDrag: (event: DragEvent) => void;
+  onPointerDrag: (event: MouseEvent, gem: Gem, origin: FloatingOrigin) => void;
+  onHoverGem: (event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number) => void;
+  onLeaveGem: () => void;
+}) {
+  return (
+    <section className="stash-workbench" aria-label="仓库">
+      <header className="stash-header">
+        <div>
+          <h2>仓库</h2>
+          <span>每页 10x10，共 5 页</span>
+        </div>
+        <button type="button" onClick={onClose}>返回休息区</button>
+      </header>
+      <div className="stash-page-tabs" role="tablist" aria-label="仓库页签">
+          {pages.map((_, index) => (
+            <button
+              key={`stash-page-${index}`}
+              type="button"
+              className={index === pageIndex ? "active" : ""}
+              onClick={() => onPageChange(index)}
+            >
+              {index + 1}
+            </button>
+          ))}
+      </div>
+      <div className="stash-grid" data-stash-columns={STASH_PAGE_COLUMNS} data-stash-drop-target="true">
+            {Array.from({ length: STASH_PAGE_SLOT_COUNT }, (_, slotIndex) => {
+              const instanceId = activeSlots[slotIndex];
+              const gem = instanceId ? fullGemById.get(instanceId) ?? null : null;
+              const origin = gem ? { kind: "stash" as const, pageIndex, slotIndex, instanceId: gem.instance_id } : null;
+              return gem ? (
+                <button
+                  key={`stash-${slotIndex}`}
+                  className={bagCellClass(slotIndex, null, gem, hoveredGemId, floatingGem)}
+                  data-stash-page-index={pageIndex}
+                  data-stash-slot-index={slotIndex}
+                  data-item-instance-id={gem.instance_id}
+                  draggable={false}
+                  onDragStart={onBeginDrag}
+                  onMouseDown={(event) => origin && onPointerDrag(event, gem, origin)}
+                  onMouseEnter={(event) => onHoverGem(event, gem, "stash", slotIndex)}
+                  onMouseMove={(event) => onHoverGem(event, gem, "stash", slotIndex)}
+                  onMouseLeave={onLeaveGem}
+                >
+                  {origin && isFloatingOrigin(floatingGem, origin) ? <GemGhost /> : <GemOrb gem={gem} />}
+                </button>
+              ) : (
+                <div
+                  key={`stash-${slotIndex}`}
+                  className="stash-empty-cell"
+                  data-stash-page-index={pageIndex}
+                  data-stash-slot-index={slotIndex}
+                />
+              );
+            })}
+      </div>
+    </section>
   );
 }
 
@@ -12813,11 +13254,13 @@ function formatFrontendSaveTime(value: string | undefined) {
 function MapSelectionPanel({
   battleMap,
   progression,
-  onStart
+  onStart,
+  onClose
 }: {
   battleMap: BakedBattleMapData | null;
   progression?: AppState["map_progression"];
   onStart: (stageId: string) => void;
+  onClose?: () => void;
 }) {
   const stages = progression?.stages ?? [];
   const selectedStage = stages.find((stage) => stage.selected) ?? stages.find((stage) => stage.enterable) ?? stages[0];
@@ -12828,6 +13271,7 @@ function MapSelectionPanel({
           <h2>选择战斗地图</h2>
           <span>自动存档已启用，起始区域 I 可无限免费刷。</span>
         </div>
+        {onClose && <button type="button" onClick={onClose}>返回休息区</button>}
       </header>
       <div className="map-selection-list">
         {stages.map((stage) => {
@@ -12951,7 +13395,7 @@ function PlayableBattleMinimap({
       data-minimap-mode={mode}
       data-minimap-explored-cells={exploredCells.size}
       style={minimapStyle}
-      aria-label={mode === "expanded" ? "????" : "???"}
+      aria-label={mode === "expanded" ? "放大地图" : "小地图"}
     >
       <canvas
         ref={canvasRef}
@@ -13575,7 +14019,7 @@ function equipmentEmptyCellClass(slotIndex: number, hoveredEquipmentSlot: number
   return classes.join(" ");
 }
 
-function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventory" | "equipment", slotIndex?: number): Omit<Tooltip, "gem"> {
+function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number): Omit<Tooltip, "gem"> {
   if (source === "board") return getBoardTooltipPosition(anchor);
   if (source === "equipment") return getEquipmentTooltipPosition(anchor);
   return getInventoryTooltipPosition(anchor, slotIndex ?? 0);
@@ -13639,6 +14083,9 @@ function isFloatingOrigin(floatingGem: FloatingGem | null, origin: FloatingOrigi
   if (current.kind === "equipment" && origin.kind === "equipment") {
     return current.slotIndex === origin.slotIndex && current.slotId === origin.slotId && current.instanceId === origin.instanceId;
   }
+  if (current.kind === "stash" && origin.kind === "stash") {
+    return current.pageIndex === origin.pageIndex && current.slotIndex === origin.slotIndex && current.instanceId === origin.instanceId;
+  }
   return false;
 }
 
@@ -13655,6 +14102,15 @@ function resolveDropTarget(element: Element | null): DropTarget {
   const bagCell = element?.closest("[data-bag-slot-index]") as HTMLElement | null;
   if (bagCell) return { kind: "bag", slotIndex: Number(bagCell.dataset.bagSlotIndex) };
 
+  const stashCell = element?.closest("[data-stash-slot-index][data-stash-page-index]") as HTMLElement | null;
+  if (stashCell) {
+    return {
+      kind: "stash",
+      pageIndex: Number(stashCell.dataset.stashPageIndex),
+      slotIndex: Number(stashCell.dataset.stashSlotIndex)
+    };
+  }
+
   const equipmentCell = element?.closest("[data-equipment-slot-index]") as HTMLElement | null;
   if (equipmentCell) {
     return {
@@ -13670,6 +14126,7 @@ function isInventoryDropBlockedByInterface(element: Element | null) {
   return Boolean(element?.closest([
     "[data-board-row][data-board-column]",
     "[data-bag-slot-index]",
+    "[data-stash-slot-index]",
     "[data-equipment-slot-index]",
     ".right-workbench",
     ".character-info-panel",
@@ -13704,7 +14161,6 @@ function isBattleMapPointInBounds(map: BakedBattleMapData, position: { x: number
     && position.x <= map.meta.world_width
     && position.y <= map.meta.world_height;
 }
-
 
 function playableMinimapGridPoint(map: BakedBattleMapData, point: { x: number; y: number }) {
   return {
@@ -13770,6 +14226,7 @@ function removeInventoryItemFromState(state: AppState, instanceId: string): AppS
   return {
     ...state,
     inventory: state.inventory.filter((item) => item.instance_id !== instanceId),
+    stash_pages: removeItemsFromStashPages(state.stash_pages, [instanceId]),
     equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(state.equipment_slots), [instanceId]),
     board: {
       ...state.board,
@@ -13787,7 +14244,8 @@ function isDropBackToOrigin(
   target: DropTarget,
   state: AppState | null,
   inventorySlots: (string | null)[],
-  equipmentSlots: (string | null)[]
+  equipmentSlots: (string | null)[],
+  stashPages: (string | null)[][] | undefined
 ) {
   const origin = floatingGem.origin;
   if (origin.kind === "bag") {
@@ -13795,6 +14253,12 @@ function isDropBackToOrigin(
   }
   if (origin.kind === "equipment") {
     return target.kind === "equipment" && origin.slotIndex === target.slotIndex && equipmentSlots[target.slotIndex] === floatingGem.gem.instance_id;
+  }
+  if (origin.kind === "stash") {
+    return target.kind === "stash"
+      && origin.pageIndex === target.pageIndex
+      && origin.slotIndex === target.slotIndex
+      && normalizeStashPages(stashPages)[target.pageIndex]?.[target.slotIndex] === floatingGem.gem.instance_id;
   }
   return (
     target.kind === "board" &&
