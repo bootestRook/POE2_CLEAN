@@ -19935,7 +19935,8 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
   ];
   const bonusLines = frontendSupportModifierTooltipLines(skill);
   const levelText = frontendSkillPreviewEffectiveLevelText(skill);
-  if (componentLines.length === 0 && bonusLines.length === 0 && !levelText) return gem;
+  const channelLines = frontendChannelStackTooltipLines(gem, skill);
+  if (componentLines.length === 0 && bonusLines.length === 0 && !levelText && channelLines.length === 0) return gem;
   return {
     ...gem,
     tooltip_view: {
@@ -19944,7 +19945,10 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
         ...view.sections,
         stats: {
           ...view.sections.stats,
-          lines: mergeFrontendSkillPreviewTooltipLines(view.sections.stats.lines, skill, componentLines, levelText)
+          lines: mergeFrontendSkillPreviewTooltipLines(view.sections.stats.lines, skill, [
+            ...channelLines,
+            ...componentLines
+          ], levelText)
         },
         bonuses: {
           title_text: view.sections.bonuses?.title_text ?? "当前加成",
@@ -20047,6 +20051,27 @@ function mergeFrontendSkillPreviewTooltipLines(lines: TooltipStatLine[], skill: 
   if (missingComponentLines.length === 0) return nextLines;
   if (insertAfter < 0) return [...nextLines, ...missingComponentLines];
   return [...nextLines.slice(0, insertAfter + 1), ...missingComponentLines, ...nextLines.slice(insertAfter + 1)];
+}
+
+function frontendChannelStackTooltipLines(gem: Gem, skill: SkillPreview): TooltipStatLine[] {
+  const tagIds = new Set([
+    ...(gem.tags ?? []).map((tag) => tag.id ?? tag.text),
+    ...(skill.tags ?? []).map((tag) => tag.id ?? tag.text),
+  ]);
+  if (!tagIds.has("channel")) return [];
+  const minStacks = Number(skill.runtime_params?.channel_min_stacks ?? 0);
+  const maxStacks = Number(skill.runtime_params?.channel_max_stacks);
+  if (!Number.isFinite(maxStacks) || maxStacks <= 0) return [];
+  return [
+    {
+      label_text: "\u5f15\u5bfc\u5c42\u6570\u4e0b\u9650",
+      value_text: formatPreviewNumber(Math.max(0, Math.round(Number.isFinite(minStacks) ? minStacks : 0))),
+    },
+    {
+      label_text: "\u5f15\u5bfc\u5c42\u6570\u4e0a\u9650",
+      value_text: formatPreviewNumber(Math.max(1, Math.round(maxStacks))),
+    },
+  ];
 }
 
 function isPrimaryDamageTooltipLine(labelText: string) {
