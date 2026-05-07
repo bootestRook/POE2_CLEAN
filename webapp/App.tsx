@@ -91,6 +91,7 @@ import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
+import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 
 type Gem = {
   instance_id: string;
@@ -12955,7 +12956,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
         <PlayerOverheadResourceBars player={player} camera={battleCamera} />
         <GroundDropLayer drops={state.drops} displayPositions={dropDisplayPositions.current} camera={battleCamera} onPickup={beginDropPickup} />
-        <BossPortalLayer portal={bossPortal} camera={battleCamera} onUse={beginBossPortalUse} />
+        <BossPortalLayer portal={bossPortal} camera={battleCamera} projectPosition={battleWorldToViewport} onUse={beginBossPortalUse} />
         {restAreaMapActive && (
           <RestAreaMapInteractableLayer
             map={battleMap}
@@ -14168,35 +14169,6 @@ function GroundDropLayer({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function BossPortalLayer({
-  portal,
-  camera,
-  onUse
-}: {
-  portal: BossPortal | null;
-  camera: Camera2D;
-  onUse: (portal: BossPortal) => void;
-}) {
-  if (!portal || portal.used) return null;
-  const position = battleWorldToViewport(portal.position, camera);
-  return (
-    <div className="boss-portal-layer" aria-label="Boss exit portal">
-      <button
-        type="button"
-        className="boss-portal"
-        style={{ left: position.x, top: position.y }}
-        onClick={() => onUse(portal)}
-        title="Boss exit"
-      >
-        <span className="boss-portal-label">{"Boss \u51fa\u53e3"}</span>
-        <span className="boss-portal-gate" aria-hidden="true">
-          <span className="boss-portal-door" />
-        </span>
-      </button>
     </div>
   );
 }
