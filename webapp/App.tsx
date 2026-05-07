@@ -91,7 +91,7 @@ import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
-import { AreaNovaLayer, DamageZoneLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
+import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 
 type Gem = {
@@ -12916,9 +12916,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             )}
           </div>
           <div className="battle-text-layer">
-            {!CANVAS_GEOMETRY_SKILL_EFFECTS && texts.map((text) => (
-              <div key={text.id} className={`floating-text floating-text-${cssToken(text.damageType)}`} style={floatingTextStyle(text)}>{text.text}</div>
-            ))}
+            {!CANVAS_GEOMETRY_SKILL_EFFECTS && (
+              <FloatingTextLayer
+                texts={texts}
+                projectPoint={projectBattleWorldToScreen}
+                cssToken={cssToken}
+                riseSpeed={FLOATING_TEXT_VISUAL_RISE_SPEED}
+              />
+            )}
           </div>
         </div>
         <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
@@ -20412,18 +20417,6 @@ function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationF
     "--unit-anchor-y": asset.anchorY,
     "--unit-render-scale": renderScale * asset.scale
   } as CSSProperties;
-}
-
-function floatingTextStyle(text: FloatingText): CSSProperties {
-  const visualPoint = projectBattleWorldToScreen(text.x, text.y);
-  const progress = clamp(1 - text.ttl / Math.max(0.001, text.duration), 0, 1);
-  const pop = 1 + Math.sin((1 - Math.min(progress, 0.35) / 0.35) * Math.PI) * 0.24;
-  return {
-    left: visualPoint.x,
-    top: visualPoint.y - progress * FLOATING_TEXT_VISUAL_RISE_SPEED,
-    opacity: Math.max(0, text.ttl / Math.max(0.001, text.duration)),
-    transform: `translate(-50%, -50%) scale(${pop})`
-  };
 }
 
 function GemTooltip({ tooltip, compareModifierHeld }: { tooltip: Tooltip; compareModifierHeld: boolean }) {

@@ -64,6 +64,16 @@ type PassiveAuraView = {
   name_text: string;
 };
 
+type FloatingTextView = {
+  id: number | string;
+  x: number;
+  y: number;
+  ttl: number;
+  duration: number;
+  damageType?: string;
+  text: string;
+};
+
 export function DamageZoneLayer<TZone extends DamageZoneView>({
   zones,
   projectPoint,
@@ -260,6 +270,42 @@ export function PassiveAuraLayer<TEffect extends PassiveAuraView>({
           aria-label={effect.name_text}
         />
       ))}
+    </>
+  );
+}
+
+export function FloatingTextLayer<TText extends FloatingTextView>({
+  texts,
+  projectPoint,
+  cssToken,
+  riseSpeed
+}: {
+  texts: TText[];
+  projectPoint: (worldX: number, worldY: number) => ScreenPoint;
+  cssToken: (value: string | undefined) => string;
+  riseSpeed: number;
+}) {
+  return (
+    <>
+      {texts.map((text) => {
+        const visualPoint = projectPoint(text.x, text.y);
+        const progress = clamp(1 - text.ttl / Math.max(0.001, text.duration), 0, 1);
+        const pop = 1 + Math.sin((1 - Math.min(progress, 0.35) / 0.35) * Math.PI) * 0.24;
+        return (
+          <div
+            key={text.id}
+            className={`floating-text floating-text-${cssToken(text.damageType)}`}
+            style={{
+              left: visualPoint.x,
+              top: visualPoint.y - progress * riseSpeed,
+              opacity: Math.max(0, text.ttl / Math.max(0.001, text.duration)),
+              transform: `translate(-50%, -50%) scale(${pop})`
+            }}
+          >
+            {text.text}
+          </div>
+        );
+      })}
     </>
   );
 }
