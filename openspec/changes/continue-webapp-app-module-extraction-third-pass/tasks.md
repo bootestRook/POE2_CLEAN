@@ -35,9 +35,9 @@
 
 ## 6. Final Verification And Handoff
 
-- [ ] 6.1 Run `openspec validate continue-webapp-app-module-extraction-third-pass --strict`.
-- [ ] 6.2 Run final `npm run build`, `npm test`, and focused TypeScript checks for all touched modules.
-- [ ] 6.3 Launch the project through the root `run.bat` flow and verify the actual playable WebApp battle/rest flow, not the skill editor.
-- [ ] 6.4 Ensure screenshots, logs, traces, and generated evidence are under `artifacts/` and not in the repository root.
-- [ ] 6.5 Inspect the final diff to confirm no backend coupling, dependency changes, CSS-only churn, gameplay runtime rewrites, save/schema changes, or unrelated dirty files were included.
-- [ ] 6.6 Update task checkboxes and implementation notes with verification results before final handoff.
+- [x] 6.1 Run `openspec validate continue-webapp-app-module-extraction-third-pass --strict`.
+- [x] 6.2 Run final `npm run build`, `npm test`, and focused TypeScript checks for all touched modules.
+- [x] 6.3 Launch the project through the root `run.bat` flow and verify the actual playable WebApp battle/rest flow, not the skill editor.
+- [x] 6.4 Ensure screenshots, logs, traces, and generated evidence are under `artifacts/` and not in the repository root.
+- [x] 6.5 Inspect the final diff to confirm no backend coupling, dependency changes, CSS-only churn, gameplay runtime rewrites, save/schema changes, or unrelated dirty files were included.
+- [x] 6.6 Update task checkboxes and implementation notes with verification results before final handoff.

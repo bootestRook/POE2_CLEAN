@@ -60,3 +60,11 @@
 - Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
 - `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-guide-overlay-battle.png`.
 - Visible result: new save entered `map_001`, canvas battle view rendered, procedural spawn debug showed 120 generated monster packs with nonzero spawn budget, and combat log showed auto-cast/kill activity.
+
+## Final Verification
+
+- OpenSpec validation passed: `openspec validate continue-webapp-app-module-extraction-third-pass --strict`.
+- Final verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
+- Final `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-final-battle.png`.
+- Visible result: new save entered `map_001`, canvas battle view rendered, procedural spawn debug showed 120 generated monster packs with nonzero spawn budget, and no browser console/page errors were observed.
+- Final inspection confirmed no backend coupling, dependency changes, CSS-only churn, gameplay runtime rewrites, save/schema changes, or unrelated dirty files were included.
