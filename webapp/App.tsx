@@ -84,6 +84,7 @@ import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
+import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
 import { clientRectToGameViewportRect, clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
@@ -10346,6 +10347,17 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           slots={saveSlots}
           selectedSlotId={selectedSaveSlotId}
           mode={saveStartMode}
+          newPlayerName={newPlayerName}
+          canStart={saveStartMode !== "new" || newPlayerName.trim().length > 0}
+          slotHasSave={(slot) => Boolean(slot.save)}
+          slotMainText={(slot) => slot.save ? `${normalizePlayerName(slot.save.player_name)} · ${formatFrontendSaveTime(slot.save.saved_at)}` : null}
+          slotProgressText={(slot) => {
+            const saveState = appStateFromFrontendSave(slot.save);
+            const selectedStage = saveState?.map_progression?.stages.find((stage) => stage.selected);
+            return selectedStage ? `${selectedStage.display_name} ? ???? ${selectedStage.monster_level}` : "???????";
+          }}
+          slotErrorText={(slot) => slot.errorText}
+          footerText={saveStartMode === "new" ? `???? ${selectedSaveSlotId} ????` : saveSlots.find((slot) => slot.id === selectedSaveSlotId)?.save ? `????? ${selectedSaveSlotId}` : "??????????????"}
           onSelectSlot={(slotId) => {
             setSelectedSaveSlotId(slotId);
             setSaveStartMode(saveSlots.find((slot) => slot.id === slotId)?.save ? "continue" : "new");
@@ -10354,7 +10366,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           onContinue={chooseLatestSaveSlot}
           onDelete={deleteSaveSlot}
           onBack={() => setEntryStep("title")}
-          newPlayerName={newPlayerName}
           onNewPlayerNameChange={setNewPlayerName}
           onStart={startFromSelectedSaveSlot}
         />
@@ -11134,102 +11145,6 @@ function currentRuntimeResourcePanelValue(statId: string, player: PlayerRuntimeS
   if (statId === "current_mana") return Math.min(Math.round(player.maxMana), Math.round(player.currentMana));
   if (statId === "current_energy_shield") return Math.min(Math.round(player.maxEnergyShield), Math.round(player.currentEnergyShield));
   return null;
-}
-
-function SaveSelectionPanel({
-  slots,
-  selectedSlotId,
-  mode,
-  onSelectSlot,
-  onNewGame,
-  onContinue,
-  onDelete,
-  onBack,
-  newPlayerName,
-  onNewPlayerNameChange,
-  onStart
-}: {
-  slots: FrontendSaveSlotSummary[];
-  selectedSlotId: number;
-  mode: "continue" | "new";
-  onSelectSlot: (slotId: number) => void;
-  onNewGame: () => void;
-  onContinue: () => void;
-  onDelete: (slotId: number) => void;
-  onBack: () => void;
-  newPlayerName: string;
-  onNewPlayerNameChange: (name: string) => void;
-  onStart: () => void;
-}) {
-  const selectedSlot = slots.find((slot) => slot.id === selectedSlotId);
-  const canStart = mode !== "new" || newPlayerName.trim().length > 0;
-  return (
-    <section className="save-selection-panel" aria-label="存档选择">
-      <div className="save-selection-shell">
-        <header className="save-selection-header">
-          <div>
-            <h2>选择存档</h2>
-            <span>暂定 5 个本地存档栏位，数据只保存在当前浏览器。</span>
-          </div>
-          <button type="button" onClick={onBack}>返回</button>
-        </header>
-        <div className="save-mode-actions" role="group" aria-label="游戏模式">
-          <button type="button" className={mode === "new" ? "active" : ""} onClick={onNewGame}>新建游戏</button>
-          <button type="button" className={mode === "continue" ? "active" : ""} onClick={onContinue}>继续游戏</button>
-        </div>
-        {mode === "new" && (
-          <label className="save-player-name-field">
-            <span>玩家名称</span>
-            <input
-              type="text"
-              value={newPlayerName}
-              maxLength={18}
-              autoComplete="off"
-              onChange={(event) => onNewPlayerNameChange(event.currentTarget.value)}
-            />
-          </label>
-        )}
-        <div className="save-slot-list">
-          {slots.map((slot) => {
-            const selected = slot.id === selectedSlotId;
-            const saveState = appStateFromFrontendSave(slot.save);
-            const selectedStage = saveState?.map_progression?.stages.find((stage) => stage.selected);
-            return (
-              <article key={slot.id} className={`${selected ? "save-slot-card selected" : "save-slot-card"}${slot.save ? "" : " empty"}`}>
-                <button type="button" className="save-slot-main" onClick={() => onSelectSlot(slot.id)}>
-                  <strong>存档 {slot.id}</strong>
-                  {slot.save ? (
-                    <>
-                      <span>{normalizePlayerName(slot.save.player_name)} · {formatFrontendSaveTime(slot.save.saved_at)}</span>
-                      <span>{selectedStage ? `${selectedStage.display_name} · 怪物等级 ${selectedStage.monster_level}` : "角色进度已保存"}</span>
-                    </>
-                  ) : (
-                    <span>空栏位</span>
-                  )}
-                  {slot.errorText && <span className="save-slot-error">{slot.errorText}</span>}
-                </button>
-                <button
-                  type="button"
-                  className="save-slot-delete"
-                  disabled={!slot.save}
-                  onClick={() => onDelete(slot.id)}
-                  aria-label={`删除存档 ${slot.id}`}
-                >
-                  删除
-                </button>
-              </article>
-            );
-          })}
-        </div>
-        <footer className="save-selection-footer">
-          <span>{mode === "new" ? `将在存档 ${selectedSlotId} 新建游戏` : selectedSlot?.save ? `将读取存档 ${selectedSlotId}` : "请选择有数据的存档或新建游戏"}</span>
-          <button className="entry-primary-button" type="button" disabled={!canStart} onClick={onStart}>
-            开始
-          </button>
-        </footer>
-      </div>
-    </section>
-  );
 }
 
 function formatFrontendSaveTime(value: string | undefined) {
