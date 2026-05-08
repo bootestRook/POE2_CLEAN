@@ -10285,6 +10285,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           <RestAreaMapInteractableLayer
             map={battleMap}
             camera={battleCamera}
+            projectPosition={battleWorldToViewport}
             interactionTarget={restAreaInteractionTarget}
             onInteract={interactWithRestArea}
           />
