@@ -46,3 +46,14 @@
   - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
   - Focused TypeScript filter for `FloatingGemView` produced no matching errors; full `tsc --noEmit` still has broader existing type debt outside this split.
   - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/floating-gem-extraction-drag.png` shows the rest-area inventory open while dragging a gem, with one `.floating-gem` and one `.gem-ghost` rendered.
+
+## Battle Guide Debug Extraction
+
+- Moved `FireBoltAlignmentDebug` into `webapp/components/battle/FireBoltAlignmentDebug.tsx`.
+- Left guide selection, target choice, projectile spread, damage-zone guide selection, projection helpers, and runtime event behavior in `webapp/App.tsx`.
+- Verification:
+  - `npm run build` passed.
+  - `npm test` passed.
+  - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
+  - Focused TypeScript filter for `FireBoltAlignmentDebug` produced no matching errors; full `tsc --noEmit` still has broader existing type debt outside this split.
+  - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/firebolt-debug-battle-check.png` shows the actual battle map running with terrain visible, generated monster budget/stat text, and auto-release skill logs.

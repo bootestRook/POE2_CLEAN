@@ -21,10 +21,10 @@
 
 ## 4. Battle Guide And Debug Overlay Extraction
 
-- [ ] 4.1 Extract battle guide/debug overlay views into render-only battle component modules.
-- [ ] 4.2 Preserve existing guide payload consumption and avoid recalculating target selection, damage zones, projectile timing, or runtime events.
-- [ ] 4.3 Verify the playable battle view still renders enemies, skill effects, guide/debug overlays where enabled, and no black screen.
-- [ ] 4.4 Commit only the guide/debug overlay extraction files after verification passes.
+- [x] 4.1 Extract battle guide/debug overlay views into render-only battle component modules.
+- [x] 4.2 Preserve existing guide payload consumption and avoid recalculating target selection, damage zones, projectile timing, or runtime events.
+- [x] 4.3 Verify the playable battle view still renders enemies, skill effects, guide/debug overlays where enabled, and no black screen.
+- [x] 4.4 Commit only the guide/debug overlay extraction files after verification passes.
 
 ## 5. Legacy VFX Presentation Cleanup
 

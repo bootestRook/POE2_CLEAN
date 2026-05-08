@@ -100,6 +100,7 @@ import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
+import { FireBoltAlignmentDebug } from "./components/battle/FireBoltAlignmentDebug";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
@@ -18614,6 +18615,8 @@ function FrontendSkillGuideLayer({
               projectileCount={projectileCount}
               label={guideDebugLabel}
               debugOptions={debugOptions}
+              projectBattleWorldToScreen={projectBattleWorldToScreen}
+              worldDirectionToBattleScreenAngle={worldDirectionToBattleScreenAngle}
             />
             {debugOptions.showCollisionRadius && (
               <>
@@ -18782,64 +18785,6 @@ function damageZoneGuideVisual(shape: "circle" | "rectangle", vfxKey: string): D
   const token = cssToken(vfxKey);
   if (token.includes("whirlwind")) return "whirlwind";
   return shape;
-}
-
-function FireBoltAlignmentDebug({
-  start,
-  current,
-  hit,
-  direction,
-  lineLength,
-  lineAngle,
-  projectileIndex,
-  projectileCount,
-  label = "投射物",
-  debugOptions
-}: {
-  start: { x: number; y: number };
-  current: { x: number; y: number };
-  hit: { x: number; y: number };
-  direction: { x: number; y: number };
-  lineLength: number;
-  lineAngle: number;
-  projectileIndex?: number;
-  projectileCount?: number;
-  label?: string;
-  debugOptions: SkillEditorDebugOptions;
-}) {
-  const { startVisual, currentVisual, hitVisual, facingAngle } = useMemo(() => ({
-    startVisual: projectBattleWorldToScreen(start.x, start.y),
-    currentVisual: projectBattleWorldToScreen(current.x, current.y),
-    hitVisual: projectBattleWorldToScreen(hit.x, hit.y),
-    facingAngle: worldDirectionToBattleScreenAngle(direction, start)
-  }), [current.x, current.y, direction.x, direction.y, hit.x, hit.y, start.x, start.y]);
-  const suffix = projectileIndex && projectileCount ? `（${projectileIndex}/${projectileCount}）` : "";
-  return (
-    <div className="fire-bolt-alignment-debug" aria-label={`${label}对齐调试层`} data-projectile-index={projectileIndex} data-projectile-count={projectileCount}>
-      {debugOptions.showLaunchPoints && (
-        <>
-          <span className="fire-bolt-debug-point fire-bolt-debug-logic-spawn" style={{ left: startVisual.x, top: startVisual.y }} title={`${label}逻辑发射点${suffix}`} />
-          <span className="fire-bolt-debug-point fire-bolt-debug-vfx-spawn" style={{ left: startVisual.x, top: startVisual.y }} title={`${label}特效发射点${suffix}`} />
-        </>
-      )}
-      {debugOptions.showDirectionLines && (
-        <>
-          <span
-            className="fire-bolt-debug-line fire-bolt-debug-direction"
-            style={{ left: startVisual.x, top: startVisual.y, width: lineLength, transform: `rotate(${lineAngle}rad)` }}
-            title={`${label}逻辑飞行方向${suffix}`}
-          />
-          <span
-            className="fire-bolt-debug-line fire-bolt-debug-facing"
-            style={{ left: startVisual.x, top: startVisual.y, width: Math.min(72, lineLength), transform: `rotate(${facingAngle}rad)` }}
-            title={`${label}特效朝向${suffix}`}
-          />
-        </>
-      )}
-      {debugOptions.showCollisionRadius && <span className="fire-bolt-debug-point fire-bolt-debug-center" style={{ left: currentVisual.x, top: currentVisual.y }} title={`${label}当前中心${suffix}`} />}
-      {debugOptions.showTargetPoint && <span className="fire-bolt-debug-point fire-bolt-debug-hit" style={{ left: hitVisual.x, top: hitVisual.y }} title={`${label}命中点${suffix}`} />}
-    </div>
-  );
 }
 
 function PlayerBuffLayer({ buffs, player }: { buffs: PlayerBuff[]; player: PlayerRuntimeState }) {
