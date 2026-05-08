@@ -80,6 +80,7 @@ import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
+import { LegacyFireBoltView, LegacyHitVfxView } from "./components/battle/LegacyProjectileHitVfxViews";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
@@ -18147,7 +18148,23 @@ function fireBoltVfxLayerStyle(
 function FireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number }) {
   const vfxKind = projectileVfxKind(bolt.vfxKey) ?? projectileVfxKind(bolt.visualEffect) ?? projectileVfxKind(bolt.skillTemplateId);
   if (!vfxKind) {
-    return <LegacyFireBoltView bolt={bolt} depthIndex={depthIndex} />;
+    return (
+      <LegacyFireBoltView
+        bolt={bolt}
+        depthIndex={depthIndex}
+        projectBattleWorldToScreen={projectBattleWorldToScreen}
+        normalizedVfxScale={normalizedVfxScale}
+        projectileBodyOpacity={projectileBodyOpacity}
+        fireBoltTravel={fireBoltTravel}
+        fireBoltWorldPoint={fireBoltWorldPoint}
+        ballisticArcVisualLift={ballisticArcVisualLift}
+        ballisticShadowStyle={ballisticShadowStyle}
+        cssToken={cssToken}
+        visualTone={visualTone}
+        zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
+        fakeZ={FIRE_BOLT_FAKE_Z}
+      />
+    );
   }
   if (vfxKind === "sparkle") {
     return <SparkleProjectileView bolt={bolt} depthIndex={depthIndex} />;
@@ -18384,87 +18401,21 @@ function SparkleProjectileView({ bolt, depthIndex }: { bolt: FireBolt; depthInde
   );
 }
 
-function LegacyFireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number }) {
-  const vfxScale = normalizedVfxScale(bolt.vfxScale);
-  const startVisual = projectBattleWorldToScreen(bolt.x, bolt.y);
-  const targetVisual = projectBattleWorldToScreen(bolt.targetX, bolt.targetY);
-  const length = Math.hypot(targetVisual.x - startVisual.x, targetVisual.y - startVisual.y);
-  const angle = Math.atan2(targetVisual.y - startVisual.y, targetVisual.x - startVisual.x);
-  const behavior = cssToken(bolt.behaviorType || "projectile");
-  const tone = visualTone(bolt.vfxKey || bolt.visualEffect || bolt.damageType);
-  const duration = Math.max(0.001, bolt.duration);
-  const isBurst = ["area", "melee", "orbit", "trap_or_mine"].includes(behavior);
-  const isLine = behavior === "chain";
-  const opacity = isBurst ? Math.max(0, Math.min(1, bolt.ttl / duration)) : projectileBodyOpacity(bolt);
-  const travel = fireBoltTravel(bolt);
-  const projectileX = startVisual.x + (targetVisual.x - startVisual.x) * travel;
-  const projectileY = startVisual.y + (targetVisual.y - startVisual.y) * travel;
-  const groundPoint = fireBoltWorldPoint(bolt, travel);
-  const visualLift = ballisticArcVisualLift(bolt, travel);
-  const shadowStyle = ballisticShadowStyle(bolt, groundPoint, depthIndex, opacity, travel);
-  const burstSize = Math.max(74, 92 * bolt.areaScale) * vfxScale;
-  const burstPoint = behavior === "melee" ? startVisual : targetVisual;
-  const style: CSSProperties = isBurst
-    ? {
-        left: burstPoint.x,
-        top: burstPoint.y,
-        width: burstSize,
-        height: burstSize,
-        opacity,
-        zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-        transform: `translate(-50%, -50%) rotate(${angle}rad)`
-      }
-    : isLine
-      ? {
-          left: startVisual.x,
-          top: startVisual.y,
-          width: length,
-          opacity,
-          zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-          transform: `rotate(${angle}rad)`
-        }
-    : {
-        left: projectileX,
-        top: projectileY - FIRE_BOLT_FAKE_Z - visualLift,
-        width: 38,
-        height: 24,
-        opacity,
-        zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-        transform: `translate(-50%, -50%) rotate(${angle}rad) scale(${vfxScale})`
-      };
-  return (
-    <>
-      {shadowStyle && (
-        <span
-          className="ballistic-projectile-shadow"
-          style={shadowStyle}
-          data-skill-event="projectile_spawn"
-          data-projectile-id={bolt.projectileId}
-          aria-hidden="true"
-        />
-      )}
-      <div
-        className={`fire-bolt skill-vfx skill-vfx-${behavior} skill-vfx-${tone} skill-vfx-${cssToken(bolt.vfxKey || bolt.visualEffect)}`}
-        style={style}
-        data-skill-template={bolt.skillTemplateId}
-        data-skill-event="projectile_spawn"
-        data-vfx-key={bolt.vfxKey}
-        data-projectile-trajectory={bolt.trajectory}
-        data-projectile-arc-height={bolt.arcHeight}
-        data-projectile-visual-mode={bolt.projectileVisualMode}
-        data-projectile-visual-lift={visualLift}
-        data-shape-effects={bolt.shapeEffects.map((effect) => effect.id).join(",")}
-      >
-        <span className="skill-vfx-core" />
-      </div>
-    </>
-  );
-}
-
 function HitVfxView({ vfx, depthIndex }: { vfx: HitVfx; depthIndex: number }) {
   const vfxKind = projectileVfxKind(vfx.vfxKey) ?? projectileVfxKind(vfx.skillTemplateId);
   if (!vfxKind) {
-    return <LegacyHitVfxView vfx={vfx} depthIndex={depthIndex} />;
+    return (
+      <LegacyHitVfxView
+        vfx={vfx}
+        depthIndex={depthIndex}
+        projectBattleWorldToScreen={projectBattleWorldToScreen}
+        normalizedVfxScale={normalizedVfxScale}
+        cssToken={cssToken}
+        visualTone={visualTone}
+        hasShapeEffect={hasShapeEffect}
+        zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
+      />
+    );
   }
   if (vfxKind === "sparkle") {
     return <SparkleHitVfxView vfx={vfx} depthIndex={depthIndex} />;
@@ -18606,71 +18557,6 @@ function SparkleHitVfxView({ vfx, depthIndex }: { vfx: HitVfx; depthIndex: numbe
       <span className="sparkle-hit-vfx__arc sparkle-hit-vfx__arc-a" />
       <span className="sparkle-hit-vfx__arc sparkle-hit-vfx__arc-b" />
     </span>
-  );
-}
-
-function LegacyHitVfxView({ vfx, depthIndex }: { vfx: HitVfx; depthIndex: number }) {
-  const duration = Math.max(0.001, vfx.duration);
-  const opacity = Math.max(0, vfx.ttl / duration);
-  const scale = (1 + (1 - opacity) * 0.55) * normalizedVfxScale(vfx.vfxScale);
-  const visualPoint = projectBattleWorldToScreen(vfx.x, vfx.y);
-  const hitTone = visualTone(vfx.damageType || vfx.vfxKey);
-  const showFireBoltNova = hasShapeEffect(vfx.shapeEffects, "fire_bolt_nova");
-  const showFireBoltRain = hasShapeEffect(vfx.shapeEffects, "fire_bolt_rain");
-  const showFireBoltFork = hasShapeEffect(vfx.shapeEffects, "fire_bolt_fork");
-  const shapeStyle = {
-    left: visualPoint.x,
-    top: visualPoint.y,
-    opacity,
-    zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex + 1,
-    transform: `translate(-50%, -50%) scale(${normalizedVfxScale(vfx.vfxScale)})`
-  };
-  return (
-    <>
-      <div
-        className={`skill-hit-vfx skill-vfx hit-vfx-tone-${hitTone} skill-vfx-${cssToken(vfx.vfxKey)}`}
-        style={{ left: visualPoint.x, top: visualPoint.y, opacity, zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex, transform: `translate(-50%, -50%) scale(${scale})` }}
-        data-skill-event="hit_vfx"
-        data-vfx-key={vfx.vfxKey}
-        data-damage-type={vfx.damageType}
-        data-target-id={vfx.targetId}
-        data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-      />
-      {showFireBoltFork && (
-        <span
-          className="hit-fork-sparks-vfx"
-          style={shapeStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.fire_bolt_fork`}
-          data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-          aria-hidden="true"
-        >
-          {Array.from({ length: 7 }, (_, index) => <span key={index} className={`hit-fork-spark hit-fork-spark-${index + 1}`} />)}
-        </span>
-      )}
-      {showFireBoltNova && (
-        <span
-          className="hit-nova-ring-vfx"
-          style={shapeStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.fire_bolt_nova`}
-          data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-          aria-hidden="true"
-        />
-      )}
-      {showFireBoltRain && (
-        <span
-          className="hit-meteor-rain-vfx"
-          style={shapeStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.fire_bolt_rain`}
-          data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-          aria-hidden="true"
-        >
-          {Array.from({ length: 6 }, (_, index) => <span key={index} className={`hit-meteor-streak hit-meteor-streak-${index + 1}`} />)}
-        </span>
-      )}
-    </>
   );
 }
 

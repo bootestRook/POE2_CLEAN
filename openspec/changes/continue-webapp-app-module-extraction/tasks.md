@@ -29,9 +29,9 @@
 ## 5. Tooltip And Battle Visual Boundaries
 
 - [x] 5.1 Extract tooltip presentation modules only after their needed shared types/helpers are available without importing from `App.tsx`.
-- [ ] 5.2 Extract projectile and hit VFX view components only as renderers of supplied runtime state; do not recalculate trajectory, targets, timing, damage, pierce, chain, or damage-zone origins.
+- [x] 5.2 Extract projectile and hit VFX view components only as renderers of supplied runtime state; do not recalculate trajectory, targets, timing, damage, pierce, chain, or damage-zone origins.
 - [x] 5.3 Leave high-coupling `GameApp` battle loop, runtime refs, damage application, target selection, monster movement, save orchestration, and skill event consumption in `App.tsx` unless a later change scopes them separately.
-- [ ] 5.4 Build after tooltip or battle visual extraction and fix only extraction-related issues.
+- [x] 5.4 Build after tooltip or battle visual extraction and fix only extraction-related issues.
 
 ## 6. Verification And Review
 
