@@ -43,6 +43,7 @@ if "%CHECK_ONLY%"=="0" (
 
 echo Building WebApp...
 set "VITE_OUT_DIR=%DIST_DIR%"
+set "VITE_RELEASE_DEBUG_TOOLS=1"
 call npm.cmd run build
 if errorlevel 1 (
   echo WebApp build failed.

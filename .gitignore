@@ -70,7 +70,8 @@ assets/_temp/
 assets/_generated/
 
 # ===== Local release/package outputs =====
-tools/release_host/
+tools/desktop_host/bin/
+tools/desktop_host/obj/
 /release/
 /package/
 /packages/

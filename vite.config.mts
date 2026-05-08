@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 const outDir = process.env.VITE_OUT_DIR || "dist";
 
 export default defineConfig({
+  base: "./",
   plugins: [react()],
   server: {
     host: "127.0.0.1",

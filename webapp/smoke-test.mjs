@@ -81,14 +81,14 @@ function functionBody(source, functionName) {
 }
 
 const requiredText = [
-  "\u738b\u9633\u5386\u9669\u8bb0 V1.0",
+  "\u6570\u72ec\u5237\u5b9d V1.1",
   "\u8fdb\u5165\u6218\u6597",
   "\u62d6\u62fd\uff1a\u653e\u7f6e\u5b9d\u77f3",
   "C\uff1a\u6253\u5f00/\u5173\u95ed\u80cc\u5305"
 ];
 
 for (const text of requiredText) {
-  if (!app.includes(text) && !html.includes(text)) {
+  if (!webappSourceText.includes(text) && !html.includes(text)) {
     throw new Error(`Missing required page text: ${text}`);
   }
 }

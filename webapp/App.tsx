@@ -2,6 +2,7 @@ import { CSSProperties, DragEvent, MouseEvent, ReactNode, memo, useCallback, use
 import { compareDimetricDepth, dimetricDepth } from "./isoDepth";
 import React from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { APP_TITLE, RELEASE_DEBUG_TOOLS_ENABLED } from "./appMetadata";
 import { unprojectScreenToWorld } from "./isoProjection";
 import { BAKED_BATTLE_MAPS, bakedMapAssetById, DEFAULT_BAKED_BATTLE_MAP_ID } from "./bakedMapAssets";
 import { BakedBattleMapData, isMapPointWalkable, loadBakedBattleMap, resolveWalkableMove } from "./bakedMapLoader";
@@ -1745,8 +1746,6 @@ const FRONTEND_SAVE_SLOT_KEY_PREFIX = "poe2.v1.frontend.save.slot.";
 const ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY = "poe2.v1.item_discard.skip_confirm";
 const FRONTEND_SAVE_SLOT_COUNT = 5;
 const FRONTEND_SAVE_VERSION = 1;
-const PACKAGED_RELEASE_HOSTNAME = "wangyang-adventure.local";
-const RELEASE_DEBUG_TOOLS_ENABLED = typeof window === "undefined" || window.location.hostname !== PACKAGED_RELEASE_HOSTNAME;
 const STARTER_GEM_BOARD_POSITION = { row: 4, column: 4 } as const;
 const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);
 
@@ -10333,7 +10332,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       {RELEASE_DEBUG_TOOLS_ENABLED && (
         <header className="top-hud">
           <div>
-            <h1>王阳历险记 V1.0</h1>
+            <h1>{APP_TITLE}</h1>
             <span>{notice}</span>
           </div>
           {skillEditorMode && (
@@ -10347,7 +10346,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       {!monsterTestMode && !skillEditorMode && entryStep === "title" && (
         <section className="entry-title-screen" aria-label="开始游戏">
           <div className="entry-title-copy">
-            <h2>王阳历险记 V1.0</h2>
+            <h2>{APP_TITLE}</h2>
           </div>
           <button
             className="entry-primary-button"
