@@ -14,10 +14,10 @@
 
 ## 3. Inventory And Equipment Presentation Extraction
 
-- [ ] 3.1 Extract remaining inventory/equipment render-only helpers into focused presentation components or helper modules.
-- [ ] 3.2 Keep item storage, drag/drop rules, equipment recalculation, gem mutation, and save orchestration in their current App-owned paths.
-- [ ] 3.3 Verify rest-area inventory/equipment rendering, tooltip hover behavior, and gem display with build/test checks and a playable WebApp screenshot.
-- [ ] 3.4 Commit only the inventory/equipment extraction files after verification passes.
+- [x] 3.1 Extract remaining inventory/equipment render-only helpers into focused presentation components or helper modules.
+- [x] 3.2 Keep item storage, drag/drop rules, equipment recalculation, gem mutation, and save orchestration in their current App-owned paths.
+- [x] 3.3 Verify rest-area inventory/equipment rendering, tooltip hover behavior, and gem display with build/test checks and a playable WebApp screenshot.
+- [x] 3.4 Commit only the inventory/equipment extraction files after verification passes.
 
 ## 4. Battle Guide And Debug Overlay Extraction
 

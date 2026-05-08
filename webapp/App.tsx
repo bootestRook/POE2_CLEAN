@@ -86,6 +86,7 @@ import { LegacyFireBoltView, LegacyHitVfxView } from "./components/battle/Legacy
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
+import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
@@ -10668,7 +10669,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               isEquipmentTooltip={(gem) => gem.item_kind === "equipment"}
             />
           )}
-          {floatingGem && <FloatingGemView floatingGem={floatingGem} />}
+          {floatingGem && <FloatingGemView floatingGem={floatingGem} renderGem={(gem) => <GemOrb gem={gem} />} />}
           {floatingGem && <div className="drag-hint">拖到数独盘格子后松开</div>}
           {placementPrompt && (
             <div className="placement-prompt" style={{ left: placementPrompt.x, top: placementPrompt.y }}>
@@ -11178,14 +11179,6 @@ function previewAffectedCellClass(types: PreviewRelationType[]) {
   if (types.includes("box")) return "preview-dot-cell";
   if (types.includes("row") || types.includes("column")) return "preview-dot-cell";
   return "";
-}
-
-function FloatingGemView({ floatingGem }: { floatingGem: FloatingGem }) {
-  return (
-    <div className="floating-gem" style={{ left: floatingGem.x, top: floatingGem.y }}>
-      <GemOrb gem={floatingGem.gem} />
-    </div>
-  );
 }
 
 function GemGhost() {

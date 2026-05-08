@@ -34,3 +34,15 @@
   - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
   - Focused TypeScript filter for `tooltipViewModel`, `GemTooltipOverlay`, and `TooltipPrimitives` produced no matching errors; full `tsc --noEmit` still has existing broader type debt outside this split.
   - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/tooltip-extraction-rest-area-tooltip.png` shows the rest-area inventory open with a gem tooltip rendering name, level, tags, damage, attack interval, mana cost, and rules.
+
+## Inventory Presentation Extraction
+
+- Moved the floating dragged-item view into `webapp/components/inventory/FloatingGemView.tsx`.
+- Left drag state, drag/drop rules, inventory slots, equipment slots, stash ownership, save updates, and gem mutation in `webapp/App.tsx`.
+- Updated the smoke assertion for the current editor-map terrain snapshot expression so the existing smoke suite matches the App code path under test.
+- Verification:
+  - `npm run build` passed.
+  - `npm test` passed.
+  - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
+  - Focused TypeScript filter for `FloatingGemView` produced no matching errors; full `tsc --noEmit` still has broader existing type debt outside this split.
+  - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/floating-gem-extraction-drag.png` shows the rest-area inventory open while dragging a gem, with one `.floating-gem` and one `.gem-ghost` rendered.

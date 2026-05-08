@@ -458,7 +458,7 @@ const requiredCode = [
   "map-editor-wall-corner-nw",
   "map-editor-wall-open-",
   "abstract-geometric-map-tiles",
-  "terrain: runtimeUsesEditorMap",
+  "terrain: editorBattleMap",
   "renderGeometricMapTiles",
   "stableMapTileSeed",
   "ground_cracked",
