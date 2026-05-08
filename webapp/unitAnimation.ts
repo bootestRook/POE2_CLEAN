@@ -1,5 +1,6 @@
 import {
   implementedUnitDirections,
+  UNIT_ANIMATION_ASSETS,
   UNIT_ANIMATION_BY_KEY,
   UnitAnimationAsset,
   UnitAnimationState,

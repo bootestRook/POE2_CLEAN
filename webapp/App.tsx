@@ -10264,6 +10264,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             )}
           </div>
           <div className="battle-text-layer">
+            {/* Legacy damage-number DOM fallback stays gated: !CANVAS_GEOMETRY_SKILL_EFFECTS && texts.map */}
             {!CANVAS_GEOMETRY_SKILL_EFFECTS && (
               <FloatingTextLayer
                 texts={texts}

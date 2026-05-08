@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-type ShapeEffect = { id: string };
+type ShapeEffect = { id: string; text: string };
 
 type LegacyProjectileViewModel = {
   id: number | string;
@@ -38,7 +38,7 @@ type LegacyHitVfxViewModel = {
 
 type ProjectPoint = (worldX: number, worldY: number) => { x: number; y: number };
 
-export function LegacyFireBoltView({
+export function LegacyFireBoltView<TBolt extends LegacyProjectileViewModel>({
   bolt,
   depthIndex,
   projectBattleWorldToScreen,
@@ -53,17 +53,17 @@ export function LegacyFireBoltView({
   zIndexBase,
   fakeZ
 }: {
-  bolt: LegacyProjectileViewModel;
+  bolt: TBolt;
   depthIndex: number;
   projectBattleWorldToScreen: ProjectPoint;
   normalizedVfxScale: (value: unknown) => number;
-  projectileBodyOpacity: (bolt: LegacyProjectileViewModel) => number;
-  fireBoltTravel: (bolt: LegacyProjectileViewModel) => number;
-  fireBoltWorldPoint: (bolt: LegacyProjectileViewModel, travel?: number) => { x: number; y: number };
-  ballisticArcVisualLift: (bolt: LegacyProjectileViewModel, travel?: number) => number;
-  ballisticShadowStyle: (bolt: LegacyProjectileViewModel, point: { x: number; y: number }, depthIndex: number, opacity: number, travel?: number) => CSSProperties | null;
-  cssToken: (value: unknown) => string;
-  visualTone: (value: unknown) => string;
+  projectileBodyOpacity: (bolt: TBolt) => number;
+  fireBoltTravel: (bolt: TBolt) => number;
+  fireBoltWorldPoint: (bolt: TBolt, travel?: number) => { x: number; y: number };
+  ballisticArcVisualLift: (bolt: TBolt, travel?: number) => number;
+  ballisticShadowStyle: (bolt: TBolt, point: { x: number; y: number }, depthIndex: number, opacity: number, travel?: number) => CSSProperties | null;
+  cssToken: (value: string | undefined) => string;
+  visualTone: (value: string | undefined) => string;
   zIndexBase: number;
   fakeZ: number;
 }) {
@@ -157,9 +157,9 @@ export function LegacyHitVfxView({
   depthIndex: number;
   projectBattleWorldToScreen: ProjectPoint;
   normalizedVfxScale: (value: unknown) => number;
-  cssToken: (value: unknown) => string;
-  visualTone: (value: unknown) => string;
-  hasShapeEffect: (effects: ShapeEffect[], id: string) => boolean;
+  cssToken: (value: string | undefined) => string;
+  visualTone: (value: string | undefined) => string;
+  hasShapeEffect: (effects: ShapeEffect[] | undefined, id: string) => boolean;
   zIndexBase: number;
 }) {
   const duration = Math.max(0.001, vfx.duration);
