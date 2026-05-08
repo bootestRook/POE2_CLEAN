@@ -332,3 +332,61 @@ export function buildGemTooltipViewModelWithNormalizers<TGem extends { tooltip_v
   if (view.variant !== "active" && view.variant !== "passive") return view;
   return normalizeActiveTooltipView(gem, view);
 }
+
+export function normalizedTooltipSubtitle(subtitle: string, tags: readonly { text: string }[]) {
+  const parts = subtitle.split("、").filter(Boolean);
+  if (parts.length === 0) return subtitle;
+  const colorText = parts[0];
+  return [colorText, ...tags.map((tag) => tag.text)].join("、");
+}
+
+export function frontendGemLevelText(gem: { level?: number }) {
+  return String(Math.max(1, Math.floor(Number(gem.level ?? 1))));
+}
+
+export function ensureGemLevelStatLine(gem: { level?: number }, lines: TooltipStatLine[]) {
+  const levelText = frontendGemLevelText(gem);
+  let found = false;
+  const nextLines = lines.map((line) => {
+    if (!isSkillLevelTooltipLine(line.label_text)) return line;
+    found = true;
+    return { ...line, value_text: levelText };
+  });
+  if (found) return nextLines;
+  return [{ label_text: "\u7b49\u7ea7", value_text: levelText }, ...nextLines];
+}
+
+const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
+
+export function ensureReleaseIntervalStatLine(
+  gem: {
+    tags?: readonly { id?: string; text: string }[];
+    base_effect?: { base_release_interval_ms?: number; release_interval_ms?: number };
+  },
+  lines: TooltipStatLine[],
+  frontendSkillPreviewsBySkillTag: () => Record<string, { release_interval_ms?: number }>,
+  formatPreviewNumber: (value: number) => string
+) {
+  if (lines.some((line) => RELEASE_INTERVAL_LABELS.has(line.label_text))) return lines;
+  const skillTag = gem.tags?.find((tag) => typeof tag.id === "string" && tag.id.startsWith("skill_"))?.id ?? "";
+  const preview = skillTag ? frontendSkillPreviewsBySkillTag()[skillTag] : undefined;
+  const releaseIntervalMs = Number(
+    preview?.release_interval_ms
+      ?? gem.base_effect?.release_interval_ms
+      ?? gem.base_effect?.base_release_interval_ms
+      ?? 0
+  );
+  if (!Number.isFinite(releaseIntervalMs) || releaseIntervalMs <= 0) return lines;
+  const tagIds = new Set((gem.tags ?? []).map((tag) => tag.id ?? tag.text));
+  if (!tagIds.has("attack") && !tagIds.has("spell")) return lines;
+  const line = {
+    label_text: tagIds.has("spell") ? "施法时间" : "攻击间隔",
+    value_text: `${formatPreviewNumber(releaseIntervalMs)} 毫秒`,
+  };
+  const insertAfter = Math.max(
+    lines.findIndex((candidate) => candidate.label_text === "冷却"),
+    lines.findIndex((candidate) => ["攻击伤害", "法术伤害", "技能伤害"].includes(candidate.label_text)),
+  );
+  if (insertAfter < 0) return [...lines, line];
+  return [...lines.slice(0, insertAfter + 1), line, ...lines.slice(insertAfter + 1)];
+}

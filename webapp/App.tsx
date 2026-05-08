@@ -80,7 +80,7 @@ import type { CharacterPanelView } from "./components/character/CharacterInfoPan
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16726,7 +16726,6 @@ const NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS = new Set([
   "chaos",
   "elemental",
 ]);
-const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
 const FRONTEND_BASE_KNOCKBACK_DISTANCE = 250;
 const FRONTEND_KNOCKBACK_LOCK_MS = 260;
 
@@ -16737,7 +16736,7 @@ function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
     .map((tag) => frontendDisplayGemKindTag(gem, tag));
   const statLines = normalizePassiveTooltipStatLines(
     gem,
-    ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines))
+    ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines), frontendSkillPreviewsBySkillTag, formatPreviewNumber)
   );
   const sections = {
     ...view.sections,
@@ -16933,54 +16932,6 @@ function replaceGemTagRichLines(gem: Gem, lines: TooltipRichLine[] | undefined) 
       ? { ...segment, ...frontendGemColorTag(gem) }
       : segment.text === "\u5b9d\u77f3" ? { ...segment, text: frontendGemKindTagText(gem) } : segment
   )));
-}
-
-function normalizedTooltipSubtitle(subtitle: string, tags: TooltipTagView[]) {
-  const parts = subtitle.split("、").filter(Boolean);
-  if (parts.length === 0) return subtitle;
-  const colorText = parts[0];
-  return [colorText, ...tags.map((tag) => tag.text)].join("、");
-}
-
-function frontendGemLevelText(gem: Gem) {
-  return String(Math.max(1, Math.floor(Number(gem.level ?? 1))));
-}
-
-function ensureGemLevelStatLine(gem: Gem, lines: TooltipStatLine[]) {
-  const levelText = frontendGemLevelText(gem);
-  let found = false;
-  const nextLines = lines.map((line) => {
-    if (!isSkillLevelTooltipLine(line.label_text)) return line;
-    found = true;
-    return { ...line, value_text: levelText };
-  });
-  if (found) return nextLines;
-  return [{ label_text: "\u7b49\u7ea7", value_text: levelText }, ...nextLines];
-}
-
-function ensureReleaseIntervalStatLine(gem: Gem, lines: TooltipStatLine[]) {
-  if (lines.some((line) => RELEASE_INTERVAL_LABELS.has(line.label_text))) return lines;
-  const skillTag = gem.tags.find((tag) => typeof tag.id === "string" && tag.id.startsWith("skill_"))?.id ?? "";
-  const preview = skillTag ? frontendSkillPreviewsBySkillTag()[skillTag] : undefined;
-  const releaseIntervalMs = Number(
-    preview?.release_interval_ms
-      ?? gem.base_effect?.release_interval_ms
-      ?? gem.base_effect?.base_release_interval_ms
-      ?? 0
-  );
-  if (!Number.isFinite(releaseIntervalMs) || releaseIntervalMs <= 0) return lines;
-  const tagIds = new Set((gem.tags ?? []).map((tag) => tag.id ?? tag.text));
-  if (!tagIds.has("attack") && !tagIds.has("spell")) return lines;
-  const line = {
-    label_text: tagIds.has("spell") ? "施法时间" : "攻击间隔",
-    value_text: `${formatPreviewNumber(releaseIntervalMs)} 毫秒`,
-  };
-  const insertAfter = Math.max(
-    lines.findIndex((candidate) => candidate.label_text === "冷却"),
-    lines.findIndex((candidate) => ["攻击伤害", "法术伤害", "技能伤害"].includes(candidate.label_text)),
-  );
-  if (insertAfter < 0) return [...lines, line];
-  return [...lines.slice(0, insertAfter + 1), line, ...lines.slice(insertAfter + 1)];
 }
 
 function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
