@@ -100,6 +100,7 @@ import { GroundDropLayer } from "./components/battle/GroundDropLayer";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
+import { PlayerOverheadResourceBars } from "./components/battle/PlayerOverheadResourceBars";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
@@ -10271,7 +10272,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           </div>
         </div>
         <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
-        <PlayerOverheadResourceBars player={player} camera={battleCamera} />
+        <PlayerOverheadResourceBars player={player} projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)} />
         <GroundDropLayer
           drops={state.drops}
           displayPositions={dropDisplayPositions.current}
@@ -10839,50 +10840,6 @@ function normalizePlayerRuntimeResources(player: PlayerRuntimeState): PlayerRunt
     maxEnergyShield,
     currentEnergyShield: clamp(Number.isFinite(player.currentEnergyShield) ? player.currentEnergyShield : maxEnergyShield, 0, maxEnergyShield)
   };
-}
-
-function PlayerOverheadResourceBars({
-  player,
-  camera
-}: {
-  player: Pick<PlayerRuntimeState, "x" | "y" | "hp" | "maxHp" | "currentMana" | "maxMana" | "currentEnergyShield" | "maxEnergyShield">;
-  camera: Camera2D;
-}) {
-  const maxLife = Math.max(0, player.maxHp);
-  const currentLife = clamp(player.hp, 0, maxLife);
-  const maxMana = Math.max(0, player.maxMana);
-  const currentMana = clamp(player.currentMana, 0, maxMana);
-  const maxEnergyShield = Math.max(0, player.maxEnergyShield);
-  const currentEnergyShield = clamp(player.currentEnergyShield, 0, maxEnergyShield);
-  const style = playerOverheadResourceStyle(player, camera);
-
-  return (
-    <aside className="player-overhead-resource-bars" style={style} aria-label="玩家资源">
-      <span className="player-overhead-bar player-overhead-bar-life">
-        <span style={{ width: `${resourcePercent(currentLife, maxLife)}%` }} />
-        {maxEnergyShield > 0 ? (
-          <span className="player-overhead-bar-energy-shield" style={{ width: `${resourcePercent(currentEnergyShield, maxEnergyShield)}%` }} />
-        ) : null}
-      </span>
-      <span className="player-overhead-bar player-overhead-bar-mana">
-        <span style={{ width: `${resourcePercent(currentMana, maxMana)}%` }} />
-      </span>
-    </aside>
-  );
-}
-
-function playerOverheadResourceStyle(player: { x: number; y: number }, camera: Camera2D): CSSProperties {
-  const screenX = (player.x - camera.screenX) * camera.zoom;
-  const screenY = (player.y - camera.screenY) * camera.zoom;
-  return {
-    left: `calc(${BATTLE_CAMERA_ANCHOR_X} + ${screenX}px)`,
-    top: `calc(${BATTLE_CAMERA_ANCHOR_Y} + ${screenY}px - 82px)`
-  };
-}
-
-function resourcePercent(current: number, max: number) {
-  if (max <= 0) return 0;
-  return clamp((current / max) * 100, 0, 100);
 }
 
 function CharacterInfoPanel({ state, player }: { state: AppState; player: PlayerRuntimeState }) {
