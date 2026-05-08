@@ -3,7 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BakedBattleMapData, MapPoint } from "../../bakedMapLoader";
 import type { ProceduralZoneType } from "../../mapSpawnRuntime";
 import { AUTHORED_MAP_TEMPLATES, DEFAULT_AUTHORED_MAP_TEMPLATE_ID, REST_AREA_MAP_TEMPLATE_ID, defaultAuthoredMapTemplate } from "../../mapTemplateRegistry";
-import { rotateCellPoint, rotateGrid, rotatedGridSize } from "../../mapInstanceRuntime";
+import { chooseIndex, rotateCellPoint, rotateGrid, rotatedGridSize } from "../../mapInstanceRuntime";
 import type { MapInstanceMetadata, MapInstanceRotation } from "../../mapInstanceRuntime";
 import { resolveUnitAnimation } from "../../unitAnimation";
 import type { UnitAnimationFrame } from "../../unitAnimation";
