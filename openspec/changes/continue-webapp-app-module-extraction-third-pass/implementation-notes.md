@@ -32,3 +32,11 @@
 - Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
 - `run.bat` playable verification passed on `http://127.0.0.1:8766/`; screenshot saved at `artifacts/screenshots/third-pass-helper-vfx-cleanup-battle.png`.
 - Visible result: new save entered rest area, Wang Yang opened map selection, `map_001` loaded without black screen, player/map rendered, and procedural spawn debug showed generated map content.
+
+## Group 3 Verification
+
+- Extracted projectile body presentation into `webapp/components/battle/ProjectileBodyViews.tsx`.
+- App now passes existing projection and direction helpers into the component; projectile runtime ownership, lifecycle, hit timing, collision, damage, pierce/chain, and event consumption stayed in App/runtime paths.
+- Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
+- `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-projectile-views-battle.png`.
+- Visible result: new save entered `map_001`, map and player rendered, canvas layers were present, and procedural spawn debug showed generated map content.

@@ -81,7 +81,7 @@ import { createFrontendItemTooltipView } from "./components/tooltips/tooltipView
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
-import { LegacyFireBoltView, LegacyHitVfxView } from "./components/battle/LegacyProjectileHitVfxViews";
+import { LegacyHitVfxView } from "./components/battle/LegacyProjectileHitVfxViews";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
@@ -101,6 +101,7 @@ import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 import { FireBoltAlignmentDebug } from "./components/battle/FireBoltAlignmentDebug";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
+import { FireBoltView } from "./components/battle/ProjectileBodyViews";
 import {
   FIRE_BOLT_FAKE_Z,
   FIRE_BOLT_IMPACT_DURATION_MS,
@@ -16929,7 +16930,17 @@ function createBattleAnimationContexts(
 
 function renderBattleRenderItem(item: BattleRenderItem, depthIndex: number, animationContexts: BattleAnimationContexts) {
   if (item.kind === "fire-bolt") {
-    return <FireBoltView key={`fire-bolt-${item.id}`} bolt={item.bolt} depthIndex={depthIndex} />;
+    return (
+      <FireBoltView
+        key={`fire-bolt-${item.id}`}
+        bolt={item.bolt}
+        depthIndex={depthIndex}
+        projectBattleWorldToScreen={projectBattleWorldToScreen}
+        normalizedWorldDirection={normalizedWorldDirection}
+        worldDirectionToBattleScreenAngle={worldDirectionToBattleScreenAngle}
+        zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
+      />
+    );
   }
   if (item.kind === "hit-vfx") {
     return <HitVfxView key={`hit-vfx-${item.id}`} vfx={item.vfx} depthIndex={depthIndex} />;
@@ -17908,164 +17919,6 @@ function finishCompletedProjectileBody<TBolt extends Pick<
     velocityY: 0,
     ttl: Math.min(bolt.ttl, fadeDuration)
   };
-}
-
-function FireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number }) {
-  const vfxKind = projectileVfxKind(bolt.vfxKey) ?? projectileVfxKind(bolt.visualEffect) ?? projectileVfxKind(bolt.skillTemplateId);
-  if (!vfxKind) {
-    return (
-      <LegacyFireBoltView
-        bolt={bolt}
-        depthIndex={depthIndex}
-        projectBattleWorldToScreen={projectBattleWorldToScreen}
-        normalizedVfxScale={normalizedVfxScale}
-        projectileBodyOpacity={projectileBodyOpacity}
-        fireBoltTravel={fireBoltTravel}
-        fireBoltWorldPoint={fireBoltWorldPoint}
-        ballisticArcVisualLift={ballisticArcVisualLift}
-        ballisticShadowStyle={(legacyBolt, point, legacyDepthIndex, opacity, travel) => (
-          ballisticShadowStyle(legacyBolt, point, legacyDepthIndex, opacity, projectBattleWorldToScreen, BATTLE_ENTITY_Z_INDEX_BASE, travel)
-        )}
-        cssToken={cssToken}
-        visualTone={visualTone}
-        zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
-        fakeZ={FIRE_BOLT_FAKE_Z}
-      />
-    );
-  }
-  if (vfxKind === "sparkle") {
-    return <SparkleProjectileView bolt={bolt} depthIndex={depthIndex} />;
-  }
-  if (vfxKind === "burning_shot") {
-    return <BurningShotProjectileView bolt={bolt} depthIndex={depthIndex} />;
-  }
-  return (
-    <LegacyFireBoltView
-      bolt={bolt}
-      depthIndex={depthIndex}
-      projectBattleWorldToScreen={projectBattleWorldToScreen}
-      normalizedVfxScale={normalizedVfxScale}
-      projectileBodyOpacity={projectileBodyOpacity}
-      fireBoltTravel={fireBoltTravel}
-      fireBoltWorldPoint={fireBoltWorldPoint}
-      ballisticArcVisualLift={ballisticArcVisualLift}
-      ballisticShadowStyle={(legacyBolt, point, legacyDepthIndex, opacity, travel) => (
-        ballisticShadowStyle(legacyBolt, point, legacyDepthIndex, opacity, projectBattleWorldToScreen, BATTLE_ENTITY_Z_INDEX_BASE, travel)
-      )}
-      cssToken={cssToken}
-      visualTone={visualTone}
-      zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
-      fakeZ={FIRE_BOLT_FAKE_Z}
-    />
-  );
-}
-
-function BurningShotProjectileView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number }) {
-  const duration = Math.max(0.001, bolt.duration);
-  const aliveRemaining = fireBoltAliveRemaining(bolt);
-  const opacity = projectileBodyOpacity(bolt);
-  const travel = fireBoltTravel(bolt);
-  const point = fireBoltWorldPoint(bolt, travel);
-  const visualPoint = projectBattleWorldToScreen(point.x, point.y);
-  const visualLift = ballisticArcVisualLift(bolt, travel);
-  const direction = normalizedWorldDirection({
-    x: typeof bolt.velocityX === "number" ? bolt.velocityX : bolt.directionX,
-    y: typeof bolt.velocityY === "number" ? bolt.velocityY : bolt.directionY
-  });
-  const angle = worldDirectionToBattleScreenAngle(direction, point);
-  const speedScale = clamp((bolt.projectileSpeed ?? 620) / 620, 0.82, 1.36);
-  const length = Math.max(34, Number(bolt.projectileWidth ?? 50) * 1.18) * speedScale;
-  const height = Math.max(18, Number(bolt.projectileHeight ?? 30) * 0.72);
-  const pulseScale = 0.96 + pulse(aliveRemaining * 2.1) * 0.09;
-  const transform = `translate(-50%, -50%) rotate(${angle}rad) scale(${pulseScale})`;
-
-  return (
-    <span
-      className="burning-shot-projectile-vfx"
-      style={{
-        left: visualPoint.x,
-        top: visualPoint.y - visualLift,
-        width: length,
-        height,
-        opacity,
-        zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-        transform
-      }}
-      data-skill-template={bolt.skillTemplateId}
-      data-skill-event="projectile_spawn"
-      data-vfx-key={bolt.vfxKey}
-      data-projectile-id={bolt.projectileId}
-      data-skill-id={bolt.skillId ?? bolt.skillTemplateId}
-      data-spawn-world-x={bolt.x}
-      data-spawn-world-y={bolt.y}
-      data-current-world-x={point.x}
-      data-current-world-y={point.y}
-      data-direction-world-x={direction.x}
-      data-direction-world-y={direction.y}
-      data-velocity-world-x={bolt.velocityX ?? direction.x}
-      data-velocity-world-y={bolt.velocityY ?? direction.y}
-      data-impact-world-x={bolt.targetX}
-      data-impact-world-y={bolt.targetY}
-      data-projectile-speed={bolt.projectileSpeed}
-      data-projectile-trajectory={bolt.trajectory}
-      data-projectile-alive-remaining={aliveRemaining}
-      aria-hidden="true"
-    >
-      <span className="burning-shot-projectile-vfx__trail burning-shot-projectile-vfx__trail-a" />
-      <span className="burning-shot-projectile-vfx__trail burning-shot-projectile-vfx__trail-b" />
-      <span className="burning-shot-projectile-vfx__shaft" />
-      <span className="burning-shot-projectile-vfx__head" />
-      <span className="burning-shot-projectile-vfx__core" />
-    </span>
-  );
-}
-
-function SparkleProjectileView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number }) {
-  const vfxScale = normalizedVfxScale(bolt.vfxScale);
-  const duration = Math.max(0.001, bolt.duration);
-  const aliveRemaining = fireBoltAliveRemaining(bolt);
-  const opacity = projectileBodyOpacity(bolt);
-  const travel = fireBoltTravel(bolt);
-  const point = fireBoltWorldPoint(bolt, travel);
-  const visualPoint = projectBattleWorldToScreen(point.x, point.y);
-  const direction = normalizedWorldDirection({
-    x: typeof bolt.velocityX === "number" ? bolt.velocityX : bolt.directionX,
-    y: typeof bolt.velocityY === "number" ? bolt.velocityY : bolt.directionY
-  });
-  const angle = worldDirectionToBattleScreenAngle(direction, point);
-  const speedScale = clamp((bolt.projectileSpeed ?? 520) / 520, 0.72, 1.28);
-  const size = Math.max(18, Math.max(Number(bolt.projectileWidth ?? 36), Number(bolt.projectileHeight ?? 26)) * 0.86) * vfxScale;
-  const style: CSSProperties = {
-    left: visualPoint.x,
-    top: visualPoint.y - 12,
-    width: size,
-    height: size,
-    opacity,
-    zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-    transform: `translate(-50%, -50%) rotate(${angle}rad) scale(${0.9 + Math.sin((duration - aliveRemaining) * 38) * 0.05})`
-  };
-  return (
-    <span
-      className="sparkle-projectile-vfx"
-      style={style}
-      data-skill-template={bolt.skillTemplateId}
-      data-skill-event="projectile_spawn"
-      data-vfx-key={bolt.vfxKey}
-      data-projectile-id={bolt.projectileId}
-      data-skill-id={bolt.skillId ?? bolt.skillTemplateId}
-      data-current-world-x={point.x}
-      data-current-world-y={point.y}
-      data-direction-world-x={direction.x}
-      data-direction-world-y={direction.y}
-      data-projectile-speed={bolt.projectileSpeed}
-      aria-hidden="true"
-    >
-      <span className="sparkle-projectile-vfx__trail" style={{ transform: `translate(-50%, -50%) scaleX(${speedScale})` }} />
-      <span className="sparkle-projectile-vfx__arc sparkle-projectile-vfx__arc-a" />
-      <span className="sparkle-projectile-vfx__arc sparkle-projectile-vfx__arc-b" />
-      <span className="sparkle-projectile-vfx__core" />
-    </span>
-  );
 }
 
 function HitVfxView({ vfx, depthIndex }: { vfx: HitVfx; depthIndex: number }) {

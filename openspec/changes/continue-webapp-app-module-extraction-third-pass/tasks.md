@@ -14,10 +14,10 @@
 
 ## 3. Projectile Body View Extraction
 
-- [ ] 3.1 Extract `FireBoltView`, `BurningShotProjectileView`, `SparkleProjectileView`, and their render-only child markup into focused battle component modules.
-- [ ] 3.2 Preserve existing props, class names, DOM order, data attributes, style formulas, sprite-frame behavior, and rendering order.
-- [ ] 3.3 Keep projectile spawning, movement, collision, pierce/chain behavior, target selection, hit timing, damage, and runtime event consumption in their current App-owned paths.
-- [ ] 3.4 Run `npm run build`, `npm test`, focused TypeScript checks, playable WebApp verification, screenshot capture under `artifacts/screenshots/`, and commit only this projectile view group.
+- [x] 3.1 Extract `FireBoltView`, `BurningShotProjectileView`, `SparkleProjectileView`, and their render-only child markup into focused battle component modules.
+- [x] 3.2 Preserve existing props, class names, DOM order, data attributes, style formulas, sprite-frame behavior, and rendering order.
+- [x] 3.3 Keep projectile spawning, movement, collision, pierce/chain behavior, target selection, hit timing, damage, and runtime event consumption in their current App-owned paths.
+- [x] 3.4 Run `npm run build`, `npm test`, focused TypeScript checks, playable WebApp verification, screenshot capture under `artifacts/screenshots/`, and commit only this projectile view group.
 
 ## 4. Hit VFX And Player Buff View Extraction
 

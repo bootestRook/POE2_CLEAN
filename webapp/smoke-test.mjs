@@ -761,7 +761,7 @@ const projectileVfxLifetimeChecks = [
 ];
 
 for (const text of projectileVfxLifetimeChecks) {
-  if (!app.includes(text)) {
+  if (!webappSourceText.includes(text)) {
     throw new Error(`缂傚搫鐨幎鏇炵殸閻椻晝鏁撶€涙ɑ锟?濞ｂ€冲毉閸掑棛顬囧Λ鈧弻銉窗${text}`);
   }
 }
