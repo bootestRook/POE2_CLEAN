@@ -27,6 +27,13 @@ export type MapEditorZoneRect = {
   start: MapEditorCellPoint;
   end: MapEditorCellPoint;
 };
+
+type UnitVisualRuntime = {
+  direction: UnitDirection;
+  movementVector: { x: number; y: number };
+  attackStartedAtMs?: number;
+  attackUntilMs?: number;
+};
 export type MapEditorZone = {
   id: string;
   zoneType: ProceduralZoneType;
@@ -2093,11 +2100,18 @@ function mapEditorMinimapBoundsStyle(bounds: MapEditorVisibleBounds): CSSPropert
 }
 
 function mapEditorPlayerStyle(player: { x: number; y: number }, frame: UnitAnimationFrame): CSSProperties {
+  const asset = frame.animation;
   return {
-    ...battleUnitStyle(player, frame, 60),
-    "--unit-render-scale": MAP_EDITOR_PLAYER_RENDER_SCALE,
+    left: player.x,
+    top: player.y,
+    width: asset.frameWidth,
+    height: asset.frameHeight,
+    zIndex: 60,
+    "--unit-anchor-x": asset.anchorX,
+    "--unit-anchor-y": asset.anchorY,
+    "--unit-render-scale": MAP_EDITOR_PLAYER_RENDER_SCALE * asset.scale,
     pointerEvents: "none"
-  };
+  } as CSSProperties;
 }
 
 function mapEditorSpawnMarkerStyle(spawn: MapEditorCellPoint, cellSize: number): CSSProperties {

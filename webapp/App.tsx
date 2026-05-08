@@ -17877,6 +17877,10 @@ function normalizedVfxScale(value: unknown) {
   return Number.isFinite(scale) ? clamp(scale, 0.1, 10) : 1;
 }
 
+function pulse(value: number) {
+  return (Math.sin(value * Math.PI * 2) + 1) / 2;
+}
+
 function skillPreviewVfxScale(skill: SkillPreview) {
   return normalizedVfxScale(skill.presentation_keys?.vfx_scale);
 }
