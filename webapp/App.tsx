@@ -98,6 +98,8 @@ import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
+import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
+import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
@@ -1611,8 +1613,6 @@ type BattleAnimationContexts = {
   player: UnitAnimationContext;
   enemies: Map<number, UnitAnimationContext>;
 };
-
-type PlayableMinimapMode = "compact" | "expanded";
 
 const DEFAULT_BAKED_BATTLE_MAP = BAKED_BATTLE_MAPS[0];
 const MAP_WIDTH = DEFAULT_BAKED_BATTLE_MAP.meta.world_width;
@@ -11002,92 +11002,6 @@ function formatFrontendSaveTime(value: string | undefined) {
   });
 }
 
-function PlayableBattleMinimap({
-  map,
-  player,
-  exploredCells,
-  mode
-}: {
-  map: BakedBattleMapData;
-  player: { x: number; y: number };
-  exploredCells: ReadonlySet<string>;
-  mode: PlayableMinimapMode;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const minimapAspect = Math.max(0.1, map.meta.world_width / Math.max(1, map.meta.world_height));
-  const minimapStyle = {
-    "--playable-minimap-aspect-ratio": `${Math.max(1, map.meta.world_width)} / ${Math.max(1, map.meta.world_height)}`,
-    "--playable-minimap-aspect-number": String(minimapAspect)
-  } as CSSProperties;
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) return;
-    renderPlayableMinimapCanvas(context, map, exploredCells);
-  }, [map, exploredCells]);
-
-  return (
-    <aside
-      className={`playable-minimap playable-minimap-${mode}`}
-      data-playable-minimap="true"
-      data-minimap-mode={mode}
-      data-minimap-explored-cells={exploredCells.size}
-      style={minimapStyle}
-      aria-label={mode === "expanded" ? "放大地图" : "小地图"}
-    >
-      <canvas
-        ref={canvasRef}
-        className="playable-minimap-canvas"
-        width={Math.max(1, map.gridWidth)}
-        height={Math.max(1, map.gridHeight)}
-        aria-hidden="true"
-      />
-      <span className="playable-minimap-player" style={playableMinimapPlayerStyle(map, player)} aria-hidden="true" />
-    </aside>
-  );
-}
-
-function renderPlayableMinimapCanvas(
-  context: CanvasRenderingContext2D,
-  map: BakedBattleMapData,
-  exploredCells: ReadonlySet<string>
-) {
-  const canvas = context.canvas;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "rgba(0, 0, 0, 0)";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  for (const key of exploredCells) {
-    const cell = playableMinimapCellFromKey(key);
-    if (!cell) continue;
-    const kind = playableMinimapTerrainKind(map, cell.x, cell.y);
-    if (kind === "hidden") continue;
-    context.fillStyle = kind === "wall"
-      ? "rgba(169, 184, 176, 0.72)"
-      : "rgba(78, 116, 96, 0.82)";
-    context.fillRect(cell.x, cell.y, 1, 1);
-  }
-}
-
-function playableMinimapTerrainKind(map: BakedBattleMapData, gridX: number, gridY: number): "ground" | "wall" | "hidden" {
-  if (isEditorRuntimeBattleMap(map)) {
-    const tile = map.editorTiles[gridY]?.[gridX] ?? "empty";
-    if (tile === "ground") return "ground";
-    if (tile === "wall") return "wall";
-    return "hidden";
-  }
-  if (map.blockerGrid[gridY]?.[gridX]) return "wall";
-  if (map.walkableGrid[gridY]?.[gridX]) return "ground";
-  return "hidden";
-}
-
-function playableMinimapPlayerStyle(map: BakedBattleMapData, player: { x: number; y: number }): CSSProperties {
-  return {
-    left: `${clamp(player.x / Math.max(1, map.meta.world_width) * 100, 0, 100)}%`,
-    top: `${clamp(player.y / Math.max(1, map.meta.world_height) * 100, 0, 100)}%`
-  };
-}
-
 function BakedMapBackground({ map }: { map: BakedBattleMapData }) {
   if (isEditorRuntimeBattleMap(map)) return <EditorRuntimeMapBackground map={map} />;
   return (
@@ -11835,14 +11749,6 @@ function playableMinimapCellKeyForPoint(map: BakedBattleMapData, point: { x: num
   if (map.gridWidth <= 0 || map.gridHeight <= 0) return null;
   const grid = playableMinimapGridPoint(map, point);
   return playableMinimapCellKey(grid.x, grid.y);
-}
-
-function playableMinimapCellFromKey(key: string) {
-  const [rawX, rawY] = key.split(",");
-  const x = Number(rawX);
-  const y = Number(rawY);
-  if (!Number.isInteger(x) || !Number.isInteger(y)) return null;
-  return { x, y };
 }
 
 function playableMinimapRevealCells(
