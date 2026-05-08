@@ -95,6 +95,7 @@ import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
+import { FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY, FRONTEND_AUTOSAVE_STORAGE_KEY, FRONTEND_SAVE_SLOT_COUNT, FRONTEND_SAVE_VERSION, frontendSaveSlotKey, frontendSaveTimestamp, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, saveActiveFrontendSaveSlotId, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { clientRectToGameViewportRect, clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
@@ -1740,20 +1741,11 @@ const WEAPON_SLOT_INDICES = [MAIN_WEAPON_SLOT_INDEX, OFF_WEAPON_SLOT_INDEX] as c
 const TOOLTIP_WIDTH = 410;
 const TOOLTIP_COMPARISON_GAP = 0;
 const TOOLTIP_SCREEN_PADDING = 8;
-const FRONTEND_AUTOSAVE_STORAGE_KEY = "poe2.v1.frontend.autosave";
-const FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY = "poe2.v1.frontend.active_save_slot";
-const FRONTEND_SAVE_SLOT_KEY_PREFIX = "poe2.v1.frontend.save.slot.";
 const ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY = "poe2.v1.item_discard.skip_confirm";
-const FRONTEND_SAVE_SLOT_COUNT = 5;
-const FRONTEND_SAVE_VERSION = 1;
 const STARTER_GEM_BOARD_POSITION = { row: 4, column: 4 } as const;
 const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);
 
-type FrontendSaveSlotSummary = {
-  id: number;
-  save: FrontendSavePayload | null;
-  errorText: string;
-};
+type FrontendSaveSlotSummary = FrontendSaveStorageSlotSummary<FrontendSavePayload>;
 
 function cloneFrontendData<T>(value: T): T {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -3021,32 +3013,6 @@ function loadFrontendAutosave(): FrontendSavePayload | null {
   return loadFrontendAutosaveResult().save;
 }
 
-function frontendSaveSlotKey(slotId: number) {
-  return `${FRONTEND_SAVE_SLOT_KEY_PREFIX}${slotId}`;
-}
-
-function normalizeFrontendSaveSlotId(value: unknown): number | null {
-  const slotId = Number(value);
-  if (!Number.isInteger(slotId) || slotId < 1 || slotId > FRONTEND_SAVE_SLOT_COUNT) return null;
-  return slotId;
-}
-
-function loadActiveFrontendSaveSlotId(): number | null {
-  try {
-    return normalizeFrontendSaveSlotId(window.localStorage.getItem(FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY));
-  } catch {
-    return null;
-  }
-}
-
-function saveActiveFrontendSaveSlotId(slotId: number | null) {
-  if (slotId === null) {
-    window.localStorage.removeItem(FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY);
-    return;
-  }
-  window.localStorage.setItem(FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY, String(slotId));
-}
-
 function loadFrontendSaveSlotResult(slotId: number): { save: FrontendSavePayload | null; errorText: string } {
   try {
     const raw = window.localStorage.getItem(frontendSaveSlotKey(slotId));
@@ -3086,18 +3052,6 @@ function loadFrontendSaveSlotSummaries(): FrontendSaveSlotSummary[] {
     const result = loadFrontendSaveSlotResult(id);
     return { id, save: result.save, errorText: result.errorText };
   });
-}
-
-function latestFrontendSaveSlotId(slots: FrontendSaveSlotSummary[]) {
-  const sorted = slots
-    .filter((slot) => slot.save)
-    .sort((a, b) => frontendSaveTimestamp(b.save) - frontendSaveTimestamp(a.save));
-  return sorted[0]?.id ?? null;
-}
-
-function frontendSaveTimestamp(save: FrontendSavePayload | null | undefined) {
-  const timestamp = Date.parse(save?.saved_at ?? "");
-  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function clearFrontendSaveSlot(slotId: number) {
