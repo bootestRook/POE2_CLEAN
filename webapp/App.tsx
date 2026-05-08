@@ -88,6 +88,7 @@ import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
+import { canPlaceItemInEquipmentSlot, equipmentSourceSlotId, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
@@ -16074,11 +16075,6 @@ function randomAngleOffset(maxDegrees: number) {
   return (Math.random() * 2 - 1) * maxDegrees;
 }
 
-function removeItemsFromInventorySlots(slots: (string | null)[], instanceIds: string[]) {
-  const idSet = new Set(instanceIds.filter(Boolean));
-  return slots.map((slotInstanceId) => (slotInstanceId && idSet.has(slotInstanceId) ? null : slotInstanceId));
-}
-
 function optimisticUnmountBoardItem(state: AppState, instanceId: string) {
   return {
     ...state,
@@ -16141,23 +16137,6 @@ function inventoryItemById(state: AppState, instanceId: string | null | undefine
   return state.inventory.find((item) => item.instance_id === instanceId) ?? null;
 }
 
-function isGemItem(item: Gem) {
-  return item.item_kind === "gem" || item.tags.some((tag) => tag.id === "gem");
-}
-
-function canPlaceItemInEquipmentSlot(item: Gem, slot: typeof EQUIPMENT_SLOT_SPECS[number]) {
-  if (item.item_kind !== "equipment" || isGemItem(item)) return false;
-  const sourceSlot = equipmentSourceSlotId(item);
-  if (sourceSlot) {
-    if (sourceSlot === "ring") return slot.id === "ring_1" || slot.id === "ring_2";
-    if (sourceSlot === "weapon") return isWeaponSlot(slot);
-    return slot.id === sourceSlot;
-  }
-  if (isWeaponSlot(slot)) return isWeaponItem(item);
-  const searchable = equipmentSearchText(item);
-  return slot.accepts.some((keyword) => searchable.includes(keyword.toLowerCase()));
-}
-
 function comparisonGemForInventoryEquipment(item: Gem, equipmentSlots: (string | null)[], fullGemById: Map<string, Gem>) {
   if (item.item_kind !== "equipment" || isGemItem(item)) return null;
   const preferredSlotIndices = isWeaponItem(item)
@@ -16186,227 +16165,6 @@ function uniqueEquipmentSlotIds(slots: (string | null)[], slotIndices: readonly 
     if (id && !ids.includes(id)) ids.push(id);
   }
   return ids;
-}
-
-function isWeaponSlot(slot: typeof EQUIPMENT_SLOT_SPECS[number] | undefined) {
-  return slot?.id === "main_weapon" || slot?.id === "off_weapon";
-}
-
-function isWeaponItem(item: Gem) {
-  if (equipmentSourceSlotId(item) === "weapon") return true;
-  const source = equipmentSourceText(item);
-  if ([
-    "\u6b66\u5668",
-    "\u76fe\u724c",
-    "\u5315\u9996",
-    "\u5355\u624b\u5251",
-    "\u5355\u624b\u65a7",
-    "\u5355\u624b\u9524",
-    "\u53cc\u624b\u5251",
-    "\u53cc\u624b\u65a7",
-    "\u53cc\u624b\u9524",
-    "\u5f13",
-    "\u5f29",
-    "\u624b\u6756",
-    "\u624b\u67aa",
-    "\u6b66\u6756",
-    "\u6cd5\u6756",
-    "\u706b\u67aa",
-    "\u706b\u70ae",
-    "\u7075\u6756",
-    "\u722a",
-    "\u9521\u6756",
-    "\u9b54\u6756"
-  ].some((keyword) => source.includes(keyword))) return true;
-  const searchable = equipmentSearchText(item);
-  return [
-    "weapon",
-    "weapons",
-    "sword",
-    "blade",
-    "axe",
-    "mace",
-    "bow",
-    "crossbow",
-    "staff",
-    "wand",
-    "dagger",
-    "claw",
-    "spear",
-    "gun",
-    "武器",
-    "剑",
-    "刀",
-    "斧",
-    "锤",
-    "弓",
-    "弩",
-    "杖",
-    "法杖",
-    "匕首",
-    "爪",
-    "枪"
-  ].some((keyword) => searchable.includes(keyword));
-}
-
-function isTwoHandedWeapon(item: Gem) {
-  const source = equipmentSourceText(item);
-  if (isTwoHandedEquipmentSource(source)) return true;
-  const searchable = equipmentSearchText(item);
-  return [
-    "two_handed",
-    "two-handed",
-    "two handed",
-    "2h",
-    "greatsword",
-    "greataxe",
-    "greatmace",
-    "longbow",
-    "staff",
-    "双手",
-    "双手武器",
-    "双手剑",
-    "双手斧",
-    "双手锤",
-    "长弓",
-    "法杖"
-  ].some((keyword) => searchable.includes(keyword));
-}
-
-function isTwoHandedEquipmentSource(source: string) {
-  return [
-    "\u53cc\u624b\u5251",
-    "\u53cc\u624b\u65a7",
-    "\u53cc\u624b\u9524",
-    "\u5f13",
-    "\u5f29",
-    "\u6cd5\u6756",
-    "\u706b\u70ae",
-    "双手剑",
-    "双手斧",
-    "双手锤",
-    "弓",
-    "弩",
-    "法杖",
-    "火炮"
-  ].some((keyword) => source.includes(keyword));
-}
-
-function equipmentSourceSlotId(item: Gem): string {
-  const explicitSlot = normalizeEquipmentSlotId(item.equipment_slot_id ?? "");
-  if (explicitSlot) return explicitSlot;
-  const source = equipmentSourceText(item);
-  if (!source) return "";
-  const sourceSlot = frontendEquipmentSourceSlotIdFromText(source);
-  if (sourceSlot) return sourceSlot;
-  if (source.includes("头部")) return "head";
-  if (source.includes("胸甲")) return "chest";
-  if (source.includes("手套")) return "gloves";
-  if (source.includes("鞋子")) return "boots";
-  if (source.includes("腰带")) return "belt";
-  if (source.includes("项链")) return "amulet";
-  if (source.includes("戒指") || source.includes("灵戒")) return "ring";
-  if (source.includes("盾牌")) return "weapon";
-  if ([
-    "匕首",
-    "单手剑",
-    "单手斧",
-    "单手锤",
-    "双手剑",
-    "双手斧",
-    "双手锤",
-    "弓",
-    "弩",
-    "手杖",
-    "手枪",
-    "武杖",
-    "法杖",
-    "火枪",
-    "火炮",
-    "灵杖",
-    "爪",
-    "锡杖",
-    "魔杖"
-  ].some((keyword) => source.includes(keyword))) return "weapon";
-  return "";
-}
-
-function normalizeEquipmentSlotId(slotId: string) {
-  if (slotId === "ring") return "ring";
-  if (slotId === "weapon") return "weapon";
-  if (EQUIPMENT_SLOT_SPECS.some((slot) => slot.id === slotId)) return slotId;
-  return "";
-}
-
-function equipmentSourceText(item: Gem) {
-  return [
-    item.gem_type?.identity_text ?? "",
-    item.gem_type?.display_text ?? "",
-    item.category_text,
-    item.tooltip_view?.type_identity_text ?? "",
-    item.tooltip_view?.subtitle_text ?? "",
-    item.name_text
-  ].join(" ");
-}
-
-function frontendEquipmentSourceSlotIdFromText(source: string) {
-  if (source.includes("\u5934\u90e8")) return "head";
-  if (source.includes("\u80f8\u7532")) return "chest";
-  if (source.includes("\u624b\u5957")) return "gloves";
-  if (source.includes("\u978b\u5b50")) return "boots";
-  if (source.includes("\u8170\u5e26")) return "belt";
-  if (source.includes("\u9879\u94fe")) return "amulet";
-  if (source.includes("\u6212\u6307") || source.includes("\u7075\u6212")) return "ring";
-  if (source.includes("\u76fe\u724c")) return "weapon";
-  return [
-    "\u5315\u9996",
-    "\u5355\u624b\u5251",
-    "\u5355\u624b\u65a7",
-    "\u5355\u624b\u9524",
-    "\u53cc\u624b\u5251",
-    "\u53cc\u624b\u65a7",
-    "\u53cc\u624b\u9524",
-    "\u5f13",
-    "\u5f29",
-    "\u624b\u6756",
-    "\u624b\u67aa",
-    "\u6b66\u6756",
-    "\u6cd5\u6756",
-    "\u706b\u67aa",
-    "\u706b\u70ae",
-    "\u7075\u6756",
-    "\u722a",
-    "\u9521\u6756",
-    "\u9b54\u6756"
-  ].some((keyword) => source.includes(keyword)) ? "weapon" : "";
-}
-
-function equipmentSearchText(item: Gem) {
-  return [
-    item.item_kind ?? "",
-    item.name_text,
-    item.category_text,
-    item.rarity_text,
-    item.gem_kind ?? "",
-    item.gem_type?.id ?? "",
-    item.gem_type?.display_text ?? "",
-    item.gem_type?.identity_text ?? "",
-    item.tooltip_view?.subtitle_text ?? "",
-    item.tooltip_view?.type_identity_text ?? "",
-    ...item.tags.flatMap((tag) => [tag.id ?? "", tag.text])
-  ].join(" ").toLowerCase();
-}
-
-function isActiveGem(item: Gem) {
-  return item.gem_kind === "active_skill" || item.tags.some((tag) => tag.id === "active_skill_gem");
-}
-
-function isPassiveGem(item: Gem) {
-  return item.gem_kind === "passive_skill" || item.tags.some((tag) => tag.id === "passive_skill_gem");
-}
-
-function isSupportGem(item: Gem) {
-  return item.gem_kind === "support" || item.tags.some((tag) => tag.id === "support_gem");
 }
 
 function isAllowedRoute(source: Gem, target: Gem) {
