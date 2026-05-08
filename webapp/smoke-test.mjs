@@ -245,6 +245,11 @@ if (!consumeSkillEventBatchBody.includes("projectileTargetFollowupKey(event)")) 
 if (consumeSkillEventBatchBody.includes("nextHp <= 0) deadProjectileHits.add(projectileId)")) {
   throw new Error("A projectile's own lethal damage must not suppress its hit VFX or floating text follow-ups.");
 }
+if (!consumeSkillEventBatchBody.includes("completedProjectileHits.set(")
+  || !consumeSkillEventBatchBody.includes("event.payload?.projectile_continues !== true")
+  || !consumeSkillEventBatchBody.includes("finishCompletedProjectileBody")) {
+  throw new Error("Runtime projectile_hit events must end projectile body VFX unless the event explicitly continues.");
+}
 const applyDamageEventBatchBody = functionBody(app, "applyDamageEventBatch");
 if (!applyDamageEventBatchBody.includes("enemiesStateRef.current = liveEnemiesAfterDamage;")) {
   throw new Error("Runtime damage application must update the canonical enemy ref synchronously.");
