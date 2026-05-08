@@ -8589,7 +8589,7 @@ export const FRONTEND_GEM_DROP_POOL = [
             ],
             [
               {
-                "text": "无法造成点燃/冰结/麻痹 1",
+                "text": "无法造成点燃/冰结/麻痹",
                 "tone": "bonus-positive"
               }
             ]
