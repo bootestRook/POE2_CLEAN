@@ -38,22 +38,22 @@ export function SaveSelectionPanel<TSlot extends { id: number }>({
   onStart: () => void;
 }) {
   return (
-    <section className="save-selection-panel" aria-label="瀛樻。閫夋嫨">
+    <section className="save-selection-panel" aria-label="存档选择">
       <div className="save-selection-shell">
         <header className="save-selection-header">
           <div>
-            <h2>閫夋嫨瀛樻。</h2>
-            <span>鏆傚畾 5 涓湰鍦板瓨妗ｆ爮浣嶏紝鏁版嵁鍙繚瀛樺湪褰撳墠娴忚鍣ㄣ€?</span>
+            <h2>选择存档</h2>
+            <span>暂定 5 个本地存档栏位，数据只保存在当前浏览器。</span>
           </div>
-          <button type="button" onClick={onBack}>杩斿洖</button>
+          <button type="button" onClick={onBack}>返回</button>
         </header>
-        <div className="save-mode-actions" role="group" aria-label="娓告垙妯″紡">
-          <button type="button" className={mode === "new" ? "active" : ""} onClick={onNewGame}>鏂板缓娓告垙</button>
-          <button type="button" className={mode === "continue" ? "active" : ""} onClick={onContinue}>缁х画娓告垙</button>
+        <div className="save-mode-actions" role="group" aria-label="游戏模式">
+          <button type="button" className={mode === "new" ? "active" : ""} onClick={onNewGame}>新建游戏</button>
+          <button type="button" className={mode === "continue" ? "active" : ""} onClick={onContinue}>继续游戏</button>
         </div>
         {mode === "new" && (
           <label className="save-player-name-field">
-            <span>鐜╁鍚嶇О</span>
+            <span>玩家名称</span>
             <input
               type="text"
               value={newPlayerName}
@@ -70,14 +70,14 @@ export function SaveSelectionPanel<TSlot extends { id: number }>({
             return (
               <article key={slot.id} className={`${selected ? "save-slot-card selected" : "save-slot-card"}${hasSave ? "" : " empty"}`}>
                 <button type="button" className="save-slot-main" onClick={() => onSelectSlot(slot.id)}>
-                  <strong>瀛樻。 {slot.id}</strong>
+                  <strong>存档 {slot.id}</strong>
                   {hasSave ? (
                     <>
                       <span>{slotMainText(slot)}</span>
                       <span>{slotProgressText(slot)}</span>
                     </>
                   ) : (
-                    <span>绌烘爮浣?</span>
+                    <span>空栏位</span>
                   )}
                   {slotErrorText(slot) && <span className="save-slot-error">{slotErrorText(slot)}</span>}
                 </button>
@@ -86,9 +86,9 @@ export function SaveSelectionPanel<TSlot extends { id: number }>({
                   className="save-slot-delete"
                   disabled={!hasSave}
                   onClick={() => onDelete(slot.id)}
-                  aria-label={`鍒犻櫎瀛樻。 ${slot.id}`}
+                  aria-label={`删除存档 ${slot.id}`}
                 >
-                  鍒犻櫎
+                  删除
                 </button>
               </article>
             );
@@ -97,7 +97,7 @@ export function SaveSelectionPanel<TSlot extends { id: number }>({
         <footer className="save-selection-footer">
           <span>{footerText}</span>
           <button className="entry-primary-button" type="button" disabled={!canStart} onClick={onStart}>
-            寮€濮?
+            开始
           </button>
         </footer>
       </div>
