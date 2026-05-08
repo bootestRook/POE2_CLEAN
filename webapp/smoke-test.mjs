@@ -195,7 +195,7 @@ for (const obsoleteStat of ["pickup_radius", "active_skill_slots", "passive_skil
     throw new Error(`obsolete player stat is still exposed: ${obsoleteStat}`);
   }
 }
-if (!app.includes("character_panel") || !app.includes("formatCharacterPanelValue")) {
+if (!app.includes("character_panel") || !webappSourceText.includes("formatCharacterPanelValue")) {
   throw new Error("CharacterInfoPanel must render the configured character_panel payload");
 }
 for (const requiredRuntimeManaCode of [
@@ -1244,7 +1244,7 @@ const boundaryChecks = [
 ];
 
 for (const text of boundaryChecks) {
-  if (!app.includes(text)) {
+  if (!webappSourceText.includes(text)) {
     throw new Error(`缂哄皯 3x3 涔濆鏍艰竟鐣岃绠楋細${text}`);
   }
 }
@@ -1255,7 +1255,7 @@ if (!frontendGameData.includes('"board"') || !frontendGameData.includes('"row": 
 
 const previewText = ["\u53ef\u653e\u7f6e", "\u4e0d\u53ef\u653e\u7f6e", "\u9884\u89c8\u843d\u70b9", "\u5f71\u54cd\u540c\u884c", "\u5f71\u54cd\u540c\u5217", "\u5f71\u54cd\u540c\u5bab", "\u5f71\u54cd\u76f8\u90bb", "\u653e\u4e0b\u540e\u9884\u8ba1\u5f71\u54cd", "\u65e0\u53ef\u5f71\u54cd\u76ee\u6807"];
 for (const text of previewText) {
-  if (!app.includes(text)) {
+  if (!webappSourceText.includes(text)) {
     if (isNonAsciiCheck(text)) continue;
     throw new Error(`缂哄皯寰呮斁缃瑙堜腑鏂囨枃妗堬細${text}`);
   }
@@ -1369,7 +1369,7 @@ const previewDataChecks = [
 ];
 
 for (const text of previewDataChecks) {
-  if (!app.includes(text)) {
+  if (!webappSourceText.includes(text)) {
     throw new Error(`缂哄皯寰呮斁缃瑙堟暟鎹細${text}`);
   }
 }
@@ -1388,14 +1388,14 @@ if (!/\.legal-drop-cell\s*{[^}]*inset 0 0 0 1px/s.test(css)) {
 
 const proceduralSpawnStaticChecks = [
   [app, "generateProceduralMonsterSpawns", "App must call the procedural monster spawn runtime."],
-  [app, "程序化生怪调试", "App must expose Chinese procedural spawn debug text."],
-  [app, "当前地图类型", "Procedural debug panel must show map type in Chinese."],
-  [app, "总生怪预算", "Procedural debug panel must show budget in Chinese."],
-  [app, "已生成怪物包数量", "Procedural debug panel must show generated pack count in Chinese."],
-  [app, "普通", "Procedural debug panel must show normal monster count."],
-  [app, "魔法", "Procedural debug panel must show magic monster count."],
-  [app, "稀有", "Procedural debug panel must show rare monster count."],
-  [app, "filter_reason", "Procedural debug panel must include filtered spawn reasons."],
+  [webappSourceText, "程序化生怪调试", "App must expose Chinese procedural spawn debug text."],
+  [webappSourceText, "当前地图类型", "Procedural debug panel must show map type in Chinese."],
+  [webappSourceText, "总生怪预算", "Procedural debug panel must show budget in Chinese."],
+  [webappSourceText, "已生成怪物包数量", "Procedural debug panel must show generated pack count in Chinese."],
+  [webappSourceText, "普通", "Procedural debug panel must show normal monster count."],
+  [webappSourceText, "魔法", "Procedural debug panel must show magic monster count."],
+  [webappSourceText, "稀有", "Procedural debug panel must show rare monster count."],
+  [webappSourceText, "filter_reason", "Procedural debug panel must include filtered spawn reasons."],
   [css, ".procedural-spawn-debug-panel", "Procedural spawn debug panel must be styled."],
   [mapSpawnRuntime, "入口区域不刷怪", "Runtime must expose the entrance filter reason in Chinese."],
   [mapSpawnRuntime, "距离玩家出生点过近", "Runtime must expose the player spawn distance filter reason in Chinese."],

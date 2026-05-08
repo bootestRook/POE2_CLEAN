@@ -27,9 +27,9 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Run `npm run build`.
-- [ ] 5.2 Run `npm test` or document any pre-existing unrelated blocker.
-- [ ] 5.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable view affected by the extracted presentation.
-- [ ] 5.4 Capture frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
-- [ ] 5.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
-- [ ] 5.6 Review the final diff to confirm no gameplay, save schema, storage key, copy, CSS, backend, dependency, skill-runtime, or skill-editor acceptance changes were introduced.
+- [x] 5.1 Run `npm run build`.
+- [x] 5.2 Run `npm test` or document any pre-existing unrelated blocker.
+- [x] 5.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable view affected by the extracted presentation.
+- [x] 5.4 Capture frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
+- [x] 5.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
+- [x] 5.6 Review the final diff to confirm no gameplay, save schema, storage key, copy, CSS, backend, dependency, skill-runtime, or skill-editor acceptance changes were introduced.
