@@ -80,6 +80,7 @@ import type { CharacterPanelView } from "./components/character/CharacterInfoPan
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
+import { activeDpsToneClass, equipmentRarityTone, equipmentTooltipAffixLine, highlightTooltipText } from "./components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16647,55 +16648,6 @@ function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationF
   } as CSSProperties;
 }
 
-const tooltipHighlightTones: Record<string, string> = {
-  "红色": "color-red",
-  "蓝色": "color-blue",
-  "绿色": "color-green",
-  "粉色": "color-pink",
-  "黄色": "color-yellow",
-  "白色": "color-white",
-  "黑色": "color-black",
-  "青色": "color-cyan",
-  "橙色": "color-orange",
-  "火焰": "damage-fire",
-  "冰霜": "damage-cold",
-  "闪电": "damage-lightning",
-  "物理": "damage-physical",
-  "混沌": "damage-chaos"
-};
-
-const tooltipHighlightTerms = Object.keys(tooltipHighlightTones).sort((left, right) => right.length - left.length);
-
-function highlightTooltipText(text: string): TooltipRichLine {
-  const segments: TooltipRichLine = [];
-  let index = 0;
-  while (index < text.length) {
-    const term = tooltipHighlightTerms.find((candidate) => text.startsWith(candidate, index));
-    if (term) {
-      segments.push({ text: term, tone: tooltipHighlightTones[term] });
-      index += term.length;
-      continue;
-    }
-    const nextIndex = tooltipHighlightTerms.reduce((next, candidate) => {
-      const found = text.indexOf(candidate, index + 1);
-      return found >= 0 ? Math.min(next, found) : next;
-    }, text.length);
-    segments.push({ text: text.slice(index, nextIndex), tone: "body" });
-    index = nextIndex;
-  }
-  return segments;
-}
-
-function activeDpsToneClass(valueText: string) {
-  if (valueText.includes("↘") || valueText.includes("-")) {
-    return "tooltip-tone-color-red";
-  }
-  if (valueText.includes("↗") || valueText.includes("+")) {
-    return "tooltip-tone-color-green";
-  }
-  return "tooltip-tone-body";
-}
-
 function buildGemTooltipViewModel(gem: Gem) {
   const view = gem.tooltip_view;
   if (!view) return view;
@@ -17238,15 +17190,6 @@ function ensureReleaseIntervalStatLine(gem: Gem, lines: TooltipStatLine[]) {
   return [...lines.slice(0, insertAfter + 1), line, ...lines.slice(insertAfter + 1)];
 }
 
-function equipmentRarityTone(rarity: unknown) {
-  const key = String(rarity ?? "").trim().toLowerCase();
-  if (key === "white" || key === "白色" || key === "普通") return "white";
-  if (key === "blue" || key === "蓝色" || key === "魔法") return "blue";
-  if (key === "purple" || key === "紫色" || key === "稀有") return "purple";
-  if (key === "pink" || key === "粉色" || key === "传奇") return "pink";
-  return "white";
-}
-
 function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
   if (gem.item_kind !== "equipment") return view?.rarity_tone ?? "";
   return equipmentRarityTone(gem.equipment_rarity ?? view?.rarity_tone ?? gem.rarity_text ?? view?.subtitle_text.split(" · ")[0]);
@@ -17302,13 +17245,6 @@ function normalizeEquipmentTooltipBonusLine(line: string) {
   const match = line.match(/^(?:(?:\u521d\u9636|\u8fdb\u9636|\u81f3\u81fb|\u57fa\u7840)(?:\u524d\u7f00|\u540e\u7f00)?|[^\s\uff1a:]+(?:\u524d\u7f00|\u540e\u7f00))\s*T(\d+)\s*[\uff1a:]\s*(.+)$/u);
   if (!match) return line;
   return equipmentTooltipAffixLine(match[2], Number(match[1]));
-}
-
-function equipmentTooltipAffixLine(effect: string, tier: unknown) {
-  const tierNumber = Number(tier);
-  const suffix = Number.isFinite(tierNumber) ? `\uff08T${tierNumber}\uff09` : "";
-  const normalizedEffect = effect.trim().replace(/([%\uff05])\s+(?=\p{Script=Han})/gu, "$1");
-  return `${normalizedEffect}${suffix}`;
 }
 
 function isEquipmentRarityTag(gem: Gem, tag: TooltipTagView) {
