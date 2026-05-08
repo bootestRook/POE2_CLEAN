@@ -80,7 +80,7 @@ import type { CharacterPanelView } from "./components/character/CharacterInfoPan
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, equipmentRarityTone, equipmentTooltipAffixLine, highlightTooltipText } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, equipmentRarityTone, equipmentTooltipAffixLine, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, highlightTooltipText } from "./components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16660,8 +16660,8 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
   const view = gem.tooltip_view;
   if (!skill || !view || view.variant !== "active") return gem;
   const componentLines = [
-    ...frontendDamageComponentTooltipLines(skill.final_damage_components),
-    ...frontendEquipmentGrantedTooltipLines(skill.runtime_params?.frontend_equipment_granted_effects)
+    ...frontendDamageComponentTooltipLines(skill.final_damage_components, formatPreviewNumber),
+    ...frontendEquipmentGrantedTooltipLines(skill.runtime_params?.frontend_equipment_granted_effects, formatPreviewNumber)
   ];
   const bonusLines = frontendSupportModifierTooltipLines(skill);
   const levelText = frontendSkillPreviewEffectiveLevelText(skill);
@@ -16867,52 +16867,6 @@ function frontendSkillPreviewEffectiveLevelText(skill: SkillPreview) {
   const effectiveLevel = Math.max(1, Math.floor(Number(sourceContext.effective_gem_level ?? 1)));
   const baseLevel = Math.max(1, effectiveLevel - equipmentLevelAdd);
   return `${effectiveLevel}(${baseLevel}+${equipmentLevelAdd})`;
-}
-
-function frontendDamageComponentTooltipLines(components?: Record<string, number>) {
-  if (!components || typeof components !== "object" || Array.isArray(components)) return [];
-  return Object.entries(components)
-    .map(([damageType, amount]) => ({
-      label_text: frontendDamageTypeLabel(damageType),
-      value_text: formatPreviewNumber(amount),
-    }))
-    .filter((line) => line.label_text && Number(line.value_text) > 0);
-}
-
-function frontendEquipmentGrantedTooltipLines(effects: unknown) {
-  if (!Array.isArray(effects)) return [];
-  return effects
-    .map((effect) => {
-      if (!effect || typeof effect !== "object" || Array.isArray(effect)) return null;
-      const record = effect as Record<string, unknown>;
-      if (record.effect_kind !== "direct_damage") return null;
-      const damageType = String(record.damage_type ?? "");
-      const resolvedDamageType = damageType === "generic" ? "" : damageType;
-      const multiplier = Math.max(0, Number(record.damage_multiplier ?? 1));
-      const min = Number(record.value_min ?? record.value ?? 0) * multiplier;
-      const max = Number(record.value_max ?? record.value ?? min) * multiplier;
-      const low = Math.min(min, max);
-      const high = Math.max(min, max);
-      if (!Number.isFinite(low) || !Number.isFinite(high) || high <= 0) return null;
-      return {
-        label_text: `\u88c5\u5907\u9644\u52a0${frontendDamageTypeLabel(resolvedDamageType || "generic")}`,
-        value_text: Math.round(low) === Math.round(high)
-          ? formatPreviewNumber(high)
-          : `${formatPreviewNumber(low)} - ${formatPreviewNumber(high)}`,
-      };
-    })
-    .filter((line): line is TooltipStatLine => Boolean(line));
-}
-
-function frontendDamageTypeLabel(damageType: string) {
-  if (damageType === "generic") return "\u4f24\u5bb3";
-  if (damageType === "physical") return "\u7269\u7406\u4f24\u5bb3";
-  if (damageType === "fire") return "\u706b\u7130\u4f24\u5bb3";
-  if (damageType === "cold") return "\u51b0\u971c\u4f24\u5bb3";
-  if (damageType === "lightning") return "\u95ea\u7535\u4f24\u5bb3";
-  if (damageType === "chaos") return "\u6df7\u6c8c\u4f24\u5bb3";
-  if (damageType === "true") return "\u771f\u5b9e\u4f24\u5bb3";
-  return `${damageType}\u4f24\u5bb3`;
 }
 
 const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS = new Set(["bow", "gun", "cannon"]);
