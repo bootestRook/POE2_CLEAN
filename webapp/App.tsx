@@ -95,6 +95,7 @@ import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationD
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
+import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
   MAP_EDITOR_CURRENT_FILE_STORAGE_KEY,
@@ -10488,8 +10489,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
       {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "stage" && (
         <MapSelectionPanel
-          battleMap={battleMap}
+          battleMapReady={Boolean(battleMap)}
           progression={state.map_progression}
+          stageScopeText={stageScopeLabel}
+          stageBossPoolText={stageBossPackPoolLabel}
           onStart={startGame}
           onClose={closeRestAreaPanel}
         />
@@ -11157,53 +11160,6 @@ function formatFrontendSaveTime(value: string | undefined) {
     hour: "2-digit",
     minute: "2-digit"
   });
-}
-
-function MapSelectionPanel({
-  battleMap,
-  progression,
-  onStart,
-  onClose
-}: {
-  battleMap: BakedBattleMapData | null;
-  progression?: AppState["map_progression"];
-  onStart: (stageId: string) => void;
-  onClose?: () => void;
-}) {
-  const stages = progression?.stages ?? [];
-  const selectedStage = stages.find((stage) => stage.selected) ?? stages.find((stage) => stage.enterable) ?? stages[0];
-  return (
-    <section className="map-selection-panel" aria-label="地图选择">
-      <header className="map-selection-header">
-        <div>
-          <h2>选择战斗地图</h2>
-          <span>自动存档已启用，起始区域 I 可无限免费刷。</span>
-        </div>
-        {onClose && <button type="button" onClick={onClose}>返回休息区</button>}
-      </header>
-      <div className="map-selection-list">
-        {stages.map((stage) => {
-          const selected = selectedStage?.id === stage.id;
-          return (
-            <button
-              key={stage.id}
-              type="button"
-              className={`${selected ? "map-selection-card selected" : "map-selection-card"}${!stage.enterable ? " locked" : ""}`}
-              disabled={!stage.enterable}
-              onClick={() => onStart(stage.id)}
-            >
-              <strong>{stage.display_name}</strong>
-              <span>地图等级：{stage.map_level_text} · 怪物等级：{stage.monster_level}</span>
-              <span>{stage.free_entry ? "无限免费" : `门票 ${stage.entry_count}/${stage.entry_cost}`}{stage.boss_stage ? " · Boss奖励" : ""} · {stageScopeLabel(stage)} · {stageBossPackPoolLabel(stage)}</span>
-            </button>
-          );
-        })}
-      </div>
-      <button className="start-button" type="button" disabled={!battleMap || !selectedStage?.enterable} onClick={() => selectedStage && onStart(selectedStage.id)}>
-        {battleMap ? "进入选中地图" : "地图加载中"}
-      </button>
-    </section>
-  );
 }
 
 function GroundDropLayer({
