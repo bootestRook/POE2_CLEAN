@@ -112,6 +112,7 @@ import type {
   MapEditorZoneRect,
 } from "./components/map-editor/MapEditorScene";
 import { SpriteTestScene } from "./components/sprite-test/SpriteTestScene";
+import { REST_AREA_INTERACTION_RADIUS, RestAreaMapInteractableLayer, RestAreaScene, restAreaInteractablePosition } from "./components/rest-area/RestAreaScene";
 
 type Gem = {
   instance_id: string;
@@ -1756,16 +1757,8 @@ const INVENTORY_COLUMNS = 12;
 const STASH_PAGE_COUNT = 5;
 const STASH_PAGE_SLOT_COUNT = 100;
 const STASH_PAGE_COLUMNS = 10;
-const REST_AREA_WIDTH = 1640;
-const REST_AREA_HEIGHT = 1000;
-const REST_AREA_INTERACTION_RADIUS = 96;
 const KEYBOARD_PICKUP_SCREEN_RADIUS = 250;
 const CLICK_INTERACTION_COMPLETE_RADIUS = 10;
-const REST_AREA_INTERACTABLES = {
-  wangYang: { kind: "stage" as const, id: "wang-yang", label: "王阳", x: 330, y: 330 },
-  stash: { kind: "stash" as const, id: "stash", label: "仓库", x: 760, y: 335 }
-} as const;
-const WANG_YANG_NPC_SPRITE = new URL("./assets/rest-area-wang-yang.svg", import.meta.url).href;
 const EQUIPMENT_SLOT_SPECS = [
   { id: "head", label: "头部", accepts: ["head", "helmet", "helm", "头部", "头盔"] },
   { id: "chest", label: "胸甲", accepts: ["chest", "body", "armor", "armour", "胸甲", "护甲", "衣服"] },
@@ -10730,101 +10723,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     </main>
     </GameViewportFrame>
   );
-}
-
-function RestAreaScene({
-  player,
-  playerRotation,
-  interactionTarget,
-  onInteract
-}: {
-  player: { x: number; y: number };
-  playerRotation: number;
-  interactionTarget: "stage" | "stash" | null;
-  onInteract: (kind: "stage" | "stash") => void;
-}) {
-  return (
-    <section className="rest-area-scene" aria-label="休息区" data-rest-area="true">
-      <div className="rest-area-room" style={{ width: REST_AREA_WIDTH, height: REST_AREA_HEIGHT }}>
-        <div className="rest-area-floor" aria-hidden="true" />
-        <button
-          type="button"
-          className={`rest-area-name-label rest-area-wang-yang-label${interactionTarget === "stage" ? " pending" : ""}`}
-          style={{ left: REST_AREA_INTERACTABLES.wangYang.x, top: REST_AREA_INTERACTABLES.wangYang.y - 62 }}
-          onClick={() => onInteract("stage")}
-        >
-          {REST_AREA_INTERACTABLES.wangYang.label}
-        </button>
-        <div className="rest-area-npc" style={{ left: REST_AREA_INTERACTABLES.wangYang.x, top: REST_AREA_INTERACTABLES.wangYang.y }}>
-          <img src={WANG_YANG_NPC_SPRITE} alt="王阳" draggable={false} />
-        </div>
-        <button
-          type="button"
-          className={`rest-area-name-label rest-area-stash-label${interactionTarget === "stash" ? " pending" : ""}`}
-          style={{ left: REST_AREA_INTERACTABLES.stash.x, top: REST_AREA_INTERACTABLES.stash.y - 48 }}
-          onClick={() => onInteract("stash")}
-        >
-          {REST_AREA_INTERACTABLES.stash.label}
-        </button>
-        <div className="rest-area-stash-prop" style={{ left: REST_AREA_INTERACTABLES.stash.x, top: REST_AREA_INTERACTABLES.stash.y }} aria-hidden="true">
-          <span />
-        </div>
-        <div className="rest-area-player-marker" style={{ left: player.x, top: player.y, "--rest-player-rotation": `${playerRotation}rad` } as CSSProperties} aria-label="玩家" />
-      </div>
-    </section>
-  );
-}
-
-function RestAreaMapInteractableLayer({
-  map,
-  camera,
-  interactionTarget,
-  onInteract
-}: {
-  map: BakedBattleMapData | null;
-  camera: Camera2D;
-  interactionTarget: "stage" | "stash" | null;
-  onInteract: (kind: "stage" | "stash") => void;
-}) {
-  const wangYang = battleWorldToViewport(restAreaInteractablePosition("stage", map), camera);
-  const stash = battleWorldToViewport(restAreaInteractablePosition("stash", map), camera);
-  return (
-    <div className="rest-area-map-interactable-layer" aria-label="休息区交互点">
-      <button
-        type="button"
-        className={`rest-area-map-label${interactionTarget === "stage" ? " pending" : ""}`}
-        style={{ left: wangYang.x, top: wangYang.y - 58 }}
-        onClick={() => onInteract("stage")}
-      >
-        {REST_AREA_INTERACTABLES.wangYang.label}
-      </button>
-      <img
-        className="rest-area-map-npc"
-        src={WANG_YANG_NPC_SPRITE}
-        alt=""
-        draggable={false}
-        style={{ left: wangYang.x, top: wangYang.y }}
-      />
-      <button
-        type="button"
-        className={`rest-area-map-label${interactionTarget === "stash" ? " pending" : ""}`}
-        style={{ left: stash.x, top: stash.y - 44 }}
-        onClick={() => onInteract("stash")}
-      >
-        {REST_AREA_INTERACTABLES.stash.label}
-      </button>
-      <span className="rest-area-map-stash" style={{ left: stash.x, top: stash.y }} aria-hidden="true" />
-    </div>
-  );
-}
-
-function restAreaInteractablePosition(kind: "stage" | "stash", map: BakedBattleMapData | null | undefined) {
-  if (!map) return REST_AREA_INTERACTABLES[kind === "stage" ? "wangYang" : "stash"];
-  const offset = kind === "stage" ? { x: -220, y: -40 } : { x: 220, y: -40 };
-  return {
-    x: clamp(map.playerSpawn.x + offset.x, 80, map.meta.world_width - 80),
-    y: clamp(map.playerSpawn.y + offset.y, 80, map.meta.world_height - 80)
-  };
 }
 
 function StashPanel({
