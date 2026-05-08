@@ -10364,10 +10364,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           slotProgressText={(slot) => {
             const saveState = appStateFromFrontendSave(slot.save);
             const selectedStage = saveState?.map_progression?.stages.find((stage) => stage.selected);
-            return selectedStage ? `${selectedStage.display_name} ? ???? ${selectedStage.monster_level}` : "???????";
+            return selectedStage ? `${selectedStage.display_name} · 怪物等级 ${selectedStage.monster_level}` : "角色进度已保存";
           }}
           slotErrorText={(slot) => slot.errorText}
-          footerText={saveStartMode === "new" ? `???? ${selectedSaveSlotId} ????` : saveSlots.find((slot) => slot.id === selectedSaveSlotId)?.save ? `????? ${selectedSaveSlotId}` : "??????????????"}
+          footerText={saveStartMode === "new" ? `将在存档 ${selectedSaveSlotId} 新建游戏` : saveSlots.find((slot) => slot.id === selectedSaveSlotId)?.save ? `将读取存档 ${selectedSaveSlotId}` : "请选择有数据的存档或新建游戏"}
           onSelectSlot={(slotId) => {
             setSelectedSaveSlotId(slotId);
             setSaveStartMode(saveSlots.find((slot) => slot.id === slotId)?.save ? "continue" : "new");

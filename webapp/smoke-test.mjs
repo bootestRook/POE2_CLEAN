@@ -7,6 +7,7 @@ const root = process.cwd();
 const require = createRequire(import.meta.url);
 const app = readFileSync(join(root, "webapp", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
 const webappSources = collectWebappSources(join(root, "webapp"));
+const webappSourceText = webappSources.join("\n");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
@@ -110,7 +111,7 @@ for (const requiredRestAreaCode of [
   "restAreaPanel === \"stash\"",
   "onStart(stage.id)"
 ]) {
-  if (!app.includes(requiredRestAreaCode)) {
+  if (!webappSourceText.includes(requiredRestAreaCode)) {
     throw new Error(`Rest area/stash flow missing code: ${requiredRestAreaCode}`);
   }
 }
@@ -715,9 +716,9 @@ const bakedMapChecks = [
   [bakedMapLoader, "SPAWN_COLORS", "missing spawn color definitions"],
   [bakedMapLoader, "debugWarnings", "missing map debug warnings"],
   [bakedMapLoader, "resolveWalkableMove", "missing walkable movement resolver"],
-  [app, "MapSelectionPanel", "missing map selection panel"],
-  [app, "\u9009\u62e9\u6218\u6597\u5730\u56fe", "missing Chinese map selection title"],
-  [app, "\u5730\u56fe\u8c03\u8bd5", "missing map debug toggle"],
+  [webappSourceText, "MapSelectionPanel", "missing map selection panel"],
+  [webappSourceText, "\u9009\u62e9\u6218\u6597\u5730\u56fe", "missing Chinese map selection title"],
+  [webappSourceText, "\u5730\u56fe\u8c03\u8bd5", "missing map debug toggle"],
   [app, "BakedMapBackground", "missing baked map background renderer"],
   [app, "MapDebugOverlay", "missing map debug overlay"],
   [app, "createProceduralSpawnPlanEnemies(mapInstance", "playable map run must create frontend-owned monsters"],

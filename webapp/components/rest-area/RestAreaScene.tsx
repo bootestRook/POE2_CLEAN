@@ -13,8 +13,8 @@ export const REST_AREA_INTERACTION_RADIUS = 96;
 const REST_AREA_WIDTH = 1640;
 const REST_AREA_HEIGHT = 1000;
 const REST_AREA_INTERACTABLES = {
-  wangYang: { kind: "stage" as const, id: "wang-yang", label: "鐜嬮槼", x: 330, y: 330 },
-  stash: { kind: "stash" as const, id: "stash", label: "浠撳簱", x: 760, y: 335 }
+  wangYang: { kind: "stage" as const, id: "wang-yang", label: "王阳", x: 330, y: 330 },
+  stash: { kind: "stash" as const, id: "stash", label: "仓库", x: 760, y: 335 }
 } as const;
 const WANG_YANG_NPC_SPRITE = new URL("../../assets/rest-area-wang-yang.svg", import.meta.url).href;
 
