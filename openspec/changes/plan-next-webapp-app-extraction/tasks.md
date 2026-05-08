@@ -16,16 +16,16 @@
 
 ## 3. Inventory And Equipment Helper Extraction
 
-- [ ] 3.1 Identify pure inventory/equipment helpers in `webapp/App.tsx`, including item classification, equipment slot targeting, weapon/two-handed checks, source-slot mapping, comparison lookup, and inventory slot removal helpers.
-- [ ] 3.2 Move pure helper code into focused client-side inventory utility modules while preserving existing helper names or adapter exports where useful for a small diff.
-- [ ] 3.3 Keep App-owned inventory/equipment arrays, drag/drop state, mutation handlers, save writes, storage writes, equipment stat recalculation, pickup rules, and tooltip state unchanged.
-- [ ] 3.4 Verify equipment slot behavior, two-handed weapon displacement behavior, bag/stash interactions, and tooltip comparison still use the same data flow.
-- [ ] 3.5 Run `npm run build`, `npm test`, playable WebApp verification through `run.bat`, and screenshot capture under `artifacts/screenshots/`; review the diff for unrelated changes.
-- [ ] 3.6 Commit the inventory/equipment helper extraction before starting the next extraction batch.
+- [x] 3.1 Identify pure inventory/equipment helpers in `webapp/App.tsx`, including item classification, equipment slot targeting, weapon/two-handed checks, source-slot mapping, comparison lookup, and inventory slot removal helpers.
+- [x] 3.2 Move pure helper code into focused client-side inventory utility modules while preserving existing helper names or adapter exports where useful for a small diff.
+- [x] 3.3 Keep App-owned inventory/equipment arrays, drag/drop state, mutation handlers, save writes, storage writes, equipment stat recalculation, pickup rules, and tooltip state unchanged.
+- [x] 3.4 Verify equipment slot behavior, two-handed weapon displacement behavior, bag/stash interactions, and tooltip comparison still use the same data flow.
+- [x] 3.5 Run `npm run build`, `npm test`, playable WebApp verification through `run.bat`, and screenshot capture under `artifacts/screenshots/`; review the diff for unrelated changes.
+- [x] 3.6 Commit the inventory/equipment helper extraction before starting the next extraction batch.
 
 ## 4. Save Storage Utility Extraction
 
-- [ ] 4.1 Reassess whether save storage helper extraction is still low enough risk after the previous batches; stop or split into a separate change if payload or migration semantics need alteration.
+- [x] 4.1 Reassess whether save storage helper extraction is still low enough risk after the previous batches; stop or split into a separate change if payload or migration semantics need alteration.
 - [ ] 4.2 If safe, move local save-slot/autosave key helpers, load helpers, summary helpers, payload conversion helpers, and clear/save helpers into a focused client-only utility module.
 - [ ] 4.3 Preserve storage keys, save payload shape, active-slot behavior, legacy autosave migration behavior, error text, timestamp handling, and save/load semantics exactly.
 - [ ] 4.4 Keep React state ownership, new-game creation, equipment/stat recalculation ownership, and UI save-selection callbacks in `webapp/App.tsx`.
