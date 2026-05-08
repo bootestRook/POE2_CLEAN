@@ -4,7 +4,7 @@ import React from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { unprojectScreenToWorld } from "./isoProjection";
 import { BAKED_BATTLE_MAPS, bakedMapAssetById, DEFAULT_BAKED_BATTLE_MAP_ID } from "./bakedMapAssets";
-import { BakedBattleMapData, isMapPointWalkable, loadBakedBattleMap, MapPoint, resolveWalkableMove } from "./bakedMapLoader";
+import { BakedBattleMapData, isMapPointWalkable, loadBakedBattleMap, resolveWalkableMove } from "./bakedMapLoader";
 import mapSpawnV1Config from "../configs/monsters/map_spawn_v1.json";
 import monsterDefsToml from "../configs/monsters/monster_defs.toml?raw";
 import { generateProceduralMonsterSpawns, isNemesisRarity, parseMonsterDefinitionsToml } from "./mapSpawnRuntime";
@@ -96,6 +96,7 @@ import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection, unitMovementState } from "./utils/runtimeMotion";
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
+import { BakedMapBackground, MapDebugOverlay } from "./components/battle/BattleMapDebugLayers";
 import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
@@ -125,6 +126,7 @@ import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { PlayerOverheadResourceBars } from "./components/battle/PlayerOverheadResourceBars";
+import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
@@ -140,7 +142,6 @@ import {
   runtimeBattleMapOptions,
 } from "./components/map-editor/MapEditorScene";
 import type {
-  EditorRuntimeBattleMapData,
   MapEditorFileDocument,
   MapEditorZone,
   MapEditorZoneRect,
@@ -10796,41 +10797,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   );
 }
 
-function ProceduralSpawnDebugPanel({ debug }: { debug: ProceduralSpawnDebugSummary | null }) {
-  if (!debug) return null;
-  const accepted = debug.spawn_points.filter((point) => point.accepted).slice(0, 8);
-  const filtered = debug.filtered_points.slice(0, 5);
-  return (
-    <aside className="procedural-spawn-debug-panel" aria-label="程序化生怪调试">
-      <strong>程序化生怪调试</strong>
-      <span>当前地图类型：{debug.map_type}</span>
-      <span>总生怪预算：{debug.spent_pack_budget} / {debug.base_pack_budget}</span>
-      <span>已生成怪物包数量：{debug.generated_pack_count}</span>
-      <span>普通 {debug.normal_monster_count}，魔法 {debug.magic_monster_count}，稀有 {debug.rare_monster_count}，传奇 {debug.boss_monster_count}</span>
-      {accepted.length > 0 && (
-        <div className="procedural-spawn-debug-list">
-          <span>刷怪点</span>
-          {accepted.map((point) => (
-            <code key={`spawn-${point.gridX}-${point.gridY}`}>
-              {point.zone_type} / {point.monster_pack_id ?? "无"}
-            </code>
-          ))}
-        </div>
-      )}
-      {filtered.length > 0 && (
-        <div className="procedural-spawn-debug-list">
-          <span>过滤原因</span>
-          {filtered.map((point, index) => (
-            <code key={`filtered-${point.gridX}-${point.gridY}-${index}`}>
-              {point.zone_type} / {point.filter_reason ?? "未知原因"}
-            </code>
-          ))}
-        </div>
-      )}
-    </aside>
-  );
-}
-
 function statNumber(stat: PlayerStatView | undefined, fallback: number) {
   return typeof stat?.value === "number" ? stat.value : fallback;
 }
@@ -10999,75 +10965,6 @@ function formatFrontendSaveTime(value: string | undefined) {
     hour: "2-digit",
     minute: "2-digit"
   });
-}
-
-function BakedMapBackground({ map }: { map: BakedBattleMapData }) {
-  if (isEditorRuntimeBattleMap(map)) return <EditorRuntimeMapBackground map={map} />;
-  return (
-    <img
-      className="baked-map-background"
-      src={map.backgroundUrl}
-      alt={`${map.displayName}底图`}
-      draggable={false}
-      style={{ width: map.meta.world_width, height: map.meta.world_height }}
-    />
-  );
-}
-
-function EditorRuntimeMapBackground({ map }: { map: EditorRuntimeBattleMapData }) {
-  return (
-    <div
-      className="editor-runtime-map-background"
-      aria-hidden="true"
-      data-renderer="canvas"
-      data-visual-system="abstract-geometric-map-tiles"
-      style={{ width: map.meta.world_width, height: map.meta.world_height }}
-    />
-  );
-}
-
-function MapDebugOverlay({ map, enabled }: { map: BakedBattleMapData; enabled: boolean }) {
-  if (!enabled) return null;
-  const cells: ReactNode[] = [];
-  for (let gridY = 0; gridY < map.gridHeight; gridY += 1) {
-    for (let gridX = 0; gridX < map.gridWidth; gridX += 1) {
-      if (map.walkableGrid[gridY]?.[gridX]) {
-        cells.push(<span key={`walk-${gridX}-${gridY}`} className="map-debug-cell map-debug-walkable" style={mapDebugCellStyle(map, gridX, gridY)} />);
-      }
-      if (map.blockerGrid[gridY]?.[gridX]) {
-        cells.push(<span key={`block-${gridX}-${gridY}`} className="map-debug-cell map-debug-blocker" style={mapDebugCellStyle(map, gridX, gridY)} />);
-      }
-    }
-  }
-
-  return (
-    <div className="map-debug-overlay" aria-label="地图调试覆盖层">
-      {cells}
-      <MapDebugMarker point={map.playerSpawn} className="map-debug-marker-player" label="玩家出生点" />
-      {map.enemySpawnPoints.map((point, index) => <MapDebugMarker key={`enemy-${index}`} point={point} className="map-debug-marker-enemy" label="普通怪刷新区" />)}
-      {map.eliteSpawnPoints.map((point, index) => <MapDebugMarker key={`elite-${index}`} point={point} className="map-debug-marker-elite" label="精英怪刷新区" />)}
-      {map.bossPoints.map((point, index) => <MapDebugMarker key={`boss-${index}`} point={point} className="map-debug-marker-boss" label="Boss 区域" />)}
-      {map.exitPoints.map((point, index) => <MapDebugMarker key={`exit-${index}`} point={point} className="map-debug-marker-exit" label="出口" />)}
-      {map.interactionPoints.map((point, index) => <MapDebugMarker key={`interaction-${index}`} point={point} className="map-debug-marker-interaction" label="交互点" />)}
-    </div>
-  );
-}
-
-function MapDebugMarker({ point, className, label }: { point: MapPoint; className: string; label: string }) {
-  return (
-    <span className={`map-debug-marker ${className}`} style={{ left: point.x, top: point.y }}>
-      <span>{label}</span>
-    </span>
-  );
-}
-
-function mapDebugCellStyle(map: BakedBattleMapData, gridX: number, gridY: number): CSSProperties {
-  return {
-    left: gridX * map.meta.grid_size,
-    top: gridY * map.meta.grid_size,
-    width: map.meta.grid_size,
-    height: map.meta.grid_size
-  };
 }
 
 function SkillEditorDebugToggles({

@@ -7,10 +7,10 @@
 
 ## 2. Map And Debug Presentation Extraction
 
-- [ ] 2.1 Move baked map background and editor runtime map background presentation out of `webapp/App.tsx` into a focused battle presentation module while preserving markup, class names, and styles.
-- [ ] 2.2 Move map debug overlay, debug marker, and debug cell style presentation into the same focused boundary without changing map data, walkability, camera, or minimap ownership.
-- [ ] 2.3 Move procedural spawn debug panel presentation into a render-only module that receives the existing debug summary through props and does not touch spawn generation.
-- [ ] 2.4 Run focused TypeScript/build checks for the map/debug extraction and review the diff for behavior, copy, CSS, storage, backend, or runtime changes.
+- [x] 2.1 Move baked map background and editor runtime map background presentation out of `webapp/App.tsx` into a focused battle presentation module while preserving markup, class names, and styles.
+- [x] 2.2 Move map debug overlay, debug marker, and debug cell style presentation into the same focused boundary without changing map data, walkability, camera, or minimap ownership.
+- [x] 2.3 Move procedural spawn debug panel presentation into a render-only module that receives the existing debug summary through props and does not touch spawn generation.
+- [x] 2.4 Run focused TypeScript/build checks for the map/debug extraction and review the diff for behavior, copy, CSS, storage, backend, or runtime changes.
 
 ## 3. Character Panel Extraction
 
