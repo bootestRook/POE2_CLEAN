@@ -34,6 +34,30 @@ def test_playable_webapp_has_no_backend_gameplay_api_calls() -> None:
             assert token not in source, f"{path.relative_to(ROOT)} still contains backend gameplay dependency {token!r}"
 
 
+def test_playable_frontend_skill_runtime_uses_playable_names() -> None:
+    app_source = _read(WEBAPP / "App.tsx")
+    runtime_source = _read(WEBAPP / "frontendPlayableSkillRuntime.ts")
+
+    assert "function releaseFrontendPlayableSkill" in app_source
+    assert "function buildFrontendPlayableSkillEvents" in app_source
+    assert "releaseFrontendCanonicalSkill" not in app_source
+    assert "buildFrontendCanonicalSkillEvents" not in app_source
+    assert "frontendPlayableSkillRuntimeFamilyForBehavior" in app_source
+    assert "FRONTEND_PLAYABLE_SKILL_RUNTIME_MODULES" in runtime_source
+    for family in ["projectile", "chain", "module_chain", "damage_zone", "melee_arc", "player_nova"]:
+        assert f'family: "{family}"' in runtime_source
+
+
+def test_backend_runtime_evidence_is_not_playable_acceptance() -> None:
+    spec_source = _read(ROOT / "openspec" / "specs" / "frontend-skill-runtime-source" / "spec.md")
+    v1_spec_source = _read(ROOT / "openspec" / "specs" / "v1-minimal-sudoku-gem-loop" / "spec.md")
+
+    assert "backend-only runtime tests SHALL NOT be sufficient acceptance evidence" in spec_source
+    assert "Python runtime output is comparison evidence only" in v1_spec_source
+    assert "frontend runtime tests" in v1_spec_source
+    assert "actual playable WebApp battle view" in v1_spec_source
+
+
 def test_frontend_seed_data_contains_effect_baselines() -> None:
     source = _read(WEBAPP / "frontendGameData.ts")
 

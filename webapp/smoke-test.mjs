@@ -23,6 +23,7 @@ const bakedMapAssets = readFileSync(join(root, "webapp", "bakedMapAssets.ts"), "
 const bakedMapLoader = readFileSync(join(root, "webapp", "bakedMapLoader.ts"), "utf8");
 const html = readFileSync(join(root, "index.html"), "utf8");
 const frontendGameData = readFileSync(join(root, "webapp", "frontendGameData.ts"), "utf8");
+const frontendPlayableSkillRuntime = readFileSync(join(root, "webapp", "frontendPlayableSkillRuntime.ts"), "utf8");
 const localization = readFileSync(join(root, "configs", "localization", "zh_cn.toml"), "utf8");
 const skillEditorRunnerPath = join(root, "skillEditor_run.bat");
 const skillEditorRunner = existsSync(skillEditorRunnerPath) ? readFileSync(skillEditorRunnerPath, "utf8") : "";
@@ -252,20 +253,117 @@ if (!consumeSkillEventBatchBody.includes("completedProjectileHits.set(")
 }
 const applyDamageEventBatchBody = functionBody(app, "applyDamageEventBatch");
 if (!applyDamageEventBatchBody.includes("enemiesStateRef.current = liveEnemiesAfterDamage;")) {
-  throw new Error("Runtime damage application must update the canonical enemy ref synchronously.");
+  throw new Error("Runtime damage application must update the playable enemy ref synchronously.");
 }
 if (!applyDamageEventBatchBody.includes("setEnemies(liveEnemiesAfterDamage);")) {
-  throw new Error("Runtime damage React state must mirror the canonical post-damage enemy snapshot.");
+  throw new Error("Runtime damage React state must mirror the playable post-damage enemy snapshot.");
 }
 const applyEnemyStatusBuffBody = functionBody(app, "applyEnemyStatusBuff");
 if (!applyEnemyStatusBuffBody.includes("const next = enemiesStateRef.current.map")) {
-  throw new Error("Enemy status buff application must derive from the canonical enemy ref synchronously.");
+  throw new Error("Enemy status buff application must derive from the playable enemy ref synchronously.");
 }
 if (!applyEnemyStatusBuffBody.includes("enemiesStateRef.current = next;")) {
-  throw new Error("Enemy status buff application must update the canonical enemy ref before later event batch damage.");
+  throw new Error("Enemy status buff application must update the playable enemy ref before later event batch damage.");
 }
 if (!applyEnemyStatusBuffBody.includes("setEnemies(next);")) {
-  throw new Error("Enemy status buff React state must mirror the canonical post-status snapshot.");
+  throw new Error("Enemy status buff React state must mirror the playable post-status snapshot.");
+}
+const releaseFrontendPlayableSkillBody = functionBody(app, "releaseFrontendPlayableSkill");
+const buildFrontendPlayableSkillEventsBody = functionBody(app, "buildFrontendPlayableSkillEvents");
+for (const forbidden of ["releaseFrontendCanonicalSkill", "buildFrontendCanonicalSkillEvents"]) {
+  if (webappSourceText.includes(forbidden)) {
+    throw new Error(`Playable frontend skill runtime must not use backend-canonical entrypoint naming: ${forbidden}`);
+  }
+}
+for (const token of [
+  "frontendPlayableSkillRuntimeFamilyForBehavior",
+  "buildFrontendModuleChainSkillEvents",
+  "buildFrontendProjectileSkillEvents",
+  "buildFrontendChainSkillEvents",
+  "buildFrontendDamageZoneSkillEvents",
+  "buildFrontendMeleeArcSkillEvents",
+  "buildFrontendNovaSkillEvents"
+]) {
+  if (!buildFrontendPlayableSkillEventsBody.includes(token)) {
+    throw new Error(`Frontend playable skill dispatcher must route through ${token}.`);
+  }
+}
+for (const token of [
+  "FRONTEND_PLAYABLE_SKILL_RUNTIME_MODULES",
+  "projectile_spawn",
+  "chain_segment",
+  "damage_zone",
+  "forced_movement",
+  "melee_arc",
+  "area_spawn",
+  "status_apply",
+  "hit_vfx",
+  "floating_text"
+]) {
+  if (!frontendPlayableSkillRuntime.includes(token)) {
+    throw new Error(`Frontend playable skill runtime boundary is missing ${token}.`);
+  }
+}
+if (!releaseFrontendPlayableSkillBody.includes("consumeSkillEventTimeline(events)")) {
+  throw new Error("Playable skill release must consume frontend-owned event timelines.");
+}
+const buildFrontendProjectileSkillEventsBody = functionBody(app, "buildFrontendProjectileSkillEvents");
+for (const token of ["projectile_spawn", "projectile_hit", "frontendDamageEventsForTarget", "hit_vfx", "floating_text"]) {
+  if (!buildFrontendProjectileSkillEventsBody.includes(token)) {
+    throw new Error(`Projectile frontend runtime coverage missing ${token}.`);
+  }
+}
+const buildFrontendChainSkillEventsBody = functionBody(app, "buildFrontendChainSkillEvents");
+const buildFrontendModuleChainSkillEventsBody = functionBody(app, "buildFrontendModuleChainSkillEvents");
+for (const [body, family] of [[buildFrontendChainSkillEventsBody, "chain"], [buildFrontendModuleChainSkillEventsBody, "module-chain"]]) {
+  for (const token of family === "chain" ? ["chain_segment", "frontendDamageEventsForTarget"] : ["projectile_spawn", "damage_zone", "frontendDamageEventsForTarget"]) {
+    if (!body.includes(token)) throw new Error(`${family} frontend runtime coverage missing ${token}.`);
+  }
+}
+const buildFrontendDamageZoneSkillEventsBody = functionBody(app, "buildFrontendDamageZoneSkillEvents");
+for (const token of [
+  "dynamic_tick_runtime: useDynamicTickRuntime",
+  "movement_policy: \"pull_to_origin\"",
+  "movement_scope: \"damage_zone\"",
+  "if (useDynamicTickRuntime) continue",
+  "status_apply",
+  "frontendDamageEventsForTarget"
+]) {
+  if (!buildFrontendDamageZoneSkillEventsBody.includes(token)) {
+    throw new Error(`Damage-zone frontend runtime coverage missing ${token}.`);
+  }
+}
+if (buildFrontendDamageZoneSkillEventsBody.indexOf("\"forced_movement\"") > buildFrontendDamageZoneSkillEventsBody.indexOf("if (useDynamicTickRuntime) continue")) {
+  throw new Error("Dynamic damage-zone runtime must schedule pull forced_movement before skipping static tick damage.");
+}
+const activeDamageZoneRuntimeTickEventsBody = functionBody(app, "activeDamageZoneRuntimeTickEvents");
+for (const token of ["damage_zone_hit", "damage", "hit_vfx", "floating_text", "forced_movement", "status_apply"]) {
+  if (!activeDamageZoneRuntimeTickEventsBody.includes(token)) {
+    throw new Error(`Dynamic damage-zone tick consumer must emit ${token}.`);
+  }
+}
+const applyForcedMovementEventBody = functionBody(app, "applyForcedMovementEvent");
+for (const token of [
+  "movement_scope",
+  "damage_zone",
+  "enemiesStateRef.current.map",
+  "enemy.hp <= 0",
+  "length > radius",
+  "origin.x - enemy.x",
+  "origin.y - enemy.y",
+  "movementDistance"
+]) {
+  if (!applyForcedMovementEventBody.includes(token)) {
+    throw new Error(`Forced movement consumer must use current enemy positions and radius filtering: ${token}`);
+  }
+}
+const buildFrontendMeleeArcSkillEventsBody = functionBody(app, "buildFrontendMeleeArcSkillEvents");
+const buildFrontendNovaSkillEventsBody = functionBody(app, "buildFrontendNovaSkillEvents");
+for (const token of ["melee_arc", "frontendMeleeArcTargets", "frontendDamageEventsForTarget"]) {
+  if (!buildFrontendMeleeArcSkillEventsBody.includes(token)) throw new Error(`Melee-arc frontend runtime coverage missing ${token}.`);
+}
+for (const token of ["area_spawn", "on_kill_recast_chance_percent", "frontendDamageEventsForTarget"]) {
+  if (!buildFrontendNovaSkillEventsBody.includes(token)) throw new Error(`Nova frontend runtime coverage missing ${token}.`);
 }
 const battleGeometrySnapshotEnemies = app.slice(
   app.indexOf("enemies: visibleEnemies.map((enemy) => ({"),

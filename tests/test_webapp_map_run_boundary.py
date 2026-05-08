@@ -459,7 +459,7 @@ def test_frontend_passive_skill_gems_use_type_two_identity() -> None:
 
 def test_frontend_self_centered_damage_zone_releases_after_event_validation() -> None:
     source = _app_source()
-    release_body = source.split("function releaseFrontendCanonicalSkill", 1)[1].split("function buildFrontendCanonicalSkillEvents", 1)[0]
+    release_body = source.split("function releaseFrontendPlayableSkill", 1)[1].split("function buildFrontendPlayableSkillEvents", 1)[0]
     hit_body = source.split("function hitEnemies", 1)[1].split("function buildFrontendProjectileSkillEvents", 1)[0]
     damage_zone_body = source.split("function buildFrontendDamageZoneSkillEvents", 1)[1].split("function buildFrontendMeleeArcSkillEvents", 1)[0]
 
@@ -475,7 +475,7 @@ def test_frontend_self_centered_damage_zone_releases_after_event_validation() ->
 
 def test_frontend_channel_damage_zones_require_targets_and_scale_radius() -> None:
     source = _app_source()
-    release_body = source.split("function releaseFrontendCanonicalSkill", 1)[1].split("function buildFrontendCanonicalSkillEvents", 1)[0]
+    release_body = source.split("function releaseFrontendPlayableSkill", 1)[1].split("function buildFrontendPlayableSkillEvents", 1)[0]
     loop_body = source.split("if (!consumedContinuousAttack && activeSkills.length > 0)", 1)[1].split("const projectileImpactEvents", 1)[0]
     channel_body = source.split("function processChannelDamageZoneSkill", 1)[1].split("function processThundercloudChannel", 1)[0]
     damage_zone_body = source.split("function buildFrontendDamageZoneSkillEvents", 1)[1].split("function buildFrontendMeleeArcSkillEvents", 1)[0]

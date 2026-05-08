@@ -56,6 +56,7 @@ import {
   selectEnemyUnitType,
   UnitDirection,
 } from "./unitAssets";
+import { frontendPlayableSkillRuntimeFamilyForBehavior } from "./frontendPlayableSkillRuntime";
 import { FRONTEND_GEM_DROP_POOL } from "./frontendGemDropData";
 import { FRONTEND_INITIAL_APP_STATE, FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG } from "./frontendGameData";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "./frontendSkillLevelTables";
@@ -129,6 +130,8 @@ import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { PlayerOverheadResourceBars } from "./components/battle/PlayerOverheadResourceBars";
 import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
+import { BoardCell, GemGhost, previewRelationLabel, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
+import type { PreviewRelationType, SupportLine, SupportPreview } from "./components/skill-board/SkillBoardPresentation";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
@@ -1545,21 +1548,6 @@ type ItemDiscardPrompt = {
   origin: FloatingOrigin;
   position: { x: number; y: number };
 };
-
-type SupportPreview = {
-  source: { row: number; column: number; instanceId: string };
-  targets: { row: number; column: number; instanceId: string }[];
-  color: string;
-};
-
-type SupportLine = {
-  id: string;
-  source: { row: number; column: number };
-  target: { row: number; column: number };
-  color: string;
-};
-
-type PreviewRelationType = "row" | "column" | "box" | "adjacent";
 
 type PlacementPreview = {
   previewCell: { row: number; column: number };
@@ -5745,7 +5733,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const releaseStack = Math.max(1, Math.min(maxStacks, channel.stacks));
     if (releaseStack <= minStacks || (channel.releaseCooldownMs ?? 0) > 0) return false;
     if (!trySpendSkillMana(skill)) return false;
-    const released = releaseFrontendCanonicalSkill(skillWithFrontendChannelStack(skill, releaseStack), current, {
+    const released = releaseFrontendPlayableSkill(skillWithFrontendChannelStack(skill, releaseStack), current, {
       manaAlreadySpent: true
     });
     channel.releaseCooldownMs = released ? releaseIntervalMs : 50;
@@ -5789,7 +5777,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     }
     if (channel.stacks < maxStacks) return false;
     if (!trySpendSkillMana(skill)) return false;
-    const released = releaseFrontendCanonicalSkill(skill, current, { manaAlreadySpent: true });
+    const released = releaseFrontendPlayableSkill(skill, current, { manaAlreadySpent: true });
     if (!released) return false;
     channel.stacks = 0;
     channel.progressMs = 0;
@@ -6547,7 +6535,7 @@ function frontendDamageEventsForTarget(
     if (immediate.length > 0) consumeSkillEventBatch(immediate);
   }
 
-  function releaseFrontendCanonicalSkill(skill: SkillPreview, current: Enemy[], options: { manaAlreadySpent?: boolean } = {}) {
+  function releaseFrontendPlayableSkill(skill: SkillPreview, current: Enemy[], options: { manaAlreadySpent?: boolean } = {}) {
     const runtimeSkill = applyFrontendWarIntentToSkill(skill);
     if (applyFrontendGuardRuntime(runtimeSkill)) {
       if (!options.manaAlreadySpent && !trySpendSkillMana(skill)) return false;
@@ -6569,7 +6557,7 @@ function frontendDamageEventsForTarget(
         || String(runtimeSkill.runtime_params?.origin_policy ?? "") === "caster"
       );
     if (targets.length === 0 && !canReleaseWithoutEnemyTarget) return false;
-    const events = buildFrontendCanonicalSkillEvents(runtimeSkill, caster, targets, current, behavior);
+    const events = buildFrontendPlayableSkillEvents(runtimeSkill, caster, targets, current, behavior);
     if (events.length === 0) return false;
     if (!options.manaAlreadySpent && !trySpendSkillMana(skill)) return false;
     consumeSkillEventTimeline(events);
@@ -6577,20 +6565,23 @@ function frontendDamageEventsForTarget(
     return true;
   }
 
-  function buildFrontendCanonicalSkillEvents(
+  function buildFrontendPlayableSkillEvents(
     skill: SkillPreview,
     caster: PlayerRuntimeState,
     initialTargets: Enemy[],
     current: Enemy[],
     behavior: string | undefined
   ) {
-    if (skillHasProjectileDamageZoneModules(skill)) return buildFrontendModuleChainSkillEvents(skill, caster, initialTargets, current);
-    if (isProjectileSkillTemplate(behavior)) return buildFrontendProjectileSkillEvents(skill, caster, initialTargets, current);
-    if (behavior === "chain") return buildFrontendChainSkillEvents(skill, caster, initialTargets, current);
-    if (behavior === "module_chain") return buildFrontendModuleChainSkillEvents(skill, caster, initialTargets, current);
-    if (behavior === "damage_zone") return buildFrontendDamageZoneSkillEvents(skill, caster, initialTargets, current);
-    if (behavior === "melee_arc") return buildFrontendMeleeArcSkillEvents(skill, caster, initialTargets, current);
-    if (behavior === "player_nova" || behavior === "nova") return buildFrontendNovaSkillEvents(skill, caster, current);
+    const runtimeFamily = frontendPlayableSkillRuntimeFamilyForBehavior(
+      isProjectileSkillTemplate(behavior) ? "projectile" : behavior,
+      skillHasProjectileDamageZoneModules(skill)
+    );
+    if (runtimeFamily === "module_chain") return buildFrontendModuleChainSkillEvents(skill, caster, initialTargets, current);
+    if (runtimeFamily === "projectile") return buildFrontendProjectileSkillEvents(skill, caster, initialTargets, current);
+    if (runtimeFamily === "chain") return buildFrontendChainSkillEvents(skill, caster, initialTargets, current);
+    if (runtimeFamily === "damage_zone") return buildFrontendDamageZoneSkillEvents(skill, caster, initialTargets, current);
+    if (runtimeFamily === "melee_arc") return buildFrontendMeleeArcSkillEvents(skill, caster, initialTargets, current);
+    if (runtimeFamily === "player_nova") return buildFrontendNovaSkillEvents(skill, caster, current);
     return initialTargets.flatMap((target) => frontendDamageEventsForTarget(skill, target, { x: target.x, y: target.y }, guideDirection(caster, target), skill.final_damage, skill.hit as Record<string, unknown>));
   }
 
@@ -6598,7 +6589,7 @@ function frontendDamageEventsForTarget(
     const selfBuffSkill = isFrontendSelfBuffSkill(skill);
     if (current.length === 0 && !selfBuffSkill) return false;
     if (!selfBuffSkill && !hasLiveEnemyInCastRange(current, skill, playerStateRef.current)) return false;
-    const released = releaseFrontendCanonicalSkill(skill, current);
+    const released = releaseFrontendPlayableSkill(skill, current);
     if (released && !options.isContinuousRepeat) enqueueFrontendContinuousAttack(skill);
     return released;
   }
@@ -10681,6 +10672,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                       setTooltip(null);
                     }}
                     onUnmountGem={unmountGem}
+                    renderGem={(gem) => <GemOrb gem={gem} />}
                   />
                 ))}
                 {supportPreview
