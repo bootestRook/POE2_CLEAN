@@ -1,0 +1,25 @@
+## Baseline Notes
+
+- Branch: `codex/continue-webapp-app-module-extraction`.
+- Pre-existing dirty files at apply start:
+  - `webapp/App.tsx`
+  - `webapp/frontendGemDropData.ts`
+  - `webapp/smoke-test.mjs`
+  - `openspec/changes/clean-up-full-tsc-errors/`
+- Target frontend module boundaries:
+  - Tooltip display/pure helpers: `webapp/components/tooltips/` and optional pure helpers under `webapp/utils/`.
+  - Inventory/equipment presentation: `webapp/components/inventory/`.
+  - Battle guide/debug overlays: `webapp/components/battle/`.
+  - Legacy VFX presentation helpers: `webapp/components/battle/`.
+- Current `webapp/App.tsx` low-risk candidate regions:
+  - Tooltip item view helper near `createFrontendItemTooltipView`.
+  - Tooltip normalization, tag replacement, and equipment tooltip formatting helpers around the later tooltip helper block.
+  - Battle guide/debug overlay components around `FrontendSkillGuideLayer`, `DamageZoneRuntimeGuide`, and `FireBoltAlignmentDebug`.
+  - VFX display helpers around `projectileVfxKind`, sprite frame helpers, `FireBoltView`, and `HitVfxView`.
+- Out of scope for this pass unless separately stopped and redesigned:
+  - `GameApp` battle loop and runtime refs.
+  - Damage application, target selection, monster movement, loot generation, save orchestration, storage keys, skill event generation/consumption, projectile hit timing, and projectile lifecycle.
+  - The pre-existing `finishCompletedProjectileBody` dirty runtime change in `webapp/App.tsx`.
+- Verification surface:
+  - Static checks: `openspec validate`, `npm run build`, `npm test`, and focused TypeScript checks for touched files.
+  - Frontend acceptance: project root `run.bat`, actual playable WebApp, screenshots under `artifacts/screenshots/`.
