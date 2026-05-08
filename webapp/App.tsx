@@ -78,6 +78,8 @@ import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
+import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
+import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { LegacyFireBoltView, LegacyHitVfxView } from "./components/battle/LegacyProjectileHitVfxViews";
@@ -162,40 +164,6 @@ type FrontendPassiveEffect = {
   layer?: string;
 };
 
-type TooltipView = {
-  variant?: "active" | "passive" | "support";
-  icon_text: string;
-  icon_color_key?: string;
-  icon_sprite?: string;
-  rarity_tone?: string;
-  name_text: string;
-  subtitle_text: string;
-  type_identity_text: string;
-  tags: TooltipTagView[];
-  summary_lines?: TooltipRichLine[];
-  sections: {
-    description: { title_text: string; lines: string[] };
-    stats: { title_text: string; lines: TooltipStatLine[] };
-    recent_dps?: { title_text: string; lines: TooltipStatLine[] };
-    bonuses?: { title_text: string; lines: string[] };
-    base_skill_level?: { lines: string[] };
-    conditions?: { rich_lines: TooltipRichLine[] };
-    support_rules?: { rich_lines: TooltipRichLine[] };
-    base_bonuses?: { rich_lines: TooltipRichLine[] };
-    current_targets?: { title_text: string; lines: TooltipTargetLine[] };
-    rules?: { title_text: string; lines: string[] };
-  };
-};
-
-type TooltipStatLine = {
-  label_text: string;
-  value_text: string;
-};
-
-type TooltipTargetLine = {
-  name_text: string;
-  status_text: string;
-};
 
 type ShapeEffectPreview = { id: string; text: string };
 
@@ -3173,46 +3141,6 @@ function saveFrontendAutosave(state: AppState) {
 
 function clearFrontendAutosave() {
   window.localStorage.removeItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
-}
-
-function createFrontendItemTooltipView(item: {
-  nameText: string;
-  rarityText: string;
-  categoryText: string;
-  identityText: string;
-  descriptionText: string;
-  iconText: string;
-  iconColorKey?: string;
-  iconSprite?: string;
-  rarityTone?: string;
-  tags: TooltipTagView[];
-  statLines?: TooltipStatLine[];
-  bonusLines?: string[];
-}): TooltipView {
-  return {
-    icon_text: item.iconText,
-    icon_color_key: item.iconColorKey ?? "orange",
-    icon_sprite: item.iconSprite,
-    rarity_tone: item.rarityTone,
-    name_text: item.nameText,
-    subtitle_text: `${item.rarityText} · ${item.categoryText}`,
-    type_identity_text: item.identityText,
-    tags: item.tags,
-    sections: {
-      description: {
-        title_text: "说明",
-        lines: [item.descriptionText]
-      },
-      stats: {
-        title_text: "属性",
-        lines: item.statLines ?? []
-      },
-      bonuses: item.bonusLines && item.bonusLines.length > 0 ? {
-        title_text: "词缀",
-        lines: item.bonusLines
-      } : undefined
-    }
-  };
 }
 
 async function requestGmOptions(): Promise<GmOptions> {

@@ -23,3 +23,14 @@
 - Verification surface:
   - Static checks: `openspec validate`, `npm run build`, `npm test`, and focused TypeScript checks for touched files.
   - Frontend acceptance: project root `run.bat`, actual playable WebApp, screenshots under `artifacts/screenshots/`.
+
+## Tooltip Extraction
+
+- Moved shared tooltip view-model types and `createFrontendItemTooltipView` into `webapp/components/tooltips/tooltipViewModel.ts`.
+- Left tooltip hover state, positioning, comparison behavior, inventory state, equipment state, and save/runtime ownership in `webapp/App.tsx`.
+- Verification:
+  - `npm run build` passed.
+  - `npm test` passed.
+  - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
+  - Focused TypeScript filter for `tooltipViewModel`, `GemTooltipOverlay`, and `TooltipPrimitives` produced no matching errors; full `tsc --noEmit` still has existing broader type debt outside this split.
+  - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/tooltip-extraction-rest-area-tooltip.png` shows the rest-area inventory open with a gem tooltip rendering name, level, tags, damage, attack interval, mana cost, and rules.

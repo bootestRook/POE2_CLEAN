@@ -7,10 +7,10 @@
 
 ## 2. Tooltip Extraction
 
-- [ ] 2.1 Extract tooltip view-model normalization helpers from `webapp/App.tsx` into focused client-side tooltip modules.
-- [ ] 2.2 Keep hover state, tooltip positioning, and owner state wiring in `webapp/App.tsx` while moving only pure display preparation.
-- [ ] 2.3 Verify tooltip rendering in rest-area inventory/equipment flows with build/test checks and a playable WebApp screenshot.
-- [ ] 2.4 Commit only the tooltip extraction files after verification passes.
+- [x] 2.1 Extract tooltip view-model normalization helpers from `webapp/App.tsx` into focused client-side tooltip modules.
+- [x] 2.2 Keep hover state, tooltip positioning, and owner state wiring in `webapp/App.tsx` while moving only pure display preparation.
+- [x] 2.3 Verify tooltip rendering in rest-area inventory/equipment flows with build/test checks and a playable WebApp screenshot.
+- [x] 2.4 Commit only the tooltip extraction files after verification passes.
 
 ## 3. Inventory And Equipment Presentation Extraction
 
