@@ -98,10 +98,10 @@ import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
-import { FireBoltAlignmentDebug } from "./components/battle/FireBoltAlignmentDebug";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
 import { HitVfxView, PlayerBuffLayer as BattlePlayerBuffLayer } from "./components/battle/HitAndBuffViews";
 import { FireBoltView } from "./components/battle/ProjectileBodyViews";
+import { FrontendSkillGuideLayer } from "./components/battle/SkillGuideOverlay";
 import {
   FIRE_BOLT_FAKE_Z,
   FIRE_BOLT_IMPACT_DURATION_MS,
@@ -10268,6 +10268,19 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                 enemies={enemies}
                 guidePackage={skillEditorGuidePackage}
                 debugOptions={skillEditorDebugOptions}
+                helpers={{
+                  isProjectileSkillTemplate,
+                  nearestGuideTarget: (source, guideEnemies, searchRange, maxDistance) => nearestGuideTarget(source, guideEnemies as Enemy[], searchRange, maxDistance),
+                  guideDirection,
+                  projectileSpawnWorldPosition,
+                  projectileSpreadAngleDeg,
+                  projectileAngleStepDeg,
+                  projectileSpreadDirections,
+                  projectBattleWorldToScreen,
+                  worldDirectionToBattleScreenAngle,
+                  rotateDirection,
+                  formatPreviewNumber
+                }}
               />
             )}
           </div>
@@ -17934,309 +17947,6 @@ function finishCompletedProjectileBody<TBolt extends Pick<
   };
 }
 
-function FrontendSkillGuideLayer({
-  skills,
-  player,
-  enemies,
-  guidePackage,
-  debugOptions
-}: {
-  skills: SkillPreview[];
-  player: { x: number; y: number };
-  enemies: Enemy[];
-  guidePackage: SkillPackageData | null;
-  debugOptions: SkillEditorDebugOptions;
-}) {
-  const skill = skills.find((item) => item.skill_package_id && (
-    isProjectileSkillTemplate(item.behavior_template)
-    || item.behavior_template === "damage_zone"
-    || item.behavior_template === "module_chain"
-  ));
-  if (!skill && !guidePackage) return null;
-  const runtimeParams = guidePackage?.behavior.params ?? skill?.runtime_params ?? {};
-  const behaviorTemplate = guidePackage?.behavior.template ?? skill?.behavior_template;
-  const moduleChainDamageZone = behaviorTemplate === "module_chain"
-    ? damageZoneModuleGuideParams(guidePackage, skill)
-    : null;
-  if (behaviorTemplate === "damage_zone") {
-    return (
-      <DamageZoneRuntimeGuide
-        params={runtimeParams}
-        cast={guidePackage?.cast ?? skill?.cast ?? {}}
-        hitRadius={typeof skill?.hit?.hit_radius === "number" ? skill.hit.hit_radius : guidePackage?.hit.hit_radius}
-        damageType={guidePackage?.classification.damage_type ?? skill?.damage_type ?? "physical"}
-        vfxKey={String(runtimeParams.zone_vfx_key ?? guidePackage?.presentation.vfx ?? skill?.presentation_keys?.vfx ?? skill?.visual_effect ?? "")}
-        player={player}
-        enemies={enemies}
-        originPolicy={String(runtimeParams.origin_policy ?? "caster")}
-        debugOptions={debugOptions}
-      />
-    );
-  }
-  if (moduleChainDamageZone) {
-    return (
-      <DamageZoneRuntimeGuide
-        params={moduleChainDamageZone.params}
-        cast={guidePackage?.cast ?? skill?.cast ?? {}}
-        hitRadius={typeof skill?.hit?.hit_radius === "number" ? skill.hit.hit_radius : guidePackage?.hit.hit_radius}
-        damageType={guidePackage?.classification.damage_type ?? skill?.damage_type ?? "physical"}
-        vfxKey={String(moduleChainDamageZone.params.zone_vfx_key ?? moduleChainDamageZone.params.vfx_key ?? guidePackage?.presentation.vfx ?? skill?.presentation_keys?.vfx ?? skill?.visual_effect ?? "")}
-        player={player}
-        enemies={enemies}
-        originPolicy={String(moduleChainDamageZone.params.origin_policy ?? "trigger_position")}
-        debugOptions={debugOptions}
-      />
-    );
-  }
-  if (!behaviorTemplate || !isProjectileSkillTemplate(behaviorTemplate)) return null;
-  const guideVfxKind = projectileVfxKind(String(skill?.presentation_keys?.projectile_vfx_key ?? skill?.visual_effect ?? guidePackage?.presentation.projectile_vfx_key ?? guidePackage?.presentation.vfx ?? ""));
-  const guideDebugLabel = guideVfxKind === "ice_shards" ? "冰棱" : guideVfxKind === "penetrating_shot" ? "贯穿射击" : "投射物";
-  const cast = guidePackage?.cast ?? skill?.cast ?? {};
-  const areaMultiplier = skill?.area_multiplier ?? 1;
-  const projectileCount = Math.max(1, Math.round(Number(runtimeParams.projectile_count ?? skill?.projectile_count ?? 1)));
-  const searchRange = Math.max(1, Number(cast.search_range ?? runtimeParams.max_distance ?? 520) * areaMultiplier);
-  const maxDistance = Math.max(1, Number(runtimeParams.max_distance ?? searchRange));
-  const collisionRadius = Math.max(1, Number(runtimeParams.collision_radius ?? runtimeParams.projectile_radius ?? 12));
-  const spreadAngleDeg = projectileSpreadAngleDeg(behaviorTemplate, runtimeParams as Record<string, unknown>);
-  const angleStepDeg = projectileAngleStepDeg(behaviorTemplate, runtimeParams as Record<string, unknown>);
-  const source = projectileSpawnWorldPosition(player, runtimeParams as Record<string, unknown>);
-    const target = nearestGuideTarget(source, enemies, searchRange, maxDistance);
-    const direction = guideDirection(source, target);
-    const directions = projectileSpreadDirections(direction, projectileCount, spreadAngleDeg, angleStepDeg);
-    const sourceVisual = projectBattleWorldToScreen(source.x, source.y);
-    const targetVisual = projectBattleWorldToScreen(target.x, target.y);
-    const searchDiameter = searchRange * 2;
-    const collisionDiameter = collisionRadius * 2;
-    const guideDistance = Math.min(maxDistance, Math.hypot(target.x - source.x, target.y - source.y) || maxDistance);
-
-  return (
-    <div className="runtime-skill-guides" aria-label="编辑器运行辅助线" data-projectile-count={projectileCount}>
-      {debugOptions.showSearchRange && (
-        <div
-          className="runtime-skill-search-ring"
-          title="技能搜索范围线圈"
-          style={{
-            left: sourceVisual.x,
-            top: sourceVisual.y,
-            width: searchDiameter,
-            height: searchDiameter
-          }}
-        />
-      )}
-      {debugOptions.showTargetPoint && (
-        <span className="fire-bolt-debug-point fire-bolt-debug-target" style={{ left: targetVisual.x, top: targetVisual.y }} title="目标点" />
-      )}
-      {directions.map((projectileDirection, index) => {
-        const start = source;
-        const end = {
-          x: start.x + projectileDirection.x * guideDistance,
-          y: start.y + projectileDirection.y * guideDistance
-        };
-        const collision = {
-          x: start.x + (end.x - start.x) * 0.68,
-          y: start.y + (end.y - start.y) * 0.68
-        };
-        const startVisual = projectBattleWorldToScreen(start.x, start.y);
-        const endVisual = projectBattleWorldToScreen(end.x, end.y);
-        const collisionVisual = projectBattleWorldToScreen(collision.x, collision.y);
-        const length = Math.hypot(endVisual.x - startVisual.x, endVisual.y - startVisual.y);
-        const angle = Math.atan2(endVisual.y - startVisual.y, endVisual.x - startVisual.x);
-        return (
-          <div key={`runtime-guide-${index}`}>
-            {debugOptions.showDirectionLines && (
-              <span
-                className="runtime-skill-trajectory-line"
-                title="逻辑飞行方向"
-                style={{
-                  left: startVisual.x,
-                  top: startVisual.y,
-                  width: length,
-                  transform: `rotate(${angle}rad)`
-                }}
-              />
-            )}
-            <FireBoltAlignmentDebug
-              start={start}
-              current={collision}
-              hit={end}
-              direction={projectileDirection}
-              lineLength={length}
-              lineAngle={angle}
-              projectileIndex={index + 1}
-              projectileCount={projectileCount}
-              label={guideDebugLabel}
-              debugOptions={debugOptions}
-              projectBattleWorldToScreen={projectBattleWorldToScreen}
-              worldDirectionToBattleScreenAngle={worldDirectionToBattleScreenAngle}
-            />
-            {debugOptions.showCollisionRadius && (
-              <>
-                <span
-                  className="runtime-skill-collision-ring"
-                  title={`投射物碰撞范围线圈：半径 ${formatPreviewNumber(collisionRadius)}`}
-                  style={{
-                    left: collisionVisual.x,
-                    top: collisionVisual.y,
-                    width: collisionDiameter,
-                    height: collisionDiameter
-                  }}
-                />
-                <span
-                  className="runtime-projectile-collision-dimension"
-                  title={`投射物碰撞范围线圈：半径 ${formatPreviewNumber(collisionRadius)}`}
-                  style={{
-                    left: collisionVisual.x,
-                    top: collisionVisual.y
-                  }}
-                >
-                  碰撞半径 {formatPreviewNumber(collisionRadius)}
-                </span>
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function damageZoneModuleGuideParams(guidePackage: SkillPackageData | null, skill: SkillPreview | undefined) {
-  const packageModule = guidePackage?.modules?.find((module) => module.type === "damage_zone");
-  if (packageModule) return packageModule;
-  const runtimeModules = Array.isArray(skill?.runtime_params?.modules) ? skill?.runtime_params.modules : [];
-  return runtimeModules.find((module): module is { type?: string; params: Record<string, unknown> } => (
-    typeof module === "object"
-    && module !== null
-    && (module as { type?: unknown }).type === "damage_zone"
-    && typeof (module as { params?: unknown }).params === "object"
-    && (module as { params?: unknown }).params !== null
-  ));
-}
-
-function DamageZoneRuntimeGuide({
-  params,
-  cast,
-  hitRadius,
-  damageType,
-  vfxKey,
-  player,
-  enemies,
-  originPolicy,
-  debugOptions
-}: {
-  params: Record<string, unknown>;
-  cast: Partial<SkillPackageData["cast"]>;
-  hitRadius?: number;
-  damageType: string;
-  vfxKey: string;
-  player: { x: number; y: number };
-  enemies: Enemy[];
-  originPolicy: string;
-  debugOptions: SkillEditorDebugOptions;
-}) {
-  const shape = String(params.shape ?? "circle") === "rectangle" ? "rectangle" : "circle";
-  const searchRange = Math.max(1, Number(cast.search_range ?? hitRadius ?? params.radius ?? params.length ?? 360));
-  const target = nearestGuideTarget(player, enemies, searchRange, searchRange);
-  const origin = originPolicy === "trigger_position" ? target : player;
-  const originVisual = projectBattleWorldToScreen(origin.x, origin.y);
-  const targetVisual = projectBattleWorldToScreen(target.x, target.y);
-  const facingTarget = originPolicy === "trigger_position"
-    ? nearestGuideTarget(origin, enemies, searchRange, searchRange)
-    : target;
-  const baseDirection = guideDirection(origin, facingTarget);
-  const direction = shape === "rectangle"
-    ? rotateDirection(baseDirection, Number(params.angle_offset_deg ?? 0))
-    : { x: 0, y: 0 };
-  const directionEnd = {
-    x: origin.x + direction.x * Math.max(48, Math.min(searchRange, Number(params.length ?? hitRadius ?? searchRange))),
-    y: origin.y + direction.y * Math.max(48, Math.min(searchRange, Number(params.length ?? hitRadius ?? searchRange)))
-  };
-  const directionEndVisual = projectBattleWorldToScreen(directionEnd.x, directionEnd.y);
-  const guideLineLength = Math.hypot(directionEndVisual.x - originVisual.x, directionEndVisual.y - originVisual.y);
-  const guideLineAngle = Math.atan2(directionEndVisual.y - originVisual.y, directionEndVisual.x - originVisual.x);
-  const radius = Math.max(1, Number(params.radius ?? hitRadius ?? searchRange));
-  const length = Math.max(1, Number(params.length ?? hitRadius ?? searchRange));
-  const width = Math.max(1, Number(params.width ?? 96));
-  const rectangleAngle = worldDirectionToBattleScreenAngle(direction, origin);
-  const guideVisual = damageZoneGuideVisual(shape, vfxKey);
-  const rangeLabel = shape === "rectangle"
-    ? `damage_zone 矩形范围：长 ${formatPreviewNumber(length)}，宽 ${formatPreviewNumber(width)}`
-    : `damage_zone 圆形范围：半径 ${formatPreviewNumber(radius)}`;
-  const dimensionLabel = shape === "rectangle"
-    ? `长 ${formatPreviewNumber(length)} / 宽 ${formatPreviewNumber(width)}`
-    : `半径 ${formatPreviewNumber(radius)}`;
-  const dimensionVisual = shape === "rectangle"
-    ? projectBattleWorldToScreen(origin.x + direction.x * length * 0.5, origin.y + direction.y * length * 0.5)
-    : projectBattleWorldToScreen(origin.x, origin.y - radius);
-
-  return (
-    <div className="runtime-skill-guides" aria-label="编辑器 damage_zone 范围辅助线" data-damage-zone-shape={shape}>
-      {debugOptions.showSearchRange && (
-        <div
-          className="runtime-skill-search-ring"
-          title="技能搜索范围线圈"
-          style={{
-            left: originVisual.x,
-            top: originVisual.y,
-            width: searchRange * 2,
-            height: searchRange * 2
-          }}
-        />
-      )}
-      {debugOptions.showTargetPoint && (
-        <>
-          <span className="fire-bolt-debug-point fire-bolt-debug-logic-spawn" style={{ left: originVisual.x, top: originVisual.y }} title="damage_zone 原点" />
-          <span className="fire-bolt-debug-point fire-bolt-debug-target" style={{ left: targetVisual.x, top: targetVisual.y }} title="damage_zone 参考目标" />
-        </>
-      )}
-      <div
-        className={`runtime-damage-zone-range runtime-damage-zone-geometry-${shape} runtime-damage-zone-guide-${guideVisual} damage-zone-${damageType} runtime-damage-zone-range-${cssToken(vfxKey)}`}
-        title={rangeLabel}
-        style={{
-          left: originVisual.x,
-          top: originVisual.y,
-          width: shape === "circle" ? radius * 2 : length,
-          height: shape === "circle" ? radius * 2 : width,
-          transform: shape === "circle"
-            ? "translate(-50%, -50%)"
-            : `translate(0, -50%) rotate(${rectangleAngle}rad)`,
-          ["--whirlwind-angle" as string]: `${Date.now() * 0.36}deg`
-        }}
-        data-zone-shape={shape}
-        data-zone-radius={shape === "circle" ? radius : undefined}
-        data-zone-length={shape === "rectangle" ? length : undefined}
-        data-zone-width={shape === "rectangle" ? width : undefined}
-      />
-      <span
-        className={`runtime-damage-zone-dimension runtime-damage-zone-dimension-${shape}`}
-        style={{ left: dimensionVisual.x, top: dimensionVisual.y }}
-        title={rangeLabel}
-      >
-        {dimensionLabel}
-      </span>
-      {shape === "rectangle" && debugOptions.showDirectionLines && (
-        <span
-          className="runtime-skill-trajectory-line runtime-damage-zone-facing-line"
-          title="damage_zone 朝向"
-          style={{
-            left: originVisual.x,
-            top: originVisual.y,
-            width: guideLineLength,
-            transform: `rotate(${guideLineAngle}rad)`
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-type DamageZoneGuideVisual = "circle" | "rectangle" | "whirlwind";
-
-function damageZoneGuideVisual(shape: "circle" | "rectangle", vfxKey: string): DamageZoneGuideVisual {
-  const token = cssToken(vfxKey);
-  if (token.includes("whirlwind")) return "whirlwind";
-  return shape;
-}
 
 function createEnemy(
   id: number,

@@ -595,7 +595,7 @@ for (const text of [
   "runtime-damage-zone-guide-${guideVisual}",
   "if (token.includes(\"whirlwind\")) return \"whirlwind\";"
 ]) {
-  if (!app.includes(text)) {
+  if (!webappSourceText.includes(text)) {
     throw new Error(`DamageZoneRuntimeGuide missing guide visual separation: ${text}`);
   }
 }

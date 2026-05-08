@@ -50,3 +50,13 @@
 - Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
 - `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-hit-buff-views-battle.png`.
 - Visible result: new save entered `map_001`, canvas battle view rendered, procedural spawn debug showed 120 generated monster packs with nonzero spawn budget, and combat log showed hit/kill activity.
+
+## Group 5 Verification
+
+- Extracted skill guide and damage-zone guide presentation into `webapp/components/battle/SkillGuideOverlay.tsx`.
+- Reused the existing `FireBoltAlignmentDebug` component from the new guide overlay module.
+- App keeps the existing guide helper implementations and passes them into the extracted overlay; playable runtime event consumption, hit timing, damage, pierce/chain behavior, monster behavior, and skill results were not moved.
+- Updated smoke coverage so damage-zone guide visual separation can live outside `App.tsx`.
+- Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
+- `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-guide-overlay-battle.png`.
+- Visible result: new save entered `map_001`, canvas battle view rendered, procedural spawn debug showed 120 generated monster packs with nonzero spawn budget, and combat log showed auto-cast/kill activity.

@@ -28,10 +28,10 @@
 
 ## 5. Skill Guide And Debug Overlay Extraction
 
-- [ ] 5.1 Extract `FrontendSkillGuideLayer`, `DamageZoneRuntimeGuide`, and remaining guide/debug render-only helpers into focused battle component modules.
-- [ ] 5.2 Reuse existing `FireBoltAlignmentDebug` and preserve current debug option props, labels, class names, DOM order, data attributes, and projection callbacks.
-- [ ] 5.3 Keep target selection, guide payload ownership, damage-zone origin decisions, hit timing, damage, pierce/chain, monster behavior, and skill event results in their current runtime paths.
-- [ ] 5.4 Run `npm run build`, `npm test`, focused TypeScript checks, playable WebApp verification, screenshot capture under `artifacts/screenshots/`, and commit only this guide/debug group.
+- [x] 5.1 Extract `FrontendSkillGuideLayer`, `DamageZoneRuntimeGuide`, and remaining guide/debug render-only helpers into focused battle component modules.
+- [x] 5.2 Reuse existing `FireBoltAlignmentDebug` and preserve current debug option props, labels, class names, DOM order, data attributes, and projection callbacks.
+- [x] 5.3 Keep target selection, guide payload ownership, damage-zone origin decisions, hit timing, damage, pierce/chain, monster behavior, and skill event results in their current runtime paths.
+- [x] 5.4 Run `npm run build`, `npm test`, focused TypeScript checks, playable WebApp verification, screenshot capture under `artifacts/screenshots/`, and commit only this guide/debug group.
 
 ## 6. Final Verification And Handoff
 
