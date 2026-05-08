@@ -88,7 +88,7 @@ import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
-import { canPlaceItemInEquipmentSlot, equipmentSourceSlotId, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots } from "./components/inventory/equipmentRules";
+import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
@@ -8828,7 +8828,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return { type: "reject" };
     }
 
-    const targetIndices = equipmentTargetSlotIndices(dragged, slotIndex);
+    const targetIndices = equipmentTargetSlotIndices(dragged, slotIndex, EQUIPMENT_SLOT_SPECS, WEAPON_SLOT_INDICES);
     const displacedIds = uniqueEquipmentSlotIds(equipmentSlots, targetIndices).filter((id) => id !== instanceId);
     const targetItem = inventoryItemById(state, displacedIds[0]);
     if (isTwoHandedWeapon(dragged) && displacedIds.length > 0 && !(displacedIds.length === 1 && targetItem && isTwoHandedWeapon(targetItem))) {
@@ -9750,7 +9750,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   function onGemHover(event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number) {
     setHoveredGemId(gem.instance_id);
     const preview = state?.skill_preview.find((skill) => skill.active_gem_instance_id === gem.instance_id);
-    const comparisonGem = source === "inventory" ? comparisonGemForInventoryEquipment(gem, equipmentSlots, fullGemById) : null;
+    const comparisonGem = source === "inventory" ? comparisonGemForInventoryEquipment(gem, equipmentSlots, fullGemById, EQUIPMENT_SLOT_SPECS, WEAPON_SLOT_INDICES) : null;
     setTooltip({
       gem: gemWithFrontendSkillPreviewTooltip(gem, preview),
       comparisonGem,
@@ -16135,36 +16135,6 @@ function canPlaceGemOnBoard(state: AppState, gem: Gem, row: number, column: numb
 function inventoryItemById(state: AppState, instanceId: string | null | undefined) {
   if (!instanceId) return null;
   return state.inventory.find((item) => item.instance_id === instanceId) ?? null;
-}
-
-function comparisonGemForInventoryEquipment(item: Gem, equipmentSlots: (string | null)[], fullGemById: Map<string, Gem>) {
-  if (item.item_kind !== "equipment" || isGemItem(item)) return null;
-  const preferredSlotIndices = isWeaponItem(item)
-    ? [MAIN_WEAPON_SLOT_INDEX, OFF_WEAPON_SLOT_INDEX]
-    : EQUIPMENT_SLOT_SPECS.map((_, index) => index);
-  for (const slotIndex of preferredSlotIndices) {
-    const slot = EQUIPMENT_SLOT_SPECS[slotIndex];
-    const equippedId = equipmentSlots[slotIndex];
-    if (!slot || !equippedId || !canPlaceItemInEquipmentSlot(item, slot)) continue;
-    const equipped = fullGemById.get(equippedId);
-    if (equipped?.item_kind === "equipment" && equipped.instance_id !== item.instance_id) return equipped;
-  }
-  return null;
-}
-
-function equipmentTargetSlotIndices(item: Gem, slotIndex: number): readonly number[] {
-  return isWeaponSlot(EQUIPMENT_SLOT_SPECS[slotIndex]) && isTwoHandedWeapon(item)
-    ? WEAPON_SLOT_INDICES
-    : [slotIndex];
-}
-
-function uniqueEquipmentSlotIds(slots: (string | null)[], slotIndices: readonly number[]) {
-  const ids: string[] = [];
-  for (const slotIndex of slotIndices) {
-    const id = slots[slotIndex];
-    if (id && !ids.includes(id)) ids.push(id);
-  }
-  return ids;
 }
 
 function isAllowedRoute(source: Gem, target: Gem) {

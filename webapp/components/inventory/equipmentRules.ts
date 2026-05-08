@@ -1,6 +1,7 @@
 import type { TooltipView } from "../tooltips/tooltipViewModel";
 
 export type EquipmentRuleItem = {
+  instance_id?: string;
   item_kind?: string;
   name_text: string;
   category_text: string;
@@ -50,6 +51,47 @@ export function canPlaceItemInEquipmentSlot(item: EquipmentRuleItem, slot: Equip
   if (isWeaponSlot(slot)) return isWeaponItem(item);
   const searchable = equipmentSearchText(item);
   return slot.accepts.some((keyword) => searchable.includes(keyword.toLowerCase()));
+}
+
+export function comparisonGemForInventoryEquipment<T extends EquipmentRuleItem>(
+  item: T,
+  equipmentSlots: readonly (string | null)[],
+  fullItemById: ReadonlyMap<string, T>,
+  equipmentSlotSpecs: readonly EquipmentRuleSlot[],
+  weaponSlotIndices: readonly number[]
+) {
+  if (item.item_kind !== "equipment" || isGemItem(item)) return null;
+  const preferredSlotIndices = isWeaponItem(item)
+    ? weaponSlotIndices
+    : equipmentSlotSpecs.map((_, index) => index);
+  for (const slotIndex of preferredSlotIndices) {
+    const slot = equipmentSlotSpecs[slotIndex];
+    const equippedId = equipmentSlots[slotIndex];
+    if (!slot || !equippedId || !canPlaceItemInEquipmentSlot(item, slot)) continue;
+    const equipped = fullItemById.get(equippedId);
+    if (equipped?.item_kind === "equipment" && equipped.instance_id !== item.instance_id) return equipped;
+  }
+  return null;
+}
+
+export function equipmentTargetSlotIndices(
+  item: EquipmentRuleItem,
+  slotIndex: number,
+  equipmentSlotSpecs: readonly EquipmentRuleSlot[],
+  weaponSlotIndices: readonly number[]
+): readonly number[] {
+  return isWeaponSlot(equipmentSlotSpecs[slotIndex]) && isTwoHandedWeapon(item)
+    ? weaponSlotIndices
+    : [slotIndex];
+}
+
+export function uniqueEquipmentSlotIds(slots: readonly (string | null)[], slotIndices: readonly number[]) {
+  const ids: string[] = [];
+  for (const slotIndex of slotIndices) {
+    const id = slots[slotIndex];
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
 }
 
 export function isWeaponSlot(slot: EquipmentRuleSlot | undefined) {
