@@ -95,7 +95,7 @@ import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
-import { FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY, FRONTEND_AUTOSAVE_STORAGE_KEY, FRONTEND_SAVE_SLOT_COUNT, FRONTEND_SAVE_VERSION, frontendSaveSlotKey, frontendSaveTimestamp, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, saveActiveFrontendSaveSlotId, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
+import { FRONTEND_SAVE_VERSION, clearFrontendAutosave, clearFrontendSaveSlot, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { clientRectToGameViewportRect, clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
@@ -2991,76 +2991,6 @@ function normalizePlayerName(value: unknown) {
   return trimmed || DEFAULT_PLAYER_NAME;
 }
 
-function loadFrontendAutosaveResult(): { save: FrontendSavePayload | null; errorText: string } {
-  try {
-    const raw = window.localStorage.getItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
-    if (!raw) return { save: null, errorText: "" };
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
-      return { save: null, errorText: "本地存档格式无效，已恢复新游戏。" };
-    }
-    const save = parsed as FrontendSavePayload;
-    if (save.version !== FRONTEND_SAVE_VERSION) {
-      return { save: null, errorText: "本地存档版本不兼容，已恢复新游戏。" };
-    }
-    return { save, errorText: "" };
-  } catch {
-    return { save: null, errorText: "本地存档读取失败，已恢复新游戏。" };
-  }
-}
-
-function loadFrontendAutosave(): FrontendSavePayload | null {
-  return loadFrontendAutosaveResult().save;
-}
-
-function loadFrontendSaveSlotResult(slotId: number): { save: FrontendSavePayload | null; errorText: string } {
-  try {
-    const raw = window.localStorage.getItem(frontendSaveSlotKey(slotId));
-    if (!raw) return { save: null, errorText: "" };
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
-      return { save: null, errorText: `存档 ${slotId} 格式无效。` };
-    }
-    const save = parsed as FrontendSavePayload;
-    if (save.version !== FRONTEND_SAVE_VERSION) {
-      return { save: null, errorText: `存档 ${slotId} 版本不兼容。` };
-    }
-    return { save, errorText: "" };
-  } catch {
-    return { save: null, errorText: `存档 ${slotId} 读取失败。` };
-  }
-}
-
-function migrateLegacyFrontendAutosaveToSaveSlots() {
-  try {
-    const anySlotUsed = Array.from({ length: FRONTEND_SAVE_SLOT_COUNT }, (_, index) => index + 1)
-      .some((slotId) => Boolean(window.localStorage.getItem(frontendSaveSlotKey(slotId))));
-    if (anySlotUsed) return;
-    const legacy = loadFrontendAutosaveResult().save;
-    if (!legacy) return;
-    window.localStorage.setItem(frontendSaveSlotKey(1), JSON.stringify({ ...legacy, saved_at: legacy.saved_at ?? new Date().toISOString() }));
-    window.localStorage.setItem(FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY, "1");
-  } catch {
-    // Ignore migration errors; the save menu can still create fresh client-side slots.
-  }
-}
-
-function loadFrontendSaveSlotSummaries(): FrontendSaveSlotSummary[] {
-  migrateLegacyFrontendAutosaveToSaveSlots();
-  return Array.from({ length: FRONTEND_SAVE_SLOT_COUNT }, (_, index) => {
-    const id = index + 1;
-    const result = loadFrontendSaveSlotResult(id);
-    return { id, save: result.save, errorText: result.errorText };
-  });
-}
-
-function clearFrontendSaveSlot(slotId: number) {
-  const activeSlotId = loadActiveFrontendSaveSlotId();
-  window.localStorage.removeItem(frontendSaveSlotKey(slotId));
-  if (activeSlotId === slotId) saveActiveFrontendSaveSlotId(null);
-  if (activeSlotId === slotId || slotId === 1) window.localStorage.removeItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
-}
-
 function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | null {
   if (!save || Number(save.version) !== FRONTEND_SAVE_VERSION) return null;
   const legacyState = save.app_state;
@@ -3115,16 +3045,7 @@ function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
 }
 
 function saveFrontendAutosave(state: AppState) {
-  const payload = frontendSavePayloadFromState(state);
-  window.localStorage.setItem(FRONTEND_AUTOSAVE_STORAGE_KEY, JSON.stringify(payload));
-  const activeSlotId = loadActiveFrontendSaveSlotId();
-  if (activeSlotId !== null) {
-    window.localStorage.setItem(frontendSaveSlotKey(activeSlotId), JSON.stringify(payload));
-  }
-}
-
-function clearFrontendAutosave() {
-  window.localStorage.removeItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
+  saveFrontendAutosavePayload(frontendSavePayloadFromState(state));
 }
 
 async function requestGmOptions(): Promise<GmOptions> {
@@ -3290,7 +3211,7 @@ function GameApp() {
   const [entryStep, setEntryStep] = useState<"title" | "save" | "rest">(() => skillEditorMode || monsterTestMode ? "rest" : "title");
   const [restAreaPanel, setRestAreaPanel] = useState<"stage" | "stash" | null>(null);
   const [restAreaInteractionTarget, setRestAreaInteractionTarget] = useState<"stage" | "stash" | null>(null);
-  const [saveSlots, setSaveSlots] = useState<FrontendSaveSlotSummary[]>(() => loadFrontendSaveSlotSummaries());
+  const [saveSlots, setSaveSlots] = useState<FrontendSaveSlotSummary[]>(() => loadFrontendSaveSlotSummaries<FrontendSavePayload>());
   const [selectedSaveSlotId, setSelectedSaveSlotId] = useState(() => loadActiveFrontendSaveSlotId() ?? latestFrontendSaveSlotId(saveSlots) ?? 1);
   const [saveStartMode, setSaveStartMode] = useState<"continue" | "new">(() => latestFrontendSaveSlotId(saveSlots) ? "continue" : "new");
   const [newPlayerName, setNewPlayerName] = useState(DEFAULT_PLAYER_NAME);
@@ -3791,7 +3712,7 @@ function GameApp() {
       applyServerState(createMonsterTestAppState(), { persist: false });
       setNotice("怪物测试场景载入中。");
     } else if (skillEditorMode) {
-      const { save, errorText } = loadFrontendAutosaveResult();
+      const { save, errorText } = loadFrontendAutosaveResult<FrontendSavePayload>();
       const savedState = appStateFromFrontendSave(save);
       applyServerState(savedState ?? createFrontendInitialAppState(), { persist: false });
       setNotice(errorText || (savedState ? "已读取前端本地存档。按 C 打开背包。" : "准备就绪。按 C 打开背包。"));
@@ -9802,7 +9723,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   }
 
   function refreshFrontendSaveSlots() {
-    setSaveSlots(loadFrontendSaveSlotSummaries());
+    setSaveSlots(loadFrontendSaveSlotSummaries<FrontendSavePayload>());
   }
 
   function chooseNewSaveSlot() {
@@ -9827,7 +9748,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function deleteSaveSlot(slotId: number) {
     clearFrontendSaveSlot(slotId);
-    const nextSlots = loadFrontendSaveSlotSummaries();
+    const nextSlots = loadFrontendSaveSlotSummaries<FrontendSavePayload>();
     setSaveSlots(nextSlots);
     if (selectedSaveSlotId === slotId && saveStartMode === "continue") {
       setSaveStartMode(latestFrontendSaveSlotId(nextSlots) ? "continue" : "new");

@@ -10,6 +10,17 @@ export type FrontendSaveSlotSummary<TSave> = {
   errorText: string;
 };
 
+export type FrontendSaveStoragePayload = {
+  version: number;
+  saved_at?: string;
+  [key: string]: unknown;
+};
+
+export type FrontendSaveStorageResult<TSave> = {
+  save: TSave | null;
+  errorText: string;
+};
+
 export function frontendSaveSlotKey(slotId: number) {
   return `${FRONTEND_SAVE_SLOT_KEY_PREFIX}${slotId}`;
 }
@@ -48,4 +59,94 @@ export function latestFrontendSaveSlotId<TSave extends { saved_at?: string | nul
     .filter((slot) => slot.save)
     .sort((a, b) => frontendSaveTimestamp(b.save) - frontendSaveTimestamp(a.save));
   return sorted[0]?.id ?? null;
+}
+
+export function loadFrontendAutosaveResult<TSave extends FrontendSaveStoragePayload>(
+  storage: Storage = window.localStorage
+): FrontendSaveStorageResult<TSave> {
+  try {
+    const raw = storage.getItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
+    if (!raw) return { save: null, errorText: "" };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return { save: null, errorText: "鏈湴瀛樻。鏍煎紡鏃犳晥锛屽凡鎭㈠鏂版父鎴忋€?" };
+    }
+    const save = parsed as TSave;
+    if (save.version !== FRONTEND_SAVE_VERSION) {
+      return { save: null, errorText: "鏈湴瀛樻。鐗堟湰涓嶅吋瀹癸紝宸叉仮澶嶆柊娓告垙銆?" };
+    }
+    return { save, errorText: "" };
+  } catch {
+    return { save: null, errorText: "鏈湴瀛樻。璇诲彇澶辫触锛屽凡鎭㈠鏂版父鎴忋€?" };
+  }
+}
+
+export function loadFrontendSaveSlotResult<TSave extends FrontendSaveStoragePayload>(
+  slotId: number,
+  storage: Storage = window.localStorage
+): FrontendSaveStorageResult<TSave> {
+  try {
+    const raw = storage.getItem(frontendSaveSlotKey(slotId));
+    if (!raw) return { save: null, errorText: "" };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return { save: null, errorText: `瀛樻。 ${slotId} 鏍煎紡鏃犳晥銆俙` };
+    }
+    const save = parsed as TSave;
+    if (save.version !== FRONTEND_SAVE_VERSION) {
+      return { save: null, errorText: `瀛樻。 ${slotId} 鐗堟湰涓嶅吋瀹广€俙` };
+    }
+    return { save, errorText: "" };
+  } catch {
+    return { save: null, errorText: `瀛樻。 ${slotId} 璇诲彇澶辫触銆俙` };
+  }
+}
+
+export function migrateLegacyFrontendAutosaveToSaveSlots<TSave extends FrontendSaveStoragePayload>(
+  storage: Storage = window.localStorage
+) {
+  try {
+    const anySlotUsed = Array.from({ length: FRONTEND_SAVE_SLOT_COUNT }, (_, index) => index + 1)
+      .some((slotId) => Boolean(storage.getItem(frontendSaveSlotKey(slotId))));
+    if (anySlotUsed) return;
+    const legacy = loadFrontendAutosaveResult<TSave>(storage).save;
+    if (!legacy) return;
+    storage.setItem(frontendSaveSlotKey(1), JSON.stringify({ ...legacy, saved_at: legacy.saved_at ?? new Date().toISOString() }));
+    storage.setItem(FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY, "1");
+  } catch {
+    // Ignore migration errors; the save menu can still create fresh client-side slots.
+  }
+}
+
+export function loadFrontendSaveSlotSummaries<TSave extends FrontendSaveStoragePayload>(
+  storage: Storage = window.localStorage
+): FrontendSaveSlotSummary<TSave>[] {
+  migrateLegacyFrontendAutosaveToSaveSlots<TSave>(storage);
+  return Array.from({ length: FRONTEND_SAVE_SLOT_COUNT }, (_, index) => {
+    const id = index + 1;
+    const result = loadFrontendSaveSlotResult<TSave>(id, storage);
+    return { id, save: result.save, errorText: result.errorText };
+  });
+}
+
+export function clearFrontendSaveSlot(slotId: number, storage: Storage = window.localStorage) {
+  const activeSlotId = loadActiveFrontendSaveSlotId(storage);
+  storage.removeItem(frontendSaveSlotKey(slotId));
+  if (activeSlotId === slotId) saveActiveFrontendSaveSlotId(null, storage);
+  if (activeSlotId === slotId || slotId === 1) storage.removeItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
+}
+
+export function saveFrontendAutosavePayload<TSave extends FrontendSaveStoragePayload>(
+  payload: TSave,
+  storage: Storage = window.localStorage
+) {
+  storage.setItem(FRONTEND_AUTOSAVE_STORAGE_KEY, JSON.stringify(payload));
+  const activeSlotId = loadActiveFrontendSaveSlotId(storage);
+  if (activeSlotId !== null) {
+    storage.setItem(frontendSaveSlotKey(activeSlotId), JSON.stringify(payload));
+  }
+}
+
+export function clearFrontendAutosave(storage: Storage = window.localStorage) {
+  storage.removeItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
 }
