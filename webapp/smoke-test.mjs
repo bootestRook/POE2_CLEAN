@@ -184,7 +184,7 @@ for (const requiredRestAreaCss of [
 if (!frontendGameData.includes('"character_panel"') || !frontendGameData.includes('"sections"')) {
   throw new Error("frontendGameData is missing configured character_panel sections");
 }
-for (const statId of ["strength", "current_life", "life_return_percent", "shield_return_percent", "move_speed"]) {
+for (const statId of ["strength", "max_life", "life_return_percent", "shield_return_percent", "move_speed"]) {
   if (!frontendGameData.includes(`"stat_id": "${statId}"`)) {
     throw new Error(`character_panel missing configured stat row: ${statId}`);
   }

@@ -7037,9 +7037,9 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "layout": "core",
         "rows": [
           {
-            "id": "current_life",
-            "stat_id": "current_life",
-            "label_text": "当前生命",
+            "id": "max_life_core",
+            "stat_id": "max_life",
+            "label_text": "\u6700\u5927\u751f\u547d",
             "value": 500,
             "value_type": "number",
             "formatter": "integer",
@@ -7048,9 +7048,9 @@ export const FRONTEND_INITIAL_APP_STATE = {
             "v1_status": "V1_ACTIVE"
           },
           {
-            "id": "current_energy_shield",
-            "stat_id": "current_energy_shield",
-            "label_text": "当前能量护盾",
+            "id": "max_energy_shield_core",
+            "stat_id": "max_energy_shield",
+            "label_text": "\u6700\u5927\u80fd\u91cf\u62a4\u76fe",
             "value": 0,
             "value_type": "number",
             "formatter": "integer",
@@ -7059,9 +7059,9 @@ export const FRONTEND_INITIAL_APP_STATE = {
             "v1_status": "V1_ACTIVE"
           },
           {
-            "id": "current_mana",
-            "stat_id": "current_mana",
-            "label_text": "当前魔力",
+            "id": "max_mana_core",
+            "stat_id": "max_mana",
+            "label_text": "\u6700\u5927\u9b54\u529b",
             "value": 100,
             "value_type": "number",
             "formatter": "integer",

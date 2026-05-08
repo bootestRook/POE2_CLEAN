@@ -313,17 +313,43 @@ function normalizeFrontendEquipmentAffixRoll(affix: FrontendEquipmentAffixRoll):
 }
 
 function normalizeFrontendEquipmentEffectOperations(effect: string, operations: FrontendEquipmentEffectOperation[]): FrontendEquipmentEffectOperation[] {
-  return operations.map((operation) => {
-    if (operation.value_min === null && operation.value_max === null) return operation;
-    const values = rolledValuesFromRenderedSourceText(effect, operation.source_text);
-    if (values.length === 0) return operation;
-    if (values.length === 1) {
-      return { ...operation, value: values[0], value_min: values[0], value_max: values[0] };
+  const normalized: FrontendEquipmentEffectOperation[] = [];
+  const seen = new Set<string>();
+  for (const operation of operations) {
+    let nextOperation = operation;
+    if (isGlobalMaxEnergyShieldPercentOperation(effect, operation)) {
+      nextOperation = { ...operation, kind: "player_stat", stat: "max_energy_shield_add_percent" };
     }
-    const minimum = Math.min(...values);
-    const maximum = Math.max(...values);
-    return { ...operation, value: (minimum + maximum) / 2, value_min: minimum, value_max: maximum };
-  });
+    if (nextOperation.value_min !== null || nextOperation.value_max !== null) {
+      const values = rolledValuesFromRenderedSourceText(effect, nextOperation.source_text);
+      if (values.length === 1) {
+        nextOperation = { ...nextOperation, value: values[0], value_min: values[0], value_max: values[0] };
+      } else if (values.length > 1) {
+        const minimum = Math.min(...values);
+        const maximum = Math.max(...values);
+        nextOperation = { ...nextOperation, value: (minimum + maximum) / 2, value_min: minimum, value_max: maximum };
+      }
+    }
+    const key = [
+      nextOperation.kind,
+      nextOperation.stat,
+      nextOperation.runtime_hook,
+      nextOperation.source_text,
+      nextOperation.value,
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(nextOperation);
+  }
+  return normalized;
+}
+
+function isGlobalMaxEnergyShieldPercentOperation(effect: string, operation: FrontendEquipmentEffectOperation) {
+  const text = operation.source_text || effect;
+  return text.includes("%")
+    && text.includes("\u6700\u5927\u62a4\u76fe")
+    && !text.includes("\u8be5\u88c5\u5907\u62a4\u76fe")
+    && (operation.stat === "max_energy_shield" || operation.stat === "damage_final_percent");
 }
 
 export function applyFrontendEquipmentStatModifiers<T extends Record<string, { value?: unknown; trace?: Record<string, number>; [key: string]: unknown }>>(

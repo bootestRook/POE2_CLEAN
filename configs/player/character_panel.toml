@@ -128,27 +128,27 @@ formatter = "integer"
 order = 30
 
 [[rows]]
-id = "current_life"
+id = "max_life_core"
 section_id = "core"
-stat_id = "current_life"
+stat_id = "max_life"
 icon_text = "?"
 tone = "life"
 formatter = "integer"
 order = 10
 
 [[rows]]
-id = "current_energy_shield"
+id = "max_energy_shield_core"
 section_id = "core"
-stat_id = "current_energy_shield"
+stat_id = "max_energy_shield"
 icon_text = "?"
 tone = "shield"
 formatter = "integer"
 order = 20
 
 [[rows]]
-id = "current_mana"
+id = "max_mana_core"
 section_id = "core"
-stat_id = "current_mana"
+stat_id = "max_mana"
 icon_text = "?"
 tone = "mana"
 formatter = "integer"
