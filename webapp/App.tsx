@@ -95,6 +95,7 @@ import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationD
 import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
 import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
+import { GroundDropLayer } from "./components/battle/GroundDropLayer";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
@@ -10270,7 +10271,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         </div>
         <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
         <PlayerOverheadResourceBars player={player} camera={battleCamera} />
-        <GroundDropLayer drops={state.drops} displayPositions={dropDisplayPositions.current} camera={battleCamera} onPickup={beginDropPickup} />
+        <GroundDropLayer
+          drops={state.drops}
+          displayPositions={dropDisplayPositions.current}
+          projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)}
+          onPickup={beginDropPickup}
+        />
         <BossPortalLayer portal={bossPortal} camera={battleCamera} projectPosition={battleWorldToViewport} onUse={beginBossPortalUse} />
         {restAreaMapActive && (
           <RestAreaMapInteractableLayer
@@ -10993,43 +10999,6 @@ function formatFrontendSaveTime(value: string | undefined) {
     hour: "2-digit",
     minute: "2-digit"
   });
-}
-
-function GroundDropLayer({
-  drops,
-  displayPositions,
-  camera,
-  onPickup
-}: {
-  drops: DropPrompt[];
-  displayPositions: Map<string, { x: number; y: number }>;
-  camera: Camera2D;
-  onPickup: (drop: DropPrompt) => void;
-}) {
-  const visibleDrops = drops.filter((drop) => !drop.picked_up && drop.position);
-  if (visibleDrops.length === 0) return null;
-  return (
-    <div className="ground-drop-layer" aria-label="地面掉落">
-      {visibleDrops.map((drop) => {
-        const position = battleWorldToViewport(displayPositions.get(drop.drop_id) ?? drop.position!, camera);
-        const kind = drop.loot_kind || "gem";
-        const rarityTone = kind === "equipment" ? equipmentRarityTone(drop.equipment_rarity ?? drop.rarity_text) : "";
-        return (
-          <button
-            key={drop.drop_id}
-            type="button"
-            className={`ground-drop ground-drop-${cssToken(kind)}${rarityTone ? ` ground-drop-rarity-${rarityTone}` : ""}`}
-            style={{ left: position.x, top: position.y }}
-            onClick={() => onPickup(drop)}
-            title={drop.name_text}
-          >
-            <span className="ground-drop-label">{drop.name_text}</span>
-            <span className="ground-drop-icon" aria-hidden="true" />
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 function PlayableBattleMinimap({
