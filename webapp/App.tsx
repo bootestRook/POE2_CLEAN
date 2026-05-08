@@ -75,9 +75,9 @@ import {
 } from "./frontendEquipmentRuntime";
 import type { FrontendEquipmentAffixRoll, FrontendEquipmentItem, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
 import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
-import { RichText, TooltipSection, TooltipTag } from "./components/tooltips/TooltipPrimitives";
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
+import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
@@ -10721,7 +10721,23 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           </section>
           </div>
 
-          {tooltip && !floatingGem && <GemTooltip tooltip={tooltip} compareModifierHeld={compareModifierHeld} />}
+          {tooltip && !floatingGem && (
+            <GemTooltipOverlay
+              tooltip={tooltip}
+              compareModifierHeld={compareModifierHeld}
+              getComparisonTooltipPosition={getComparisonTooltipPosition}
+              buildViewModel={buildGemTooltipViewModel}
+              renderGemOrb={(gem) => <GemOrb gem={gem} />}
+              highlightTooltipText={highlightTooltipText}
+              activeDpsToneClass={activeDpsToneClass}
+              equipmentTooltipRarityTone={equipmentTooltipRarityTone}
+              normalizedEquipmentTooltipTags={normalizedEquipmentTooltipTags}
+              equipmentTooltipStatLines={equipmentTooltipStatLines}
+              equipmentTooltipBonusLines={equipmentTooltipBonusLines}
+              frontendGemLevelText={frontendGemLevelText}
+              isEquipmentTooltip={(gem) => gem.item_kind === "equipment"}
+            />
+          )}
           {floatingGem && <FloatingGemView floatingGem={floatingGem} />}
           {floatingGem && <div className="drag-hint">拖到数独盘格子后松开</div>}
           {placementPrompt && (
@@ -16998,138 +17014,6 @@ function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationF
     "--unit-anchor-y": asset.anchorY,
     "--unit-render-scale": renderScale * asset.scale
   } as CSSProperties;
-}
-
-function GemTooltip({ tooltip, compareModifierHeld }: { tooltip: Tooltip; compareModifierHeld: boolean }) {
-  const comparisonGem = tooltip.comparisonGem ?? null;
-  const comparisonPosition = comparisonGem && compareModifierHeld ? getComparisonTooltipPosition(tooltip) : null;
-  return (
-    <>
-      <GemTooltipPanel tooltip={tooltip} showCompareHint={Boolean(comparisonGem) && !compareModifierHeld} />
-      {comparisonGem && comparisonPosition && (
-        <GemTooltipPanel
-          tooltip={{ gem: comparisonGem, ...comparisonPosition }}
-          className="equipment-compare-tooltip"
-        />
-      )}
-    </>
-  );
-}
-
-function GemTooltipPanel({ tooltip, className = "", showCompareHint = false }: { tooltip: Tooltip; className?: string; showCompareHint?: boolean }) {
-  const { gem, left, top, transform } = tooltip;
-  const view = buildGemTooltipViewModel(gem);
-  if (!view) return null;
-  if (view.variant === "support") {
-    return <SupportGemTooltip gem={gem} view={view} left={left} top={top} transform={transform} />;
-  }
-  const isActiveTooltip = view.variant === "active" || view.variant === "passive";
-  const equipmentTone = equipmentTooltipRarityTone(gem, view);
-  const titleClassName = isActiveTooltip
-    ? "tooltip-tone-title"
-    : equipmentTone ? `tooltip-rarity-title tooltip-rarity-${equipmentTone}` : undefined;
-  const tooltipTags = isActiveTooltip ? view.tags : normalizedEquipmentTooltipTags(gem, view, equipmentTone);
-  const sections = view.sections;
-  const isEquipmentTooltip = gem.item_kind === "equipment";
-  const showDescriptionSection = isActiveTooltip || gem.item_kind !== "equipment";
-  const showSubtitle = isActiveTooltip || !isEquipmentTooltip;
-  const showIdentity = Boolean(view.type_identity_text) && !isEquipmentTooltip;
-  const statLines = isEquipmentTooltip ? equipmentTooltipStatLines(gem, sections.stats.lines) : sections.stats.lines;
-  const bonusLines = isEquipmentTooltip && sections.bonuses ? equipmentTooltipBonusLines(gem, sections.bonuses.lines) : sections.bonuses?.lines ?? [];
-  return (
-    <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""} ${className}`.trim()} style={{ left, top, transform }}>
-      <div className="tooltip-header">
-        <GemOrb gem={gem} />
-        <div className="tooltip-heading">
-          <h3 className={titleClassName}>{view.name_text}</h3>
-          {showSubtitle && (isActiveTooltip ? <RichText line={highlightTooltipText(view.subtitle_text)} /> : <p>{view.subtitle_text}</p>)}
-        </div>
-      </div>
-      {showIdentity && <p className="tooltip-identity">{view.type_identity_text}</p>}
-      {!isActiveTooltip && <div className="tooltip-tag-list">{tooltipTags.map((tag) => <TooltipTag key={`${tag.id ?? tag.text}-${tag.text}`} tag={tag} />)}</div>}
-      {showDescriptionSection && <TooltipSection title={sections.description.title_text}>
-        {sections.description.lines.map((line) => isActiveTooltip ? <RichText key={line} line={highlightTooltipText(line)} /> : <p key={line}>{line}</p>)}
-      </TooltipSection>}
-      {statLines.length > 0 && <TooltipSection title={sections.stats.title_text}>
-        <dl className="tooltip-stat-list">
-          {statLines.map((line) => (
-            <div key={`${line.label_text}-${line.value_text}`} className="tooltip-stat-line">
-              <dt className={isActiveTooltip ? "tooltip-tone-body" : undefined}>{line.label_text}：</dt>
-              <dd className={isActiveTooltip ? "tooltip-tone-body" : undefined}>
-                {isActiveTooltip ? <RichText line={highlightTooltipText(line.value_text)} className="tooltip-stat-rich-value" /> : line.value_text}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </TooltipSection>}
-      {sections.recent_dps && sections.recent_dps.lines.length > 0 && (
-        <TooltipSection title={sections.recent_dps.title_text}>
-          <dl className="tooltip-stat-list">
-            {sections.recent_dps.lines.map((line) => (
-              <div key={`${line.label_text}-${line.value_text}`} className="tooltip-stat-line">
-                <dt className={isActiveTooltip ? "tooltip-tone-body" : undefined}>{line.label_text}：</dt>
-                <dd className={isActiveTooltip ? activeDpsToneClass(line.value_text) : undefined}>{line.value_text}</dd>
-              </div>
-            ))}
-          </dl>
-        </TooltipSection>
-      )}
-      {sections.bonuses && bonusLines.length > 0 && (
-        <TooltipSection title={sections.bonuses.title_text}>
-          {bonusLines.map((line, index) => <p key={`${index}-${line}`} className={`tooltip-bonus-line ${isActiveTooltip ? "tooltip-tone-rule" : ""}`}>{line}</p>)}
-        </TooltipSection>
-      )}
-      {view.variant === "active" && sections.base_skill_level && sections.base_skill_level.lines.length > 0 && (
-        <TooltipSection title="">
-          {sections.base_skill_level.lines.map((line) => <p key={line} className="tooltip-tone-bonus-positive">{line}</p>)}
-        </TooltipSection>
-      )}
-      {sections.current_targets && sections.current_targets.lines.length > 0 && <TooltipSection title={sections.current_targets.title_text}>
-        {sections.current_targets.lines.map((line) => (
-          <p key={`${line.name_text}-${line.status_text}`} className="tooltip-target-line">
-            <span>{line.name_text}</span>
-            <strong>{line.status_text}</strong>
-          </p>
-        ))}
-      </TooltipSection>}
-      {sections.rules && sections.rules.lines.length > 0 && <TooltipSection title={sections.rules.title_text}>
-        {sections.rules.lines.map((line) => <p key={line} className={isActiveTooltip ? "tooltip-tone-bonus-positive" : undefined}>{line}</p>)}
-      </TooltipSection>}
-      {showCompareHint && <div className="equipment-compare-hint">按住ctrl对比</div>}
-    </div>
-  );
-}
-
-function SupportGemTooltip({ gem, view, left, top, transform }: { gem: Gem; view: TooltipView; left: number; top: number; transform: string }) {
-  const sections = view.sections;
-  const levelText = frontendGemLevelText(gem);
-  return (
-    <div className="gem-tooltip support-tooltip" style={{ left, top, transform }}>
-      <div className="tooltip-header">
-        <GemOrb gem={gem} />
-        <div className="tooltip-heading">
-          <h3 className="support-tooltip-name">{view.name_text}</h3>
-          <RichText line={[{ text: `\u7b49\u7ea7 ${levelText}`, tone: "bonus-positive" }]} className="support-tooltip-summary" />
-          {(view.summary_lines ?? []).map((line, index) => <RichText key={index} line={line} className="support-tooltip-summary" />)}
-        </div>
-      </div>
-      {sections.conditions && sections.conditions.rich_lines.length > 0 && (
-        <TooltipSection title="">
-          {sections.conditions.rich_lines.map((line, index) => <RichText key={index} line={line} />)}
-        </TooltipSection>
-      )}
-      {sections.support_rules && sections.support_rules.rich_lines.length > 0 && (
-        <TooltipSection title="">
-          {sections.support_rules.rich_lines.map((line, index) => <RichText key={index} line={line} />)}
-        </TooltipSection>
-      )}
-      {sections.base_bonuses && sections.base_bonuses.rich_lines.length > 0 && (
-        <TooltipSection title="">
-          {sections.base_bonuses.rich_lines.map((line, index) => <RichText key={index} line={line} />)}
-        </TooltipSection>
-      )}
-    </div>
-  );
 }
 
 const tooltipHighlightTones: Record<string, string> = {
