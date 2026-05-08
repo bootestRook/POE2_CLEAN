@@ -17,7 +17,7 @@ export type GemTooltipViewModel = {
   name_text: string;
   subtitle_text: string;
   type_identity_text?: string;
-  tags: TooltipTagView[];
+  tags: readonly TooltipTagView[];
   summary_lines?: TooltipRichLine[];
   sections: {
     description: { title_text: string; lines: string[] };
@@ -50,7 +50,7 @@ type GemTooltipOverlayProps<TGem, TTooltip extends GemTooltipPosition<TGem>, TVi
   highlightTooltipText: (text: string) => TooltipRichLine;
   activeDpsToneClass: (valueText: string) => string;
   equipmentTooltipRarityTone: (gem: TGem, view?: TView) => string;
-  normalizedEquipmentTooltipTags: (gem: TGem, view: TView, rarityTone: string) => TooltipTagView[];
+  normalizedEquipmentTooltipTags: (gem: TGem, view: TView, rarityTone: string) => readonly TooltipTagView[];
   equipmentTooltipStatLines: (gem: TGem, lines: TooltipStatLineView[]) => TooltipStatLineView[];
   equipmentTooltipBonusLines: (gem: TGem, lines: string[]) => string[];
   frontendGemLevelText: (gem: TGem) => string;

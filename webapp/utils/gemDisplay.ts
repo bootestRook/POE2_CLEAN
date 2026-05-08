@@ -28,7 +28,7 @@ export function romanGemLevel(level: number) {
 type GemDisplaySource = {
   sudoku_digit?: number;
   gem_type?: { id?: string; number?: number; display_text?: string; identity_text?: string };
-  tags: { id?: string; text?: string }[];
+  tags: readonly { id?: string; text?: string }[];
   tooltip_view?: { icon_color_key?: string };
 };
 

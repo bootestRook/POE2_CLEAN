@@ -6,7 +6,7 @@ type ScreenPoint = {
 };
 
 type DamageZoneView = {
-  id: string;
+  id: string | number;
   x: number;
   y: number;
   radius: number;
@@ -27,7 +27,7 @@ type DamageZoneView = {
 };
 
 type AreaNovaView = {
-  id: string;
+  id: string | number;
   x: number;
   y: number;
   radius: number;
@@ -42,7 +42,7 @@ type AreaNovaView = {
 };
 
 type MeleeArcView = {
-  id: string;
+  id: string | number;
   x: number;
   y: number;
   radius: number;

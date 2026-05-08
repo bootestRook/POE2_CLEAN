@@ -522,7 +522,8 @@ function choosePackForZone(
     if (varietyState.bossPackCount >= maxBossPacks(profile)) return null;
     const fixed = rule.fixed_pack_ids
       .map((packId) => packsById.get(packId))
-      .filter((pack): pack is MonsterPackDefinition => Boolean(pack) && pack.budget_cost <= remainingBudget);
+      .filter((pack): pack is MonsterPackDefinition => Boolean(pack))
+      .filter((pack) => pack.budget_cost <= remainingBudget);
     return fixed.length > 0 ? weightedChoice(fixed, (pack) => pack.weight, rng) : null;
   }
   if (rule.fixed_pack_id) {
@@ -829,7 +830,7 @@ function normalizeSkillShape(value: string | undefined): MonsterSkillShape | und
 }
 
 function resolveMonsterTypeDefaults(config: MapSpawnV1Config): Record<MonsterType, Required<MonsterTypeDefaults>> {
-  const configured = config.monster_type_defaults ?? {};
+  const configured: Partial<Record<MonsterType, Partial<MonsterTypeDefaults>>> = config.monster_type_defaults ?? {};
   return Object.fromEntries(MONSTER_TYPES.map((type) => {
     const base = DEFAULT_MONSTER_TYPE_DEFAULTS[type];
     const override = configured[type] ?? {};

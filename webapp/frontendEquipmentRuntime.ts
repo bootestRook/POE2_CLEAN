@@ -352,11 +352,13 @@ function isGlobalMaxEnergyShieldPercentOperation(effect: string, operation: Fron
     && (operation.stat === "max_energy_shield" || operation.stat === "damage_final_percent");
 }
 
-export function applyFrontendEquipmentStatModifiers<T extends Record<string, { value?: unknown; trace?: Record<string, number>; [key: string]: unknown }>>(
+type FrontendMutableStatMap = Record<string, { value?: unknown; trace?: Record<string, number>; [key: string]: unknown }>;
+
+export function applyFrontendEquipmentStatModifiers<T extends FrontendMutableStatMap>(
   baseStats: T,
   modifiers: FrontendEquipmentStatModifier[]
 ): T {
-  const next = JSON.parse(JSON.stringify(baseStats)) as T;
+  const next = JSON.parse(JSON.stringify(baseStats)) as FrontendMutableStatMap;
   let moveSpeedAddPercent = 0;
   let strengthAdd = 0;
   let dexterityAdd = 0;
@@ -407,7 +409,7 @@ export function applyFrontendEquipmentStatModifiers<T extends Record<string, { v
       },
     };
   }
-  return next;
+  return next as T;
 }
 
 function localFrontendEquipmentStatModifiers(item: FrontendEquipmentItem): FrontendEquipmentStatModifier[] {
@@ -503,8 +505,8 @@ function frontendEquipmentModifier(
   };
 }
 
-function addFrontendDerivedStat<T extends Record<string, { value?: unknown; trace?: Record<string, number>; [key: string]: unknown }>>(
-  stats: T,
+function addFrontendDerivedStat(
+  stats: FrontendMutableStatMap,
   stat: string,
   value: number
 ) {

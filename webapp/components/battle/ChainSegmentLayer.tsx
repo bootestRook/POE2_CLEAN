@@ -1,5 +1,5 @@
 type ChainSegmentView = {
-  id: string;
+  id: string | number;
   startX: number;
   startY: number;
   endX: number;

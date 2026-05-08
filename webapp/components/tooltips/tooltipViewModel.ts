@@ -9,17 +9,17 @@ export type TooltipView = {
   name_text: string;
   subtitle_text: string;
   type_identity_text: string;
-  tags: TooltipTagView[];
-  summary_lines?: readonly TooltipRichLine[];
+  tags: readonly TooltipTagView[];
+  summary_lines?: TooltipRichLine[];
   sections: {
     description: { title_text: string; lines: string[] };
     stats: { title_text: string; lines: TooltipStatLine[] };
     recent_dps?: { title_text: string; lines: TooltipStatLine[] };
     bonuses?: { title_text: string; lines: string[] };
     base_skill_level?: { lines: string[] };
-    conditions?: { rich_lines: readonly TooltipRichLine[] };
-    support_rules?: { rich_lines: readonly TooltipRichLine[] };
-    base_bonuses?: { rich_lines: readonly TooltipRichLine[] };
+    conditions?: { rich_lines: TooltipRichLine[] };
+    support_rules?: { rich_lines: TooltipRichLine[] };
+    base_bonuses?: { rich_lines: TooltipRichLine[] };
     current_targets?: { title_text: string; lines: TooltipTargetLine[] };
     rules?: { title_text: string; lines: string[] };
   };

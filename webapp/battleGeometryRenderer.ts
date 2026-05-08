@@ -2632,11 +2632,11 @@ function drawMeleeArc(context: CanvasRenderingContext2D, area: BattleGeometryAre
     drawMonsterMeleeArc(context, area.x, area.y, angle, radius, arc, progress, area.vfxKey || area.damageType);
     return;
   }
-  const visualScale = family === "flame_slash" ? 1 : Math.max(1, area.vfxScale ?? 1);
+  const visualScale = Math.max(1, area.vfxScale ?? 1);
   const alpha = Math.max(0, 1 - progress * 0.76);
   const slam = Math.sin(Math.min(1, progress / 0.35) * Math.PI);
   const outerRadius = radius * visualScale;
-  const innerRadius = outerRadius * (family === "flame_slash" ? 0.64 : 0.72);
+  const innerRadius = outerRadius * 0.72;
   const coreOuterRadius = outerRadius * 0.96;
   const coreInnerRadius = outerRadius * 0.76;
   const trailOuterRadius = outerRadius * 0.88;

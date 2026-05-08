@@ -55,6 +55,8 @@ export type MonsterSkillDefinition = {
   heal_percent_max_life?: number;
   guard_damage_reduction_percent?: number;
   guard_duration_ms?: number;
+  hit_marker_id?: string;
+  trigger_marker_id?: string;
 };
 
 export type MonsterBossPatternSkill = MonsterSkillDefinition & {

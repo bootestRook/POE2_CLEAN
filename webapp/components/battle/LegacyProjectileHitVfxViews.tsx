@@ -19,7 +19,7 @@ type LegacyProjectileViewModel = {
   trajectory?: string;
   arcHeight?: number;
   projectileVisualMode?: string;
-  shapeEffects: ShapeEffect[];
+  shapeEffects: readonly ShapeEffect[];
   projectileId?: string;
   vfxScale?: unknown;
 };
@@ -32,7 +32,7 @@ type LegacyHitVfxViewModel = {
   damageType?: string;
   vfxKey?: string;
   targetId?: number;
-  shapeEffects: ShapeEffect[];
+  shapeEffects: readonly ShapeEffect[];
   vfxScale?: unknown;
 };
 
@@ -159,7 +159,7 @@ export function LegacyHitVfxView({
   normalizedVfxScale: (value: unknown) => number;
   cssToken: (value: string | undefined) => string;
   visualTone: (value: string | undefined) => string;
-  hasShapeEffect: (effects: ShapeEffect[] | undefined, id: string) => boolean;
+  hasShapeEffect: (effects: readonly ShapeEffect[] | undefined, id: string) => boolean;
   zIndexBase: number;
 }) {
   const duration = Math.max(0.001, vfx.duration);

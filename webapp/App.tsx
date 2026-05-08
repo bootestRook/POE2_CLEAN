@@ -141,8 +141,8 @@ type Gem = {
   gem_kind?: "active_skill" | "passive_skill" | "support" | "";
   sudoku_digit?: number;
   gem_type: { id?: string; number?: number; display_text: string; identity_text: string };
-  tags: { id?: string; text: string }[];
-  current_effective_targets: { name_text: string }[];
+  tags: readonly { id?: string; text: string }[];
+  current_effective_targets: readonly { name_text: string }[];
   board_position: { row: number; column: number } | null;
   visual_effect?: string;
   shape_effect?: string;
@@ -158,6 +158,7 @@ type Gem = {
   equipment_slot_id?: string;
   equipment_rarity?: string;
   passive_effects?: FrontendPassiveEffect[];
+  locked?: boolean;
 };
 
 type FrontendPassiveEffect = {
@@ -166,7 +167,6 @@ type FrontendPassiveEffect = {
   value?: number;
   layer?: string;
 };
-
 
 type ShapeEffectPreview = { id: string; text: string };
 
@@ -177,36 +177,54 @@ type Cell = {
   gem: Gem | null;
 };
 
+type SkillAppliedModifier = {
+  source_instance_id: string;
+  source_name_text: string;
+  target_instance_id: string;
+  stat: { id?: string; text: string };
+  value: number;
+  relation_text: string;
+  reason_text: string;
+  applied: boolean;
+  shape_effect?: string;
+  shape_effect_text?: string;
+};
+
 type SkillPreview = {
   active_gem_instance_id: string;
   name_text: string;
   skill_template_id: string;
   skill_package_id?: string;
   skill_package_version?: string;
+  base_gem_id?: string;
   template_text: string;
   damage_type: string;
   behavior_type: string;
   behavior_template?: string;
   visual_effect: string;
-  cast?: Record<string, number | string | boolean>;
-  hit?: Record<string, number | string | boolean>;
+  cast?: Record<string, unknown>;
+  hit?: Record<string, unknown>;
   runtime_params?: Record<string, unknown>;
   presentation_keys?: Record<string, unknown>;
-  source_context?: Record<string, number | string>;
+  source_context?: Record<string, unknown>;
   skill_stats?: Record<string, number | boolean>;
-  shape_effects: ShapeEffectPreview[];
+  shape_effects: readonly ShapeEffectPreview[];
   final_damage: number;
+  base_damage?: number;
   non_crit_damage?: number;
   increase_pool?: number;
   final_pool?: number;
   crit_chance?: number;
   crit_multiplier?: number;
   expected_hit_damage?: number;
+  base_damage_components?: Record<string, number>;
   final_damage_components?: Record<string, number>;
   uses_per_second?: number;
   base_release_interval_ms?: number;
   release_interval_ms?: number;
   actual_interval_ms?: number;
+  base_cooldown_ms?: number;
+  trigger_interval_ms?: number;
   mana_cost?: number;
   hit_coverage_factor?: number;
   preview_dps?: number;
@@ -214,19 +232,8 @@ type SkillPreview = {
   projectile_count: number;
   area_multiplier: number;
   speed_multiplier: number;
-  tags?: { id?: string; text: string }[];
-  applied_modifiers: {
-    source_instance_id: string;
-    source_name_text: string;
-    target_instance_id: string;
-    stat: { id?: string; text: string };
-    value: number;
-    relation_text: string;
-    reason_text: string;
-    applied: boolean;
-    shape_effect?: string;
-    shape_effect_text?: string;
-  }[];
+  tags?: readonly { id?: string; text: string }[];
+  applied_modifiers: readonly SkillAppliedModifier[];
 };
 
 type SkillEditorSchemaStatus = {
@@ -675,9 +682,13 @@ type SkillEditorModifierPreviewResponse = {
 };
 
 type SkillTestArenaResponse = {
-  ok: boolean;
+  ok: false;
   message_text: string;
-  result: SkillTestArenaResult | null;
+  result: null;
+} | {
+  ok: true;
+  message_text: string;
+  result: SkillTestArenaResult;
 };
 
 function normalizeSkillEditorCameraSettings(value: unknown): SkillEditorCameraSettings {
@@ -815,6 +826,7 @@ type SecondaryHitConfig = {
   max_targets?: number;
   delay_ms?: number;
   vfx_key?: string;
+  hit_vfx_key?: string;
   reason_key?: string;
   damage_conversions?: Record<string, unknown>[];
   damage_components?: Record<string, number>;
@@ -1078,11 +1090,11 @@ type CharacterPanelSectionView = {
   id: string;
   title_text: string;
   layout: "attributes" | "core" | "resistance" | "detail";
-  rows: CharacterPanelRowView[];
+  rows: readonly CharacterPanelRowView[];
 };
 
 type CharacterPanelView = {
-  sections: CharacterPanelSectionView[];
+  sections: readonly CharacterPanelSectionView[];
 };
 
 type EnemyBuff = {
@@ -1260,7 +1272,7 @@ type FireBolt = {
   damageType: string;
   visualEffect: string;
   vfxKey: string;
-  shapeEffects: ShapeEffectPreview[];
+  shapeEffects: readonly ShapeEffectPreview[];
   areaScale: number;
   vfxScale?: number;
   pendingDamage?: boolean;
@@ -1336,10 +1348,11 @@ type HitVfx = {
   impactRadius?: number;
   ttl: number;
   duration: number;
+  hitAtMs?: number;
   damageType: string;
   vfxKey: string;
   skillTemplateId?: string;
-  shapeEffects: ShapeEffectPreview[];
+  shapeEffects: readonly ShapeEffectPreview[];
   vfxScale?: number;
 };
 
@@ -1384,6 +1397,7 @@ type ChainSegmentVfx = {
   endY: number;
   ttl: number;
   duration: number;
+  hitAtMs?: number;
   damageType: string;
   vfxKey: string;
   segmentIndex: number;
@@ -1780,6 +1794,18 @@ function cloneFrontendData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function cloneFrontendInitialAppStateSeed(): AppState {
+  return cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as unknown as AppState;
+}
+
+function frontendGemDropPool(): readonly Gem[] {
+  return FRONTEND_GEM_DROP_POOL as unknown as readonly Gem[];
+}
+
+function frontendSkillPreviewsBySkillTag(): Record<string, SkillPreview> {
+  return FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG as unknown as Record<string, SkillPreview>;
+}
+
 function localDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1932,7 +1958,7 @@ function recalculateFrontendSkillPreview(state: AppState): AppState {
       const gem = cell.gem;
       if (!gem || gem.gem_kind !== "active_skill") continue;
       const skillTag = frontendSkillTagForGem(gem);
-      const template = (FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG as Record<string, SkillPreview>)[skillTag];
+      const template = frontendSkillPreviewsBySkillTag()[skillTag];
       if (!template) continue;
       const fullGem = itemById.get(gem.instance_id) ?? gem;
       const supportModifiers = frontendSupportSkillModifiersForTarget(state, fullGem, template, equipmentSkillModifiers, itemById);
@@ -1958,7 +1984,7 @@ function frontendSupportSkillModifiersForTarget(
   itemById: Map<string, Gem>
 ) {
   const modifiers: FrontendEquipmentStatModifier[] = [];
-  const appliedModifiers: SkillPreview["applied_modifiers"] = [];
+  const appliedModifiers: SkillAppliedModifier[] = [];
   const targetTags = new Set(targetGem.tags.map((tag) => tag.id ?? tag.text));
   const supportLevelAdd = Math.max(0, Math.floor(equipmentSkillModifiers
     .filter((modifier) => modifier.kind !== "runtime_hook" && modifier.stat === "support_gem_level_add")
@@ -2170,20 +2196,20 @@ function frontendSkillTiming(
   };
 }
 
-function scaleFrontendDamageMap(value: unknown, scale: number) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+function scaleFrontendDamageMap(value: unknown, scale: number): Record<string, number> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).map(([damageType, amount]) => [damageType, Number(amount ?? 0) * scale])
   );
 }
 
-function normalizeFrontendDamageMapTotal(value: unknown, targetTotal: number) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+function normalizeFrontendDamageMapTotal(value: unknown, targetTotal: number): Record<string, number> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const entries = Object.entries(value as Record<string, unknown>)
     .map(([damageType, amount]) => [damageType, Number(amount ?? 0)] as const)
     .filter(([, amount]) => Number.isFinite(amount) && amount > 0);
   const currentTotal = frontendDamageMapEntriesTotal(entries);
-  if (currentTotal <= 0 || targetTotal <= 0) return value;
+  if (currentTotal <= 0 || targetTotal <= 0) return Object.fromEntries(entries);
   const scale = targetTotal / currentTotal;
   return Object.fromEntries(entries.map(([damageType, amount]) => [damageType, amount * scale]));
 }
@@ -2197,11 +2223,33 @@ function frontendDamageMapTotal(value: unknown) {
   );
 }
 
-function frontendDamageMapEntriesTotal(entries: readonly (readonly [string, number])[] | readonly number[]) {
-  return entries.reduce((total, entry) => total + (Array.isArray(entry) ? entry[1] : entry), 0);
+function frontendDamageMapEntriesTotal(entries: readonly (readonly [string, number] | number)[]): number {
+  return entries.reduce<number>((total, entry) => total + (Array.isArray(entry) ? entry[1] : entry), 0);
 }
 
-function scaleFrontendSkillHitDamage<T extends Record<string, unknown>>(hit: T, scale: number, levelValues: Record<string, number> = {}): T {
+type FrontendScalableHit = Record<string, unknown> & {
+  id?: string;
+  base_damage?: number;
+  weapon_attack_percent?: number;
+  damage_components?: Record<string, number>;
+  ailments?: Record<string, unknown>[];
+};
+
+type FrontendAilmentConfig = Record<string, unknown> & {
+  type?: string;
+  chance_percent?: number;
+  duration_ms?: number;
+  base_value?: number;
+  effect_per_stack?: number;
+  base_damage_per_second?: number;
+  damage_over_time_more_percent?: number;
+  source_damage_type?: string;
+  max_stacks?: number;
+  threshold?: number;
+  max_value?: number;
+};
+
+function scaleFrontendSkillHitDamage<T extends FrontendScalableHit>(hit: T, scale: number, levelValues: Record<string, number> = {}): T {
   const next = { ...hit };
   const hitId = frontendSafeLevelKeyFragment(String(next.id ?? "secondary_hit"));
   const prefix = `secondary_hit_${hitId}`;
@@ -2235,14 +2283,14 @@ function frontendSafeLevelKeyFragment(value: string) {
   return value.replace(/[^0-9A-Za-z_]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
 }
 
-function applyFrontendAilmentLevelValues(ailments: unknown[], levelValues: Record<string, number>, prefix: string): unknown[] {
-  return ailments.map((ailment) => {
-    if (!ailment || typeof ailment !== "object" || Array.isArray(ailment)) return ailment;
+function applyFrontendAilmentLevelValues(ailments: readonly unknown[], levelValues: Record<string, number>, prefix: string): Record<string, unknown>[] {
+  return ailments.flatMap((ailment) => {
+    if (!ailment || typeof ailment !== "object" || Array.isArray(ailment)) return [];
     const next = { ...(ailment as Record<string, unknown>) };
     const type = frontendSafeLevelKeyFragment(String(next.type ?? "unknown"));
     const baseDamagePerSecond = frontendOptionalLevelNumber(levelValues, `${prefix}${type}_base_damage_per_second`);
     if (baseDamagePerSecond !== null) next.base_damage_per_second = baseDamagePerSecond;
-    return next;
+    return [next];
   });
 }
 
@@ -2399,7 +2447,7 @@ function applyFrontendEquipmentSkillModifiers(
   skill: SkillPreview,
   gem: Gem,
   modifiers: FrontendEquipmentStatModifier[],
-  appliedModifiers: SkillPreview["applied_modifiers"] = []
+  appliedModifiers: readonly SkillAppliedModifier[] = []
 ): SkillPreview {
   if (modifiers.length === 0) return skill;
   const skillStats = { ...(skill.skill_stats ?? {}) };
@@ -2433,13 +2481,13 @@ function applyFrontendEquipmentSkillModifiers(
     addFrontendDamageComponent(baseComponents, "physical", statValue(skillStats, "weapon_attack_base_damage"));
   }
   const convertedComponents = convertFrontendDamageComponents(baseComponents, frontendDamageConversions(skill));
-  const finalDamageComponents = Object.fromEntries(Object.entries(convertedComponents)
+  const finalDamageComponents: Record<string, number> = Object.fromEntries(Object.entries(convertedComponents)
     .map(([componentType, componentAmount]) => [
       componentType,
       Math.max(0, componentAmount * (1 + frontendComponentAdditivePercent(componentType, skillStats, tags) / 100) * (1 + finalPercent / 100))
     ])
-    .filter(([, componentAmount]) => componentAmount > 0));
-  const nextDamage = Object.values(finalDamageComponents).reduce((total, value) => total + value, 0);
+    .filter((entry): entry is [string, number] => typeof entry[1] === "number" && entry[1] > 0));
+  const nextDamage = Object.values(finalDamageComponents).reduce<number>((total, value) => total + value, 0);
   const runtimeParams = { ...(skill.runtime_params ?? {}) };
   for (const modifier of modifiers) {
     if (modifier.kind === "runtime_hook" && modifier.payload && typeof modifier.payload === "object") {
@@ -2548,8 +2596,21 @@ function frontendEquipmentGrantedEffects(
 ) {
   return modifiers
     .map((modifier) => frontendEquipmentGrantedEffect(modifier, skillStats, tags, finalPercent, addedDamageEffectiveness, primaryDamageType))
-    .filter((effect): effect is Record<string, unknown> => Boolean(effect));
+    .filter((effect): effect is FrontendEquipmentGrantedEffect => Boolean(effect));
 }
+
+type FrontendEquipmentGrantedEffect = {
+  id: string;
+  effect_kind: string;
+  trigger_condition: string;
+  direct_damage_module_id: string;
+  damage_type: string;
+  value: number;
+  value_min: number;
+  value_max: number;
+  damage_multiplier: number;
+  source_modifier_id: string;
+};
 
 function frontendEquipmentGrantedEffect(
   modifier: FrontendEquipmentStatModifier,
@@ -2902,11 +2963,11 @@ function frontendExpectedCritMultiplier(skill: SkillPreview, skillStats: Record<
 }
 
 function createFrontendInitialAppState(): AppState {
-  return sanitizeFrontendStorageState(recalculateFrontendSkillPreview(cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState));
+  return sanitizeFrontendStorageState(recalculateFrontendSkillPreview(cloneFrontendInitialAppStateSeed()));
 }
 
 function createMonsterTestAppState(): AppState {
-  const state = cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState;
+  const state = cloneFrontendInitialAppStateSeed();
   state.player_name = "怪物测试";
   state.inventory = [];
   state.stash_pages = createEmptyStashPages();
@@ -2928,7 +2989,7 @@ function createFrontendNewGameState(slotId?: number, playerName = DEFAULT_PLAYER
 }
 
 function createFrontendNewSaveStarterState(slotId?: number, playerName = DEFAULT_PLAYER_NAME): AppState {
-  const state = cloneFrontendData(FRONTEND_INITIAL_APP_STATE) as AppState;
+  const state = cloneFrontendInitialAppStateSeed();
   state.player_name = normalizePlayerName(playerName);
   state.inventory = [];
   state.stash_pages = createEmptyStashPages();
@@ -2948,7 +3009,7 @@ function createFrontendNewSaveStarterState(slotId?: number, playerName = DEFAULT
 }
 
 function createRandomNewSaveStarterGem(slotId?: number): Gem | null {
-  const activeGems = (FRONTEND_GEM_DROP_POOL as readonly Gem[])
+  const activeGems = frontendGemDropPool()
     .filter((gem) => (
       gem.gem_kind === "active_skill"
       && Number(gem.level ?? 1) === 1
@@ -3147,7 +3208,7 @@ function clearFrontendAutosave() {
 }
 
 async function requestGmOptions(): Promise<GmOptions> {
-  const gems = (FRONTEND_GEM_DROP_POOL as readonly Gem[]).map((item) => ({
+  const gems = frontendGemDropPool().map((item) => ({
     id: item.base_gem_id ?? item.instance_id,
     name_text: item.name_text,
     kind: item.gem_kind || "ordinary",
@@ -3927,7 +3988,7 @@ function GameApp() {
       }
       return;
     }
-    const entryKey = `${battleMap.id}:${battleMap.mapInstance?.instanceSeed ?? "rest"}`;
+    const entryKey = `${battleMap.id}:${isEditorRuntimeBattleMap(battleMap) ? battleMap.mapInstance?.instanceSeed ?? "rest" : "rest"}`;
     if (restAreaMapEntryKey.current === entryKey) return;
     restAreaMapEntryKey.current = entryKey;
     resetBattleRuntimeForChallenge(battleMap.playerSpawn, battleMap);
@@ -4482,6 +4543,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         x: playerPosition.x,
         y: playerPosition.y - 42,
         text: `${hit.isCritical ? "暴击 " : ""}-${Math.max(1, Math.round(hit.totalDamage))}`,
+        damageType: hit.damageType,
         ttl: 0.8,
         duration: 0.8
       }))
@@ -6169,7 +6231,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       const ratio = Number(skill.final_damage ?? 0) > 0 ? amount / Number(skill.final_damage) : 1;
       return Object.fromEntries(Object.entries(skill.final_damage_components)
         .map(([componentType, componentAmount]) => [componentType, Math.max(0, Number(componentAmount ?? 0) * ratio)])
-        .filter(([, componentAmount]) => componentAmount > 0));
+        .filter((entry): entry is [string, number] => typeof entry[1] === "number" && entry[1] > 0));
     }
     if (explicitComponents && typeof explicitComponents === "object" && !Array.isArray(explicitComponents)) {
       return convertFrontendDamageComponents(
@@ -6255,11 +6317,11 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     return false;
   }
 
-  function ailmentConfigsForHit(skill: SkillPreview, hitConfig?: Record<string, unknown>) {
-    const configs = Array.isArray(hitConfig?.ailments)
-      ? [...hitConfig.ailments as Record<string, unknown>[]]
+  function ailmentConfigsForHit(skill: SkillPreview, hitConfig?: Record<string, unknown>): FrontendAilmentConfig[] {
+    const configs: FrontendAilmentConfig[] = Array.isArray(hitConfig?.ailments)
+      ? [...hitConfig.ailments as FrontendAilmentConfig[]]
       : Array.isArray(skill.hit?.ailments)
-        ? [...skill.hit.ailments as Record<string, unknown>[]]
+        ? [...skill.hit.ailments as FrontendAilmentConfig[]]
         : [];
     const damageType = convertedDamageType(skill, hitConfig);
     if (damageType === "cold" && !configs.some((item) => item.type === "frostbite")) {
@@ -6286,7 +6348,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         + Number(skill.runtime_params?.ailment_duration_add_percent ?? 0)
         + (type === "ignite" ? Number(skill.runtime_params?.ignite_duration_add_percent ?? 0) : 0)
         + (type === "trauma" ? Number(skill.runtime_params?.trauma_duration_add_percent ?? 0) : 0);
-      const nextConfig = {
+      const nextConfig: FrontendAilmentConfig = {
         ...config,
         duration_ms: Number(config.duration_ms ?? 0) * (1 + durationAdd / 100),
       };
@@ -6362,7 +6424,7 @@ function frontendDamageEventsForTarget(
       && !Array.isArray(payloadDamageComponents)
       ? Object.fromEntries(Object.entries(payloadDamageComponents as Record<string, unknown>)
         .map(([componentType, componentAmount]) => [componentType, Number(componentAmount ?? 0)])
-        .filter(([, componentAmount]) => Number.isFinite(componentAmount) && componentAmount > 0))
+        .filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] > 0))
       : damagePayloadComponents(skill, amount, damageType, hitConfig);
     const grantedDamage = frontendEquipmentGrantedDamageComponents(skill, target, payload, damageType);
     const damageComponents = mergeFrontendDamageComponents(baseDamageComponents, grantedDamage.components);
@@ -7874,7 +7936,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     const deadProjectileHits = new Set<string>();
     const acceptedProjectileDamageTicks = new Set<string>();
     const acceptedDamageDisplayKeys = new Set<string>();
-    const completedProjectileIds = new Set<string>();
+    const completedProjectileHits = new Map<string, { x: number; y: number }>();
 
     for (const event of events) {
       if (event.type === "buff_apply") {
@@ -8150,8 +8212,14 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
       }
       if (event.type === "projectile_hit") {
         const projectileId = projectileIdFromEvent(event);
-        if (projectileId && event.payload?.projectile_continues === false) {
-          completedProjectileIds.add(projectileId);
+        if (projectileId && event.payload?.projectile_continues !== true) {
+          completedProjectileHits.set(
+            projectileId,
+            pointFromUnknown(event.payload?.hit_world_position)
+              ?? pointFromUnknown(event.payload?.impact_world_position)
+              ?? pointFromUnknown(event.position)
+              ?? event.position
+          );
         }
         const targetId = Number(event.target_entity);
         const hitTargetKey = projectileTargetFollowupKey(event);
@@ -8291,8 +8359,15 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     if (nextMeleeArcs.length > 0) {
       setMeleeArcs((items) => capRuntimeVisualBudget([...items, ...nextMeleeArcs], MAX_RUNTIME_AREA_VFX));
     }
-    if (nextBolts.length > 0) {
-      setBolts((items) => capRuntimeVisualBudget([...items, ...nextBolts], MAX_RUNTIME_PROJECTILE_VISUALS));
+    if (nextBolts.length > 0 || completedProjectileHits.size > 0) {
+      const completedNextBolts = nextBolts.map((bolt) => finishCompletedProjectileBody(bolt, completedProjectileHits));
+      setBolts((items) => capRuntimeVisualBudget(
+        [
+          ...items.map((bolt) => finishCompletedProjectileBody(bolt, completedProjectileHits)),
+          ...completedNextBolts
+        ],
+        MAX_RUNTIME_PROJECTILE_VISUALS
+      ));
     }
     if (nextTexts.length > 0) {
       setTexts((items) => capRuntimeVisualBudget([...items, ...nextTexts], MAX_RUNTIME_FLOATING_TEXT));
@@ -8715,7 +8790,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       applyFrontendState((currentState) => ({
         ...currentState,
         stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
-        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots), [instanceId]),
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots ?? []), [instanceId]),
       }));
       return targetItem ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "bag", slotIndex, instanceId: targetItem.instance_id } } : { type: "place" };
     }
@@ -8747,7 +8822,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return {
         ...unmountedState,
         stash_pages: moveItemToStashSlot(unmountedState.stash_pages, instanceId, safePageIndex, safeSlotIndex),
-        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(unmountedState.equipment_slots), [instanceId])
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(unmountedState.equipment_slots ?? []), [instanceId])
       };
     });
     setNotice(`已将${dragged.name_text}放入仓库。`);
@@ -8789,7 +8864,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       ...currentState,
       stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
       equipment_slots: moveItemToEquipmentSlot(
-        removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots), displacedIds),
+        removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots ?? []), displacedIds),
         instanceId,
         targetIndices
       ),
@@ -9005,7 +9080,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   }
 
   function frontendMonsterDropAttempts(enemy: Enemy, salt: number) {
-    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss);
+    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, Boolean(enemy.boss));
     const quantityMultiplier = Math.max(0, Number(dropRule.drop_quantity_multiplier ?? 0));
     const guaranteedAttempts = Math.floor(quantityMultiplier);
     const fractionalAttempt = quantityMultiplier - guaranteedAttempts;
@@ -9019,7 +9094,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   }
 
   function frontendEquipmentDropRarity(stage: MapProgressionStageView, enemy: Enemy, roll: number) {
-    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss);
+    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, Boolean(enemy.boss));
     const weights = scaleFrontendDropRarityWeights(
       stage.equipment_rarity_weights ?? { white: 700, blue: 250, purple: 50, pink: 0 },
       dropRule.drop_rarity_multiplier,
@@ -9093,7 +9168,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const stages = state?.map_progression?.stages ?? [];
     const mapEntryStage = frontendMapEntryTargetStage(stage, stages, enemy, index + 109);
     const kindRoll = frontendDropRoll(enemy, index + 17);
-    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss);
+    const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, Boolean(enemy.boss));
     const level = Math.round(clamp(stage.gem_level_min + frontendDropRoll(enemy, index + 29) * (stage.gem_level_max - stage.gem_level_min), stage.gem_level_min, stage.gem_level_max));
     const equipmentLevel = frontendRandomMapLevel(stage, enemy, index + 83);
     let lootKind = frontendDropKind(stage, kindRoll, Boolean(mapEntryStage), dropRule.drop_pool_id);
@@ -9230,10 +9305,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     }
     const id = nextFrontendInventoryItemId(current);
     if (drop.loot_kind === "gem") {
-      const seedInventory = FRONTEND_INITIAL_APP_STATE.inventory as Gem[];
+      const seedInventory = cloneFrontendInitialAppStateSeed().inventory;
       const template = current.inventory.find((item) => item.instance_id === drop.base_gem_instance_id)
         ?? seedInventory.find((item) => item.instance_id === drop.base_gem_instance_id)
-        ?? (FRONTEND_GEM_DROP_POOL as readonly Gem[]).find((item) => item.base_gem_id === drop.base_gem_instance_id || item.instance_id === drop.base_gem_instance_id)
+        ?? frontendGemDropPool().find((item) => item.base_gem_id === drop.base_gem_instance_id || item.instance_id === drop.base_gem_instance_id)
         ?? current.inventory.find((item) => item.item_kind !== "equipment")
         ?? seedInventory.find((item) => item.item_kind !== "equipment");
       if (template) {
@@ -9973,16 +10048,17 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const terrainWidth = battleMap?.meta.world_width ?? MAP_VISUAL_WIDTH;
   const terrainHeight = battleMap?.meta.world_height ?? MAP_VISUAL_HEIGHT;
   const showBattleMapLayer = playing || restAreaMapActive || skillEditorMode || monsterTestMode;
+  const editorBattleMap = runtimeUsesEditorMap && battleMap && isEditorRuntimeBattleMap(battleMap) ? battleMap : null;
   const battleGeometrySnapshot: BattleGeometrySnapshot = {
     width: terrainWidth,
     height: terrainHeight,
     timeMs: animationNowMs,
     camera: battleCamera,
-    terrain: runtimeUsesEditorMap ? {
-      tiles: battleMap.editorTiles,
-      tileSize: battleMap.meta.grid_size,
-      width: battleMap.meta.world_width,
-      height: battleMap.meta.world_height
+    terrain: editorBattleMap ? {
+      tiles: editorBattleMap.editorTiles,
+      tileSize: editorBattleMap.meta.grid_size,
+      width: editorBattleMap.meta.world_width,
+      height: editorBattleMap.meta.world_height
     } : undefined,
     player: {
       ...player,
@@ -10125,7 +10201,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         <div
           className="terrain"
           data-map-template-id={battleMap?.id ?? ""}
-          data-map-instance-rotation={isEditorRuntimeBattleMap(battleMap) ? battleMap.mapInstance?.rotation ?? 0 : 0}
+          data-map-instance-rotation={editorBattleMap?.mapInstance?.rotation ?? 0}
           style={{
             width: terrainWidth,
             height: terrainHeight,
@@ -11692,7 +11768,7 @@ function removeInventoryItemFromState(state: AppState, instanceId: string): AppS
     ...state,
     inventory: state.inventory.filter((item) => item.instance_id !== instanceId),
     stash_pages: removeItemsFromStashPages(state.stash_pages, [instanceId]),
-    equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(state.equipment_slots), [instanceId]),
+    equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(state.equipment_slots ?? []), [instanceId]),
     board: {
       ...state.board,
       cells: state.board.cells.map((row) =>
@@ -11831,11 +11907,12 @@ function SkillEditorPanel({
   onDebugOptionsChange: (options: SkillEditorDebugOptions) => void;
   onClose: () => void;
 }) {
-  const selectedEntry = editor.entries.find((entry) => entry.id === selectedId && entry.openable)
+  const selectedEntry = (editor.entries.find((entry) => entry.id === selectedId && entry.openable)
     ?? editor.entries.find((entry) => entry.openable)
-    ?? null;
+    ?? null) as SkillEditorEntry;
   const detail = selectedEntry?.detail ?? null;
-  const [draft, setDraft] = useState<SkillPackageData | null>(() => clonePackageData(selectedEntry?.package_data ?? null));
+  const [draftState, setDraft] = useState<SkillPackageData | null>(() => clonePackageData(selectedEntry?.package_data ?? null));
+  const draft = draftState as SkillPackageData;
   const [draftSourceId, setDraftSourceId] = useState(selectedEntry?.id ?? "");
   const [saveMessage, setSaveMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -12176,7 +12253,7 @@ function SkillEditorPanel({
       onState(payload.state);
       setSaveMessage(payload.message_text);
       if (payload.ok) {
-        const refreshed = payload.state.skill_editor.entries.find((entry) => entry.id === selectedEntry.id);
+        const refreshed = payload.state.skill_editor?.entries.find((entry) => entry.id === selectedEntry.id);
         setDraft(clonePackageData(refreshed?.package_data ?? null));
         setDraftSourceId(refreshed?.id ?? selectedEntry.id);
       }
@@ -12327,11 +12404,12 @@ function SkillEditorPanel({
         setRunLogs((current) => [response.message_text, ...current].slice(0, 8));
         return null;
       }
-      setArenaResult(response.result);
-      setArenaStageIndex(finalStage ? Math.max(0, response.result.stages.length - 1) : 0);
+      const arenaRunResult = response.result;
+      setArenaResult(arenaRunResult);
+      setArenaStageIndex(finalStage ? Math.max(0, arenaRunResult.stages.length - 1) : 0);
       setArenaMessage(response.message_text);
       setRunLogs((current) => [`${response.result.skill_name_text} / ${response.result.scene_name_text}：${response.message_text}`, ...current].slice(0, 8));
-      return response.result;
+      return arenaRunResult;
     } catch (error) {
       setArenaResult(null);
       setArenaStageIndex(0);
@@ -13047,7 +13125,7 @@ function SkillEditorPanel({
                                 {modifierMessage}
                               </p>
                             )}
-                            {modifierPreview && <ModifierPreviewResult preview={modifierPreview} />}
+                            {modifierPreview && <ModifierPreviewResult preview={modifierPreview as SkillEditorModifierPreview} />}
                           </div>
                         </div>
                       </div>
@@ -13123,8 +13201,8 @@ function SkillEditorPanel({
                         )}
                         {arenaResult && currentArenaStage && (
                           <SkillTestArenaResultView
-                            result={arenaResult}
-                            stage={currentArenaStage}
+                            result={arenaResult as SkillTestArenaResult}
+                            stage={currentArenaStage as SkillTestArenaStage}
                             stageIndex={arenaStageIndex}
                           />
                         )}
@@ -14841,7 +14919,7 @@ function shapeEffectsFromUnknown(value: unknown): ShapeEffectPreview[] {
   });
 }
 
-function hasShapeEffect(effects: ShapeEffectPreview[] | undefined, id: string) {
+function hasShapeEffect(effects: readonly ShapeEffectPreview[] | undefined, id: string) {
   return (effects ?? []).some((effect) => effect.id === id);
 }
 
@@ -15571,8 +15649,8 @@ function moveEnemyTowardPlayer(
     velocityX: clampedVelocity.x,
     velocityY: clampedVelocity.y,
     runtimeTier,
-    navTargetGridX: "gridX" in approachTarget ? approachTarget.gridX : undefined,
-    navTargetGridY: "gridY" in approachTarget ? approachTarget.gridY : undefined
+    navTargetGridX: "gridX" in approachTarget ? Number(approachTarget.gridX) : undefined,
+    navTargetGridY: "gridY" in approachTarget ? Number(approachTarget.gridY) : undefined
   };
 }
 
@@ -16188,7 +16266,7 @@ function resolveEnemyPlayerBodyOccupancyFloor(
     x: player.x + Math.cos(angle) * minimumDistance,
     y: player.y + Math.sin(angle) * minimumDistance
   };
-  return isMapPointWalkable(map, corrected.x, corrected.y) ? corrected : position;
+  return map && isMapPointWalkable(map, corrected.x, corrected.y) ? corrected : position;
 }
 
 function enemyCollisionRadius(enemy: Enemy) {
@@ -16802,7 +16880,7 @@ function battleRenderEntityRarityRank(entity: BattleRenderEntity) {
 function enemyBattleRenderRarityRank(enemy: Extract<BattleRenderEntity, { kind: "enemy" }>) {
   const visual = resolveMonsterGeometryVisual(enemy.monsterId);
   const tier = enemy.spawnRarity ?? visual?.tier ?? (enemy.monsterId === "enemy_brute" ? "rare" : "normal");
-  if (tier === "boss") return 4;
+  if (tier === "legendary_boss" || tier === "supreme_boss") return 4;
   if (tier === "rare") return 3;
   if (tier === "magic") return 1;
   return 0;
@@ -17351,7 +17429,7 @@ function frontendDirectDamageTotal(value: Record<string, unknown>) {
     value.damage,
     value.final_damage,
     value.amount,
-  ].reduce((total, next) => total + Math.max(0, Number(next) || 0), 0)
+  ].reduce<number>((total, next) => total + Math.max(0, Number(next) || 0), 0)
     + frontendDamageMapTotal(value.damage_components);
 }
 
@@ -17510,7 +17588,7 @@ function ensureGemLevelStatLine(gem: Gem, lines: TooltipStatLine[]) {
 function ensureReleaseIntervalStatLine(gem: Gem, lines: TooltipStatLine[]) {
   if (lines.some((line) => RELEASE_INTERVAL_LABELS.has(line.label_text))) return lines;
   const skillTag = gem.tags.find((tag) => typeof tag.id === "string" && tag.id.startsWith("skill_"))?.id ?? "";
-  const preview = skillTag ? (FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG as Record<string, SkillPreview>)[skillTag] : undefined;
+  const preview = skillTag ? frontendSkillPreviewsBySkillTag()[skillTag] : undefined;
   const releaseIntervalMs = Number(
     preview?.release_interval_ms
       ?? gem.base_effect?.release_interval_ms
@@ -17632,12 +17710,13 @@ function gemIconSprite(gem: Gem) {
 function GemOrb({ gem }: { gem: Gem }) {
   const isGem = isGemItem(gem);
   const equipmentTone = equipmentRarityToneForGem(gem);
-  const sprite = gem.tooltip_view?.icon_sprite
+  const sprite: string = (gem.tooltip_view?.icon_sprite
     || (isGem ? gemIconSprite(gem) : "")
-    || (gem.item_kind === "equipment" ? frontendEquipmentIconSprite(gem.gem_type?.id ?? gem.gem_type?.display_text ?? gem.category_text) : "");
-  const className = !isGem
+    || (gem.item_kind === "equipment" ? frontendEquipmentIconSprite(gem.gem_type?.id ?? gem.gem_type?.display_text ?? gem.category_text) : "")
+    || "");
+  const className: string = !isGem
     ? `item-orb ${equipmentTone ? `item-orb-rarity-${equipmentTone}` : ""}`
-    : `gem-orb-color-${gem.tooltip_view?.icon_color_key ?? gemColorKey(gem)}`;
+    : `gem-orb-color-${String(gem.tooltip_view?.icon_color_key ?? gemColorKey(gem))}`;
   const level = isGem ? Math.max(1, Math.floor(Number(gem.level ?? 1))) : 0;
   return (
     <GemOrbView
@@ -17816,7 +17895,7 @@ function floatingTextDamageComponents(event: SkillEvent): [string, number][] {
         const record = component as Record<string, unknown>;
         return [String(record.damage_type ?? event.damage_type), Number(record.amount ?? 0)] as [string, number];
       })
-      .filter((row): row is [string, number] => Boolean(row) && Number.isFinite(row[1]) && row[1] > 0);
+      .filter((row): row is [string, number] => row !== null && Number.isFinite(row[1]) && row[1] > 0);
     if (rows.length > 0) return rows;
   }
   const components = event.payload?.damage_components;
@@ -17915,6 +17994,28 @@ function anchorProjectilesToTargets(bolts: FireBolt[], enemies: Enemy[]) {
     if (!target || target.hp <= 0) return bolt;
     return { ...bolt, targetX: target.x, targetY: target.y };
   });
+}
+
+function finishCompletedProjectileBody<TBolt extends Pick<
+  FireBolt,
+  "projectileId" | "fadeDuration" | "ttl" | "x" | "y" | "targetX" | "targetY" | "velocityX" | "velocityY"
+>>(
+  bolt: TBolt,
+  completedHits: Map<string, { x: number; y: number }>
+): TBolt {
+  const hit = bolt.projectileId ? completedHits.get(bolt.projectileId) : undefined;
+  if (!hit) return bolt;
+  const fadeDuration = Math.max(0, bolt.fadeDuration ?? PROJECTILE_BODY_EXIT_FADE_DURATION);
+  return {
+    ...bolt,
+    x: hit.x,
+    y: hit.y,
+    targetX: hit.x,
+    targetY: hit.y,
+    velocityX: 0,
+    velocityY: 0,
+    ttl: Math.min(bolt.ttl, fadeDuration)
+  };
 }
 
 function usesCanvasProjectileVfx(bolt: Pick<FireBolt, "vfxKey" | "visualEffect" | "skillTemplateId">) {
@@ -18489,7 +18590,7 @@ function FrontendSkillGuideLayer({
       <DamageZoneRuntimeGuide
         params={runtimeParams}
         cast={guidePackage?.cast ?? skill?.cast ?? {}}
-        hitRadius={guidePackage?.hit.hit_radius ?? skill?.hit?.hit_radius}
+        hitRadius={typeof skill?.hit?.hit_radius === "number" ? skill.hit.hit_radius : guidePackage?.hit.hit_radius}
         damageType={guidePackage?.classification.damage_type ?? skill?.damage_type ?? "physical"}
         vfxKey={String(runtimeParams.zone_vfx_key ?? guidePackage?.presentation.vfx ?? skill?.presentation_keys?.vfx ?? skill?.visual_effect ?? "")}
         player={player}
@@ -18504,7 +18605,7 @@ function FrontendSkillGuideLayer({
       <DamageZoneRuntimeGuide
         params={moduleChainDamageZone.params}
         cast={guidePackage?.cast ?? skill?.cast ?? {}}
-        hitRadius={guidePackage?.hit.hit_radius ?? skill?.hit?.hit_radius}
+        hitRadius={typeof skill?.hit?.hit_radius === "number" ? skill.hit.hit_radius : guidePackage?.hit.hit_radius}
         damageType={guidePackage?.classification.damage_type ?? skill?.damage_type ?? "physical"}
         vfxKey={String(moduleChainDamageZone.params.zone_vfx_key ?? moduleChainDamageZone.params.vfx_key ?? guidePackage?.presentation.vfx ?? skill?.presentation_keys?.vfx ?? skill?.visual_effect ?? "")}
         player={player}
@@ -18515,7 +18616,7 @@ function FrontendSkillGuideLayer({
     );
   }
   if (!behaviorTemplate || !isProjectileSkillTemplate(behaviorTemplate)) return null;
-  const guideVfxKind = projectileVfxKind(skill?.presentation_keys?.projectile_vfx_key ?? skill?.visual_effect ?? guidePackage?.presentation.projectile_vfx_key ?? guidePackage?.presentation.vfx);
+  const guideVfxKind = projectileVfxKind(String(skill?.presentation_keys?.projectile_vfx_key ?? skill?.visual_effect ?? guidePackage?.presentation.projectile_vfx_key ?? guidePackage?.presentation.vfx ?? ""));
   const guideDebugLabel = guideVfxKind === "ice_shards" ? "冰棱" : guideVfxKind === "penetrating_shot" ? "贯穿射击" : "投射物";
   const cast = guidePackage?.cast ?? skill?.cast ?? {};
   const areaMultiplier = skill?.area_multiplier ?? 1;
@@ -18976,7 +19077,7 @@ function runRuntimeBoundaryMonsterAiScan(map: BakedBattleMapData): RuntimeBounda
         if ("gridX" in target && "gridY" in target && navigation) {
           const enemyCell = enemyWorldToGrid(map, enemy);
           const currentIndex = enemyGridIndex(navigation, enemyCell.gridX, enemyCell.gridY);
-          const targetIndex = enemyGridIndex(navigation, target.gridX, target.gridY);
+          const targetIndex = enemyGridIndex(navigation, Number(target.gridX), Number(target.gridY));
           return navigation.field[targetIndex] < navigation.field[currentIndex];
         }
         return false;
