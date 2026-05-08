@@ -928,7 +928,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           },
           {
             "id": "channel_max_stacks_add",
-            "text": "未配置文案：stat.channel_max_stacks_add.name"
+            "text": "引导最大层数增加"
           },
           {
             "id": "channel_min_stacks_add",
@@ -936,7 +936,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           },
           {
             "id": "channel_time_per_stack_ms_reduction_percent",
-            "text": "未配置文案：stat.channel_time_per_stack_ms_reduction_percent.name"
+            "text": "引导每层蓄力时间缩短"
           }
         ]
       },
@@ -1442,7 +1442,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           },
           {
             "id": "channel_max_stacks_add",
-            "text": "未配置文案：stat.channel_max_stacks_add.name"
+            "text": "引导最大层数增加"
           },
           {
             "id": "channel_min_stacks_add",
@@ -1450,7 +1450,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           },
           {
             "id": "channel_time_per_stack_ms_reduction_percent",
-            "text": "未配置文案：stat.channel_time_per_stack_ms_reduction_percent.name"
+            "text": "引导每层蓄力时间缩短"
           }
         ]
       },

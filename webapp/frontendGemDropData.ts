@@ -1233,7 +1233,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         },
         {
           "id": "channel_max_stacks_add",
-          "text": "未配置文案：stat.channel_max_stacks_add.name"
+          "text": "引导最大层数增加"
         },
         {
           "id": "channel_min_stacks_add",
@@ -1241,7 +1241,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         },
         {
           "id": "channel_time_per_stack_ms_reduction_percent",
-          "text": "未配置文案：stat.channel_time_per_stack_ms_reduction_percent.name"
+          "text": "引导每层蓄力时间缩短"
         }
       ]
     },
@@ -3862,7 +3862,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         },
         {
           "id": "channel_max_stacks_add",
-          "text": "未配置文案：stat.channel_max_stacks_add.name"
+          "text": "引导最大层数增加"
         },
         {
           "id": "channel_min_stacks_add",
@@ -3870,7 +3870,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         },
         {
           "id": "channel_time_per_stack_ms_reduction_percent",
-          "text": "未配置文案：stat.channel_time_per_stack_ms_reduction_percent.name"
+          "text": "引导每层蓄力时间缩短"
         }
       ]
     },
@@ -7149,7 +7149,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "energy_blessing_damage_per_stack_percent",
-            "text": "未配置文案：stat.energy_blessing_damage_per_stack_percent.name"
+            "text": "每层能量祝福伤害"
           },
           "value": 3.05,
           "layer_text": "加算修正"
@@ -7289,7 +7289,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "未配置文案：stat.energy_blessing_damage_per_stack_percent.name 3.05%",
+                "text": "每层能量祝福伤害 3.05%",
                 "tone": "bonus-positive"
               }
             ]
@@ -9391,7 +9391,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "added_fire_damage_from_physical_percent",
-            "text": "未配置文案：stat.added_fire_damage_from_physical_percent.name"
+            "text": "物理伤害额外火焰伤害"
           },
           "value": 15.5,
           "layer_text": "加算修正"
@@ -9555,7 +9555,7 @@ export const FRONTEND_GEM_DROP_POOL = [
             ],
             [
               {
-                "text": "未配置文案：stat.added_fire_damage_from_physical_percent.name 15.5%",
+                "text": "物理伤害额外火焰伤害 15.5%",
                 "tone": "bonus-positive"
               }
             ]
@@ -9905,7 +9905,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "added_cold_damage",
-            "text": "未配置文案：stat.added_cold_damage.name"
+            "text": "附加冰霜伤害"
           },
           "value": 2.5,
           "layer_text": "加算修正"
@@ -10068,7 +10068,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "未配置文案：stat.added_cold_damage.name 2.5",
+                "text": "附加冰霜伤害 2.5",
                 "tone": "bonus-positive"
               }
             ]
@@ -10157,7 +10157,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "added_chaos_damage",
-            "text": "未配置文案：stat.added_chaos_damage.name"
+            "text": "附加混沌伤害"
           },
           "value": 2,
           "layer_text": "加算修正"
@@ -10318,7 +10318,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "未配置文案：stat.added_chaos_damage.name 2",
+                "text": "附加混沌伤害 2",
                 "tone": "bonus-positive"
               }
             ]
@@ -10407,7 +10407,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "added_fire_damage",
-            "text": "未配置文案：stat.added_fire_damage.name"
+            "text": "附加火焰伤害"
           },
           "value": 2,
           "layer_text": "加算修正"
@@ -10570,7 +10570,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "未配置文案：stat.added_fire_damage.name 2",
+                "text": "附加火焰伤害 2",
                 "tone": "bonus-positive"
               }
             ]
@@ -10659,7 +10659,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "added_lightning_damage",
-            "text": "未配置文案：stat.added_lightning_damage.name"
+            "text": "附加闪电伤害"
           },
           "value": 2.5,
           "layer_text": "加算修正"
@@ -10822,7 +10822,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "未配置文案：stat.added_lightning_damage.name 2.5",
+                "text": "附加闪电伤害 2.5",
                 "tone": "bonus-positive"
               }
             ]
@@ -10923,7 +10923,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "ignite_stacks_add",
-            "text": "未配置文案：stat.ignite_stacks_add.name"
+            "text": "额外点燃层数"
           },
           "value": 1,
           "layer_text": "加算修正"
@@ -10931,7 +10931,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "ignite_damage_bonus_per_stack_percent",
-            "text": "未配置文案：stat.ignite_damage_bonus_per_stack_percent.name"
+            "text": "每层点燃伤害提高"
           },
           "value": 2.7,
           "layer_text": "加算修正"
@@ -10939,7 +10939,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         {
           "stat": {
             "id": "ignite_damage_bonus_max_percent",
-            "text": "未配置文案：stat.ignite_damage_bonus_max_percent.name"
+            "text": "点燃伤害提高上限"
           },
           "value": 10.8,
           "layer_text": "加算修正"
@@ -11097,19 +11097,19 @@ export const FRONTEND_GEM_DROP_POOL = [
             ],
             [
               {
-                "text": "未配置文案：stat.ignite_stacks_add.name 1",
+                "text": "额外点燃层数 1",
                 "tone": "bonus-positive"
               }
             ],
             [
               {
-                "text": "未配置文案：stat.ignite_damage_bonus_per_stack_percent.name 2.7%",
+                "text": "每层点燃伤害提高 2.7%",
                 "tone": "bonus-positive"
               }
             ],
             [
               {
-                "text": "未配置文案：stat.ignite_damage_bonus_max_percent.name 10.8%",
+                "text": "点燃伤害提高上限 10.8%",
                 "tone": "bonus-positive"
               }
             ]
@@ -13541,7 +13541,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       {
         "id": "support_falling",
-        "text": "未配置文案：tag.support_falling.name"
+        "text": "落点辅助"
       },
       {
         "id": "support_gem",
@@ -14066,7 +14066,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       {
         "id": "support_melee",
-        "text": "未配置文案：tag.support_melee.name"
+        "text": "近战辅助"
       },
       {
         "id": "support_shape",
@@ -14355,7 +14355,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       {
         "id": "support_melee",
-        "text": "未配置文案：tag.support_melee.name"
+        "text": "近战辅助"
       },
       {
         "id": "support_shape",
