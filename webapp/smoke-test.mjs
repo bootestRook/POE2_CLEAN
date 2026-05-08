@@ -644,12 +644,14 @@ for (const text of [
   "x: zone.followPlayer ? player.x : zone.x",
   "channel_move_speed_multiplier",
   "buffType: \"channel_move_speed\"",
-  "playerMovementSpeedMultiplier()",
-  "player-buff-channel-move-speed"
+  "playerMovementSpeedMultiplier()"
 ]) {
   if (!app.includes(text)) {
     throw new Error(`Caster-attached damage zones must stay anchored to the live player center: ${text}`);
   }
+}
+if (!webappSourceText.includes("player-buff-channel-move-speed")) {
+  throw new Error("Caster-attached damage zones must keep the player buff channel visual marker.");
 }
 for (const forbidden of [
   "function activeDamageZoneTickEvents",

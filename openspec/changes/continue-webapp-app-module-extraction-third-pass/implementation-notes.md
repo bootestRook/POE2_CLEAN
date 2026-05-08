@@ -40,3 +40,13 @@
 - Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
 - `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-projectile-views-battle.png`.
 - Visible result: new save entered `map_001`, map and player rendered, canvas layers were present, and procedural spawn debug showed generated map content.
+
+## Group 4 Verification
+
+- Extracted hit VFX and player buff presentation into `webapp/components/battle/HitAndBuffViews.tsx`.
+- App now passes projection, shape-effect lookup, and z-index base into the extracted hit VFX view, and passes player/buff state into the extracted buff layer.
+- Runtime ownership stayed in App/runtime paths: damage application, floating text generation, target anchoring, follow-up suppression, buff timing, guard state, movement channels, and runtime mutations were not moved.
+- Updated smoke coverage so the player buff channel visual marker can live in a focused component while the caster-attached damage-zone runtime checks still remain App-owned.
+- Verification passed: `npx tsc --noEmit`, `npm run build`, `npm test`.
+- `run.bat` playable verification passed; screenshot saved at `artifacts/screenshots/third-pass-hit-buff-views-battle.png`.
+- Visible result: new save entered `map_001`, canvas battle view rendered, procedural spawn debug showed 120 generated monster packs with nonzero spawn budget, and combat log showed hit/kill activity.

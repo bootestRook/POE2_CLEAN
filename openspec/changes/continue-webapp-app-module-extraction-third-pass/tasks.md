@@ -21,10 +21,10 @@
 
 ## 4. Hit VFX And Player Buff View Extraction
 
-- [ ] 4.1 Extract `HitVfxView`, `SparkleHitVfxView`, and hit decoration render-only markup into focused battle component modules.
-- [ ] 4.2 Extract `PlayerBuffLayer` into a focused battle component module while preserving supplied player/buff props and rendered markup.
-- [ ] 4.3 Keep damage application, floating text generation, target anchoring, follow-up suppression, buff timing, guard state, movement channels, and runtime mutations in their current App-owned paths.
-- [ ] 4.4 Run `npm run build`, `npm test`, focused TypeScript checks, playable WebApp verification, screenshot capture under `artifacts/screenshots/`, and commit only this hit/buff view group.
+- [x] 4.1 Extract `HitVfxView`, `SparkleHitVfxView`, and hit decoration render-only markup into focused battle component modules.
+- [x] 4.2 Extract `PlayerBuffLayer` into a focused battle component module while preserving supplied player/buff props and rendered markup.
+- [x] 4.3 Keep damage application, floating text generation, target anchoring, follow-up suppression, buff timing, guard state, movement channels, and runtime mutations in their current App-owned paths.
+- [x] 4.4 Run `npm run build`, `npm test`, focused TypeScript checks, playable WebApp verification, screenshot capture under `artifacts/screenshots/`, and commit only this hit/buff view group.
 
 ## 5. Skill Guide And Debug Overlay Extraction
 
