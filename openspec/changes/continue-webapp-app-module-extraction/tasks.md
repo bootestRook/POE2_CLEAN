@@ -16,8 +16,8 @@
 
 - [x] 3.1 Extract rest-area presentation such as `RestAreaScene` and `RestAreaMapInteractableLayer` into `webapp/components/rest-area/`, preserving props, class names, text, and DOM order.
 - [x] 3.2 Extract save, map-selection, stash, and GM/tool panels only where they can remain prop-driven and not own App gameplay or save state.
-- [ ] 3.3 Extract battle HUD/presentation leaves such as boss health, ground-drop layer, playable minimap rendering, and resource panels into `webapp/components/battle/` where safe.
-- [ ] 3.4 Build after each playable presentation extraction group and fix only extraction-related issues.
+- [x] 3.3 Extract battle HUD/presentation leaves such as boss health, ground-drop layer, playable minimap rendering, and resource panels into `webapp/components/battle/` where safe.
+- [x] 3.4 Build after each playable presentation extraction group and fix only extraction-related issues.
 
 ## 4. Type And Utility Boundaries
 
