@@ -14,9 +14,9 @@
 
 ## 3. Character Panel Extraction
 
-- [ ] 3.1 Create a focused character presentation boundary for `CharacterInfoPanel` and its display-only row/time/resource formatting helpers.
-- [ ] 3.2 Keep stat recalculation, equipment effects, player runtime resource ownership, save data, and App state ownership unchanged in `webapp/App.tsx`.
-- [ ] 3.3 Run focused TypeScript/build checks for the character panel extraction and review the diff for behavior, copy, CSS, storage, backend, or runtime changes.
+- [x] 3.1 Create a focused character presentation boundary for `CharacterInfoPanel` and its display-only row/time/resource formatting helpers.
+- [x] 3.2 Keep stat recalculation, equipment effects, player runtime resource ownership, save data, and App state ownership unchanged in `webapp/App.tsx`.
+- [x] 3.3 Run focused TypeScript/build checks for the character panel extraction and review the diff for behavior, copy, CSS, storage, backend, or runtime changes.
 
 ## 4. Skill-Board Presentation Extraction
 
