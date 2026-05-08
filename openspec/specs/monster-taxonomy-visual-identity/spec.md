@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define the playable monster rarity taxonomy, monster type taxonomy, and visual identity requirements that keep combat roles, boss presentation, health bars, and concept artifacts consistent.
+
+## Requirements
 
 ### Requirement: Monster rarity taxonomy
 The system SHALL support exactly five playable monster rarities: `normal`, `magic`, `rare`, `legendary_boss`, and `supreme_boss`.
