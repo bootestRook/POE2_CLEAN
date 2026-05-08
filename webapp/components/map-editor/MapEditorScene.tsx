@@ -1610,7 +1610,7 @@ function editorRuntimeMapPoint(gridX: number, gridY: number, gridSize: number): 
   };
 }
 
-function editorRuntimeCoordinatePoint(x: number, y: number, gridSize: number, gridWidth = MAP_EDITOR_COLUMNS, gridHeight = MAP_EDITOR_ROWS): MapPoint {
+export function editorRuntimeCoordinatePoint(x: number, y: number, gridSize: number, gridWidth = MAP_EDITOR_COLUMNS, gridHeight = MAP_EDITOR_ROWS): MapPoint {
   return {
     x: clamp(x * gridSize, 0, gridWidth * gridSize - 1),
     y: clamp(y * gridSize, 0, gridHeight * gridSize - 1),

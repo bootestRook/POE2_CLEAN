@@ -109,6 +109,7 @@ import {
   MAP_EDITOR_STORAGE_KEY,
   MapEditorScene,
   createEditorRuntimeBattleMap,
+  editorRuntimeCoordinatePoint,
   isEditorRuntimeBattleMap,
   mapEditorZoneCenter,
   mapEditorZoneRects,
