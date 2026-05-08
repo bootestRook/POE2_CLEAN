@@ -117,3 +117,206 @@ export function frontendDamageTypeLabel(damageType: string) {
   if (damageType === "true") return "\u771f\u5b9e\u4f24\u5bb3";
   return `${damageType}\u4f24\u5bb3`;
 }
+
+export function frontendGuardTooltipLines(
+  skill: { runtime_params?: Record<string, unknown> },
+  formatPreviewNumber: (value: number) => string
+): TooltipStatLine[] {
+  const params = skill.runtime_params ?? {};
+  const absorbPercent = Number(params.guard_absorb_percent ?? 0);
+  const absorbAmount = Number(params.guard_absorb_amount ?? 0);
+  const lines: TooltipStatLine[] = [];
+  if (Number.isFinite(absorbPercent) && absorbPercent > 0) {
+    lines.push({
+      label_text: "\u5438\u6536\u4f24\u5bb3\u6bd4\u4f8b",
+      value_text: `${formatPreviewNumber(absorbPercent)}%`,
+    });
+  }
+  if (Number.isFinite(absorbAmount) && absorbAmount > 0) {
+    lines.push({
+      label_text: "\u5438\u6536\u4f24\u5bb3\u4e0a\u9650",
+      value_text: formatPreviewNumber(absorbAmount),
+    });
+  }
+  return lines;
+}
+
+export function frontendSupportModifierTooltipLines(
+  skill: {
+    active_gem_instance_id: string;
+    applied_modifiers?: readonly {
+      source_instance_id?: string;
+      source_name_text?: string;
+      stat?: { id?: string; text?: string };
+      value?: number;
+      relation_text?: string;
+      applied?: boolean;
+    }[];
+  },
+  formatModifierValue: (stat: string, value: number) => string
+) {
+  return (skill.applied_modifiers ?? [])
+    .filter((modifier) => modifier.applied && modifier.source_instance_id && modifier.source_instance_id !== skill.active_gem_instance_id && Number(modifier.value) !== 0)
+    .map((modifier) => {
+      const statId = String(modifier.stat?.id ?? "");
+      const statText = frontendSupportStatText(statId, String(modifier.stat?.text ?? statId));
+      const valueText = formatModifierValue(statId, Number(modifier.value));
+      const relationText = modifier.relation_text ? ` / ${modifier.relation_text}` : "";
+      return `${modifier.source_name_text}: ${statText} ${valueText}${relationText}`;
+    });
+}
+
+function frontendSupportStatText(statId: string, fallback: string) {
+  if (fallback && !fallback.startsWith("未配置文案")) return fallback;
+  return FRONTEND_SUPPORT_STAT_TEXT[statId] ?? statId;
+}
+
+const FRONTEND_SUPPORT_STAT_TEXT: Record<string, string> = {
+  added_chaos_damage: "附加混沌伤害",
+  added_cold_damage: "附加冰霜伤害",
+  added_fire_damage: "附加火焰伤害",
+  added_fire_damage_from_physical_percent: "物理额外火焰伤害",
+  added_lightning_damage: "附加闪电伤害",
+  ailment_damage_add_percent: "异常伤害提高",
+  area_add_percent: "范围扩大",
+  area_damage_add_percent: "范围伤害提高",
+  attack_speed_add_percent: "攻击速度提高",
+  bounce_count_add: "弹射次数",
+  cast_speed_add_percent: "施法速度提高",
+  channel_min_stacks_add: "引导最低层数",
+  cold_damage_add_percent: "冰霜伤害提高",
+  continuous_attack_chance_percent: "连续攻击概率",
+  continuous_attack_damage_step_percent: "连续攻击伤害递增",
+  conversion_lightning_to_cold_percent: "闪电转冰霜",
+  conversion_physical_to_fire_percent: "物理转火焰",
+  cooldown_recovery_add_percent: "冷却回复速度提高",
+  crit_damage_add_percent: "暴击伤害提高",
+  crit_rating: "暴击值",
+  damage_final_percent: "最终伤害修正",
+  deterioration_chance_add_percent: "恶化概率",
+  deterioration_extra_stack_chance_percent: "额外恶化层数概率",
+  dot_damage_add_percent: "持续伤害提高",
+  duration_add_percent: "持续时间提高",
+  elemental_damage_add_percent: "元素伤害提高",
+  energy_blessing_damage_per_stack_percent: "每层能量祝福伤害",
+  guard_internal_cooldown_ms: "守护内置冷却",
+  guard_trigger_count: "守护触发次数",
+  ignite_chance_add_percent: "点燃概率提高",
+  ignite_damage_bonus_max_percent: "点燃伤害上限提高",
+  ignite_damage_bonus_per_stack_percent: "每层点燃伤害提高",
+  ignite_stacks_add: "点燃层数",
+  knockback_chance_percent: "击退概率",
+  knockback_distance_add_percent: "击退距离提高",
+  lightning_damage_add_percent: "闪电伤害提高",
+  melee_damage_add_percent: "近战伤害提高",
+  physical_damage_add_percent: "物理伤害提高",
+  prevent_elemental_ailments: "免疫元素异常",
+  projectile_count_add: "投射物数量",
+  projectile_speed_add_percent: "投射物速度提高",
+  slash_chance_add_percent: "斩击概率",
+  split_projectile_chance_percent: "投射物分裂概率",
+  split_projectile_count_add: "分裂投射物数量",
+  status_chance_add_percent: "状态施加概率提高",
+};
+
+export function mergeFrontendSkillPreviewBonusLines(lines: string[], bonusLines: string[]) {
+  const merged = [...lines];
+  const seen = new Set(merged);
+  for (const line of bonusLines) {
+    if (seen.has(line)) continue;
+    seen.add(line);
+    merged.unshift(line);
+  }
+  return merged;
+}
+
+export function mergeFrontendSkillPreviewTooltipLines(
+  lines: TooltipStatLine[],
+  skill: { final_damage?: number },
+  componentLines: TooltipStatLine[],
+  formatPreviewNumber: (value: number) => string,
+  levelText = ""
+) {
+  const nextLines = lines.map((line) => {
+    if (isPrimaryDamageTooltipLine(line.label_text)) {
+      return { ...line, value_text: formatPreviewNumber(skill.final_damage ?? Number(line.value_text)) };
+    }
+    if (levelText && isSkillLevelTooltipLine(line.label_text)) {
+      return { ...line, value_text: levelText };
+    }
+    return line;
+  });
+  const insertAfter = nextLines.findIndex((line) => isPrimaryDamageTooltipLine(line.label_text));
+  const existingLabels = new Set(nextLines.map((line) => line.label_text));
+  const missingComponentLines = componentLines.filter((line) => !existingLabels.has(line.label_text));
+  if (missingComponentLines.length === 0) return nextLines;
+  if (insertAfter < 0) return [...nextLines, ...missingComponentLines];
+  return [...nextLines.slice(0, insertAfter + 1), ...missingComponentLines, ...nextLines.slice(insertAfter + 1)];
+}
+
+export function frontendProjectileCountTooltipLine(
+  gem: { tags?: readonly { id?: string; text: string }[] },
+  skill: { tags?: readonly { id?: string; text: string }[]; projectile_count?: number; skill_stats?: Record<string, number | boolean> },
+  statValue: (stats: Record<string, number | boolean> | undefined, stat: string) => number,
+  formatPreviewNumber: (value: number) => string
+): TooltipStatLine | null {
+  const tagIds = new Set([
+    ...(gem.tags ?? []).map((tag) => tag.id ?? tag.text),
+    ...(skill.tags ?? []).map((tag) => tag.id ?? tag.text),
+  ]);
+  if (!tagIds.has("projectile")) return null;
+  const totalCount = Math.max(1, Math.round(Number(skill.projectile_count ?? 1)));
+  const addedCount = Math.round(statValue(skill.skill_stats, "projectile_count_add"));
+  const valueText = addedCount > 0
+    ? `${totalCount}(${Math.max(1, totalCount - addedCount)}+${addedCount})`
+    : formatPreviewNumber(totalCount);
+  return {
+    label_text: "\u6295\u5c04\u7269\u6570\u91cf",
+    value_text: valueText,
+  };
+}
+
+export function frontendChannelStackTooltipLines(
+  gem: { tags?: readonly { id?: string; text: string }[] },
+  skill: { tags?: readonly { id?: string; text: string }[]; runtime_params?: Record<string, unknown> },
+  formatPreviewNumber: (value: number) => string
+): TooltipStatLine[] {
+  const tagIds = new Set([
+    ...(gem.tags ?? []).map((tag) => tag.id ?? tag.text),
+    ...(skill.tags ?? []).map((tag) => tag.id ?? tag.text),
+  ]);
+  if (!tagIds.has("channel")) return [];
+  const minStacks = Number(skill.runtime_params?.channel_min_stacks ?? 0);
+  const maxStacks = Number(skill.runtime_params?.channel_max_stacks);
+  if (!Number.isFinite(maxStacks) || maxStacks <= 0) return [];
+  return [
+    {
+      label_text: "\u5f15\u5bfc\u5c42\u6570\u4e0b\u9650",
+      value_text: formatPreviewNumber(Math.max(0, Math.round(Number.isFinite(minStacks) ? minStacks : 0))),
+    },
+    {
+      label_text: "\u5f15\u5bfc\u5c42\u6570\u4e0a\u9650",
+      value_text: formatPreviewNumber(Math.max(1, Math.round(maxStacks))),
+    },
+  ];
+}
+
+function isPrimaryDamageTooltipLine(labelText: string) {
+  return labelText.includes("\u4f24\u5bb3") || labelText.includes("\u6d5c\u3085");
+}
+
+export function isSkillLevelTooltipLine(labelText: string) {
+  return labelText === "\u7b49\u7ea7";
+}
+
+export function frontendSkillPreviewEffectiveLevelText(
+  skill: { source_context?: Record<string, unknown> },
+  frontendRecord: (value: unknown) => Record<string, unknown>
+) {
+  const sourceContext = frontendRecord(skill.source_context);
+  const equipmentLevelAdd = Math.max(0, Math.floor(Number(sourceContext.equipment_skill_level_add ?? 0)));
+  if (equipmentLevelAdd <= 0) return "";
+  const effectiveLevel = Math.max(1, Math.floor(Number(sourceContext.effective_gem_level ?? 1)));
+  const baseLevel = Math.max(1, effectiveLevel - equipmentLevelAdd);
+  return `${effectiveLevel}(${baseLevel}+${equipmentLevelAdd})`;
+}
