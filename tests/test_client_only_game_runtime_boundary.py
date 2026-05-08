@@ -94,6 +94,20 @@ def test_frontend_chromatic_shot_preserves_forced_element_damage_payload() -> No
     assert ": damagePayloadComponents(skill, amount, damageType, hitConfig);" in helper
 
 
+def test_frontend_split_projectiles_keep_runtime_direction_and_damage_payload() -> None:
+    source = _read(WEBAPP / "App.tsx")
+    helper = source.split("function buildFrontendSplitProjectileEvents(", 1)[1].split("function buildFrontendIgnitedHitExplosionEvents", 1)[0]
+
+    assert "const claimedTargetIds = new Set<number>();" in helper
+    assert "!claimedTargetIds.has(enemy.id)" in helper
+    assert "if (target) claimedTargetIds.add(target.id);" in helper
+    assert "const projectileDirection = target ? guideDirection(triggerPosition, targetPosition) : splitDirection;" in helper
+    assert "velocity_world: { x: projectileDirection.x * projectileSpeed, y: projectileDirection.y * projectileSpeed }" in helper
+    assert "split_search_direction_world: splitDirection" in helper
+    assert 'frontendSkillEvent(skill, "projectile_hit", target, { x: target.x, y: target.y }, projectileDirection' in helper
+    assert "damage_components: damagePayloadComponents(skill, amount, damageType, skill.hit as Record<string, unknown>)" in helper
+
+
 def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
     source = _read(WEBAPP / "App.tsx")
 
