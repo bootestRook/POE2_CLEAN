@@ -105,6 +105,7 @@ import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
   MAP_EDITOR_CURRENT_FILE_STORAGE_KEY,
+  MAP_EDITOR_PLAYER_RENDER_SCALE,
   MAP_EDITOR_STORAGE_KEY,
   MapEditorScene,
   createEditorRuntimeBattleMap,
