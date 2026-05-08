@@ -80,7 +80,7 @@ import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/Tool
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
-import { StashGrid } from "./components/inventory/StashGrid";
+import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
@@ -10529,6 +10529,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               fullGemById={fullGemById}
               floatingGem={floatingGem}
               hoveredGemId={hoveredGemId}
+              slotCount={STASH_PAGE_SLOT_COUNT}
+              columns={STASH_PAGE_COLUMNS}
+              cellClassName={(slotIndex, gem, currentHoveredGemId, currentFloatingGem) => bagCellClass(slotIndex, null, gem, currentHoveredGemId, currentFloatingGem)}
+              isFloatingOrigin={isFloatingOrigin}
+              renderGem={(gem) => <GemOrb gem={gem} />}
+              renderGhost={() => <GemGhost />}
               onPageChange={setStashPageIndex}
               onClose={closeRestAreaPanel}
               onBeginDrag={beginDrag}
@@ -10722,74 +10728,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       )}
     </main>
     </GameViewportFrame>
-  );
-}
-
-function StashPanel({
-  pageIndex,
-  pages,
-  activeSlots,
-  fullGemById,
-  floatingGem,
-  hoveredGemId,
-  onPageChange,
-  onClose,
-  onBeginDrag,
-  onPointerDrag,
-  onHoverGem,
-  onLeaveGem
-}: {
-  pageIndex: number;
-  pages: (string | null)[][];
-  activeSlots: (string | null)[];
-  fullGemById: Map<string, Gem>;
-  floatingGem: FloatingGem | null;
-  hoveredGemId: string | null;
-  onPageChange: (pageIndex: number) => void;
-  onClose: () => void;
-  onBeginDrag: (event: DragEvent) => void;
-  onPointerDrag: (event: MouseEvent, gem: Gem, origin: FloatingOrigin) => void;
-  onHoverGem: (event: MouseEvent, gem: Gem, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number) => void;
-  onLeaveGem: () => void;
-}) {
-  return (
-    <section className="stash-workbench" aria-label="仓库">
-      <header className="stash-header">
-        <div>
-          <h2>仓库</h2>
-          <span>每页 10x10，共 5 页</span>
-        </div>
-        <button type="button" onClick={onClose}>返回休息区</button>
-      </header>
-      <div className="stash-page-tabs" role="tablist" aria-label="仓库页签">
-          {pages.map((_, index) => (
-            <button
-              key={`stash-page-${index}`}
-              type="button"
-              className={index === pageIndex ? "active" : ""}
-              onClick={() => onPageChange(index)}
-            >
-              {index + 1}
-            </button>
-          ))}
-      </div>
-      <StashGrid
-        pageIndex={pageIndex}
-        activeSlots={activeSlots}
-        fullGemById={fullGemById}
-        floatingGem={floatingGem}
-        slotCount={STASH_PAGE_SLOT_COUNT}
-        columns={STASH_PAGE_COLUMNS}
-        cellClassName={(slotIndex, gem) => bagCellClass(slotIndex, null, gem, hoveredGemId, floatingGem)}
-        isFloatingOrigin={isFloatingOrigin}
-        renderGem={(gem) => <GemOrb gem={gem} />}
-        renderGhost={() => <GemGhost />}
-        onBeginDrag={onBeginDrag}
-        onPointerDrag={onPointerDrag}
-        onHoverGem={onHoverGem}
-        onLeaveGem={onLeaveGem}
-      />
-    </section>
   );
 }
 
