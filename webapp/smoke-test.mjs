@@ -752,7 +752,7 @@ const projectileVfxLifetimeChecks = [
   "projectileExitFadeDuration",
   "ttl: aliveDuration + projectileExitFadeDuration",
   "const opacity = projectileBodyOpacity(bolt)",
-  "vfxFrameIndexInRow(sheets.projectile, sheets.projectileFrameRow, aliveRemaining, duration)",
+  "vfxFrameIndexInRow(sheets.projectile, sheets.projectileFrameRow, aliveRemaining, duration, clamp)",
   "data-projectile-alive-remaining",
   "data-projectile-fade-duration"
 ];

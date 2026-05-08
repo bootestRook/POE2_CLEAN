@@ -57,3 +57,14 @@
   - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
   - Focused TypeScript filter for `FireBoltAlignmentDebug` produced no matching errors; full `tsc --noEmit` still has broader existing type debt outside this split.
   - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/firebolt-debug-battle-check.png` shows the actual battle map running with terrain visible, generated monster budget/stat text, and auto-release skill logs.
+
+## VFX Presentation Helper Extraction
+
+- Moved `vfxFrameIndex`, `vfxFrameIndexInRow`, and `vfxSpriteStyle` into `webapp/components/battle/vfxSpriteFrame.ts`.
+- Left projectile spawning, body movement, collision, hit timing, damage application, event consumption, follow-up suppression, and target anchoring in `webapp/App.tsx`.
+- Verification:
+  - `npm run build` passed.
+  - `npm test` passed after updating the smoke text assertion for the new `vfxFrameIndexInRow(..., clamp)` call.
+  - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
+  - Focused TypeScript filter for `vfxSpriteFrame` produced no matching errors; full `tsc --noEmit` still has broader existing type debt outside this split.
+  - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/vfx-frame-extraction-battle.png` shows the actual battle map running with terrain visible and generated monster budget/stat text.

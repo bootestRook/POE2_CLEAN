@@ -102,6 +102,7 @@ import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 import { FireBoltAlignmentDebug } from "./components/battle/FireBoltAlignmentDebug";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
+import { vfxFrameIndex, vfxFrameIndexInRow, vfxSpriteStyle } from "./components/battle/vfxSpriteFrame";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
@@ -18022,30 +18023,6 @@ function ballisticShadowStyle(
   };
 }
 
-function vfxFrameIndex(sheet: VfxSpriteSheet, ttl: number, duration: number, loop: boolean) {
-  const elapsed = Math.max(0, duration - ttl);
-  const index = Math.floor(elapsed * sheet.fps);
-  return loop ? index % sheet.frameCount : Math.min(sheet.frameCount - 1, index);
-}
-
-function vfxFrameIndexInRow(sheet: VfxSpriteSheet, row: number, ttl: number, duration: number) {
-  const safeRow = clamp(Math.round(row), 0, Math.max(0, sheet.rows - 1));
-  const elapsed = Math.max(0, duration - ttl);
-  const column = Math.floor(elapsed * sheet.fps) % sheet.columns;
-  return safeRow * sheet.columns + column;
-}
-
-function vfxSpriteStyle(sheet: VfxSpriteSheet, frameIndex: number): CSSProperties {
-  const column = frameIndex % sheet.columns;
-  const row = Math.floor(frameIndex / sheet.columns);
-  return {
-    width: sheet.frameWidth,
-    height: sheet.frameHeight,
-    backgroundImage: `url(${sheet.src})`,
-    backgroundPosition: `${-column * sheet.frameWidth}px ${-row * sheet.frameHeight}px`
-  };
-}
-
 function fireBoltVfxLayerStyle(
   worldPoint: { x: number; y: number },
   sheet: VfxSpriteSheet,
@@ -18113,7 +18090,7 @@ function FireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number
       });
   const angle = worldDirectionToBattleScreenAngle(direction, point);
   const projectileAngle = angle - sheets.artFacingOffset;
-  const projectileFrame = vfxFrameIndexInRow(sheets.projectile, sheets.projectileFrameRow, aliveRemaining, duration);
+  const projectileFrame = vfxFrameIndexInRow(sheets.projectile, sheets.projectileFrameRow, aliveRemaining, duration, clamp);
   const muzzleOpacity = vfxKind === "penetrating_shot" ? clamp(1 - travel / 0.18, 0, 1) : 0;
 
   return (

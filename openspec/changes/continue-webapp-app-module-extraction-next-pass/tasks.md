@@ -28,10 +28,10 @@
 
 ## 5. Legacy VFX Presentation Cleanup
 
-- [ ] 5.1 Extract remaining legacy VFX sprite/frame/display helpers that do not own projectile lifecycle or hit logic.
-- [ ] 5.2 Keep projectile spawning, movement, collision, hit timing, damage application, event consumption, and follow-up effects in existing runtime paths.
-- [ ] 5.3 Verify battle VFX rendering through the actual playable WebApp view with build/test checks and screenshot evidence.
-- [ ] 5.4 Commit only the VFX presentation cleanup files after verification passes.
+- [x] 5.1 Extract remaining legacy VFX sprite/frame/display helpers that do not own projectile lifecycle or hit logic.
+- [x] 5.2 Keep projectile spawning, movement, collision, hit timing, damage application, event consumption, and follow-up effects in existing runtime paths.
+- [x] 5.3 Verify battle VFX rendering through the actual playable WebApp view with build/test checks and screenshot evidence.
+- [x] 5.4 Commit only the VFX presentation cleanup files after verification passes.
 
 ## 6. Final Verification
 
