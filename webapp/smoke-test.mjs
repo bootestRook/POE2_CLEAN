@@ -757,14 +757,25 @@ const projectileVfxLifetimeChecks = [
   "projectileExitFadeDuration",
   "ttl: aliveDuration + projectileExitFadeDuration",
   "const opacity = projectileBodyOpacity(bolt)",
-  "vfxFrameIndexInRow(sheets.projectile, sheets.projectileFrameRow, aliveRemaining, duration, clamp)",
-  "data-projectile-alive-remaining",
-  "data-projectile-fade-duration"
+  "data-projectile-alive-remaining"
 ];
 
 for (const text of projectileVfxLifetimeChecks) {
   if (!app.includes(text)) {
     throw new Error(`缂傚搫鐨幎鏇炵殸閻椻晝鏁撶€涙ɑ锟?濞ｂ€冲毉閸掑棛顬囧Λ鈧弻銉窗${text}`);
+  }
+}
+
+for (const forbiddenSpriteVfxCode of [
+  "assets/battle/vfx",
+  "FIRE_BOLT_VFX",
+  "ICE_SHARDS_VFX",
+  "PENETRATING_SHOT_VFX",
+  "projectileVfxSheets",
+  "vfxFrameIndexInRow(sheets.projectile"
+]) {
+  if (webappSourceText.includes(forbiddenSpriteVfxCode)) {
+    throw new Error(`Retired sprite-sheet VFX call chain must stay removed: ${forbiddenSpriteVfxCode}`);
   }
 }
 

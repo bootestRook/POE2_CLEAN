@@ -56,7 +56,6 @@ import {
   selectEnemyUnitType,
   UnitDirection,
 } from "./unitAssets";
-import { FIRE_BOLT_VFX, ICE_SHARDS_VFX, PENETRATING_SHOT_VFX, VfxSpriteSheet } from "./vfxAssets";
 import { FRONTEND_GEM_DROP_POOL } from "./frontendGemDropData";
 import { FRONTEND_INITIAL_APP_STATE, FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG } from "./frontendGameData";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "./frontendSkillLevelTables";
@@ -102,7 +101,25 @@ import { BossHealthBar } from "./components/battle/BossHealthBar";
 import { BossPortalLayer } from "./components/battle/BossPortalLayer";
 import { FireBoltAlignmentDebug } from "./components/battle/FireBoltAlignmentDebug";
 import { GroundDropLayer } from "./components/battle/GroundDropLayer";
-import { vfxFrameIndex, vfxFrameIndexInRow, vfxSpriteStyle } from "./components/battle/vfxSpriteFrame";
+import {
+  FIRE_BOLT_FAKE_Z,
+  FIRE_BOLT_IMPACT_DURATION_MS,
+  ICE_SHARDS_IMPACT_DURATION_MS,
+  PENETRATING_SHOT_IMPACT_DURATION_MS,
+  PROJECTILE_BODY_EXIT_FADE_DURATION,
+  ballisticArcVisualLift,
+  ballisticShadowStyle,
+  damageNumberText,
+  fireBoltAliveRemaining,
+  fireBoltTravel,
+  fireBoltWorldPoint,
+  floatingTextDamageComponents,
+  normalizedVfxScale,
+  projectileBodyOpacity,
+  projectileVfxKind,
+  usesCanvasHitVfx,
+  usesCanvasProjectileVfx
+} from "./components/battle/projectileVfxPresentation";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
@@ -1618,27 +1635,6 @@ const BATTLE_ENTITY_Z_INDEX_BASE = 10;
 const CANVAS_GEOMETRY_BATTLE_OBJECTS = true;
 const CANVAS_GEOMETRY_SKILL_EFFECTS = true;
 const PLAYABLE_MINIMAP_REVEAL_RADIUS_CELLS = 7;
-const FIRE_BOLT_FAKE_Z = 22;
-const FIRE_BOLT_PROJECTILE_FAKE_Z = 0;
-const FIRE_BOLT_TRAIL_LENGTH = 0;
-const FIRE_BOLT_IMPACT_DURATION_MS = 420;
-const FIRE_BOLT_PROJECTILE_FRAME_ROW = 0;
-const FIRE_BOLT_PROJECTILE_ART_FACING_OFFSET_DEG = 0;
-const FIRE_BOLT_PROJECTILE_ART_FACING_OFFSET = FIRE_BOLT_PROJECTILE_ART_FACING_OFFSET_DEG * Math.PI / 180;
-const PROJECTILE_BODY_EXIT_FADE_DURATION = 0.16;
-const ICE_SHARDS_FAKE_Z = 24;
-const ICE_SHARDS_PROJECTILE_FAKE_Z = 0;
-const ICE_SHARDS_TRAIL_LENGTH = 8;
-const ICE_SHARDS_IMPACT_DURATION_MS = 420;
-const ICE_SHARDS_PROJECTILE_FRAME_ROW = 0;
-const ICE_SHARDS_PROJECTILE_ART_FACING_OFFSET_DEG = 0;
-const ICE_SHARDS_PROJECTILE_ART_FACING_OFFSET = ICE_SHARDS_PROJECTILE_ART_FACING_OFFSET_DEG * Math.PI / 180;
-const PENETRATING_SHOT_PROJECTILE_FAKE_Z = 0;
-const PENETRATING_SHOT_TRAIL_LENGTH = 6;
-const PENETRATING_SHOT_IMPACT_DURATION_MS = 260;
-const PENETRATING_SHOT_PROJECTILE_FRAME_ROW = 0;
-const PENETRATING_SHOT_ART_FACING_OFFSET_DEG = 0;
-const PENETRATING_SHOT_ART_FACING_OFFSET = PENETRATING_SHOT_ART_FACING_OFFSET_DEG * Math.PI / 180;
 const RUNTIME_PERF_SYNC_INTERVAL_MS = 500;
 const RUNTIME_DROPPED_FRAME_MS = 33;
 const RUNTIME_SLOW_LOGIC_MS = 16;
@@ -17760,11 +17756,6 @@ function isProjectileSkillTemplate(behaviorTemplate: string | undefined) {
   return behaviorTemplate === "projectile";
 }
 
-function normalizedVfxScale(value: unknown) {
-  const scale = Number(value ?? 1);
-  return Number.isFinite(scale) ? clamp(scale, 0.1, 10) : 1;
-}
-
 function pulse(value: number) {
   return (Math.sin(value * Math.PI * 2) + 1) / 2;
 }
@@ -17807,105 +17798,6 @@ function stableStringHash(seed: string) {
 
 function stablePercent(seed: string) {
   return stableStringHash(seed) % 10000 / 100;
-}
-
-type ProjectileVfxKind = "burning_shot" | "fire_bolt" | "ice_shards" | "penetrating_shot" | "rain_of_arrows" | "sparkle";
-
-function projectileVfxKind(value: string | undefined): ProjectileVfxKind | null {
-  const token = cssToken(value);
-  if (token.includes("burning_shot") || token.includes("skill_event_burning_shot")) return "burning_shot";
-  if (token.includes("sparkle") || token.includes("skill_event_sparkle")) return "sparkle";
-  if (token.includes("rain_of_arrows") || token.includes("skill_event_rain_of_arrows")) return "rain_of_arrows";
-  if (token.includes("fire_bolt") || token.includes("skill_event_fire_bolt")) return "fire_bolt";
-  if (token.includes("ice_shards") || token.includes("ice_shot") || token.includes("skill_ice_shards") || token.includes("active_ice_shot")) return "ice_shards";
-  if (token.includes("penetrating_shot") || token.includes("skill_penetrating_shot")) return "penetrating_shot";
-  return null;
-}
-
-function projectileVfxSheets(vfxKind: ProjectileVfxKind) {
-  if (vfxKind === "ice_shards") {
-    return {
-      projectile: ICE_SHARDS_VFX.projectileLoop,
-      trail: ICE_SHARDS_VFX.trailFrost,
-      impact: ICE_SHARDS_VFX.impactBurst,
-      sparks: ICE_SHARDS_VFX.crystalSparks,
-      muzzle: null,
-      trailLength: ICE_SHARDS_TRAIL_LENGTH,
-      projectileFrameRow: ICE_SHARDS_PROJECTILE_FRAME_ROW,
-      projectileFakeZ: ICE_SHARDS_PROJECTILE_FAKE_Z,
-      impactFakeZ: ICE_SHARDS_FAKE_Z,
-      artFacingOffset: ICE_SHARDS_PROJECTILE_ART_FACING_OFFSET,
-      impactDurationMs: ICE_SHARDS_IMPACT_DURATION_MS,
-      projectileVisibleWidth: 109,
-      projectileVisibleHeight: 46,
-      impactVisibleWidth: 130,
-      impactVisibleHeight: 114
-    };
-  }
-  if (vfxKind === "penetrating_shot" || vfxKind === "rain_of_arrows") {
-    return {
-      projectile: PENETRATING_SHOT_VFX.projectileLoop,
-      trail: PENETRATING_SHOT_VFX.trailLines,
-      impact: PENETRATING_SHOT_VFX.impactSparks,
-      sparks: null,
-      muzzle: PENETRATING_SHOT_VFX.muzzleFlash,
-      trailLength: vfxKind === "rain_of_arrows" ? 3 : PENETRATING_SHOT_TRAIL_LENGTH,
-      projectileFrameRow: PENETRATING_SHOT_PROJECTILE_FRAME_ROW,
-      projectileFakeZ: PENETRATING_SHOT_PROJECTILE_FAKE_Z,
-      impactFakeZ: PENETRATING_SHOT_PROJECTILE_FAKE_Z,
-      artFacingOffset: PENETRATING_SHOT_ART_FACING_OFFSET,
-      impactDurationMs: PENETRATING_SHOT_IMPACT_DURATION_MS,
-      projectileVisibleWidth: 114,
-      projectileVisibleHeight: 28,
-      impactVisibleWidth: 70,
-      impactVisibleHeight: 48
-    };
-  }
-  return {
-    projectile: FIRE_BOLT_VFX.projectileLoop,
-    trail: FIRE_BOLT_VFX.trailPuffs,
-    impact: FIRE_BOLT_VFX.impactExplosion,
-    sparks: FIRE_BOLT_VFX.sparks,
-    muzzle: null,
-    trailLength: FIRE_BOLT_TRAIL_LENGTH,
-    projectileFrameRow: FIRE_BOLT_PROJECTILE_FRAME_ROW,
-    projectileFakeZ: FIRE_BOLT_PROJECTILE_FAKE_Z,
-    impactFakeZ: FIRE_BOLT_FAKE_Z,
-    artFacingOffset: FIRE_BOLT_PROJECTILE_ART_FACING_OFFSET,
-    impactDurationMs: FIRE_BOLT_IMPACT_DURATION_MS,
-    projectileVisibleWidth: 79,
-    projectileVisibleHeight: 47,
-    impactVisibleWidth: 129,
-    impactVisibleHeight: 116
-  };
-}
-
-function damageNumberText(amount: unknown) {
-  const value = Number(amount ?? 0);
-  if (!Number.isFinite(value)) return "0";
-  return Math.max(0, Math.round(value)).toString();
-}
-
-function floatingTextDamageComponents(event: SkillEvent): [string, number][] {
-  const floatingComponents = event.payload?.floating_damage_components;
-  if (Array.isArray(floatingComponents)) {
-    const rows = floatingComponents
-      .map((component) => {
-        if (!component || typeof component !== "object" || Array.isArray(component)) return null;
-        const record = component as Record<string, unknown>;
-        return [String(record.damage_type ?? event.damage_type), Number(record.amount ?? 0)] as [string, number];
-      })
-      .filter((row): row is [string, number] => row !== null && Number.isFinite(row[1]) && row[1] > 0);
-    if (rows.length > 0) return rows;
-  }
-  const components = event.payload?.damage_components;
-  if (!components || typeof components !== "object" || Array.isArray(components)) {
-    return [[event.damage_type, Number(event.amount ?? 0)]];
-  }
-  const rows = Object.entries(components as Record<string, unknown>)
-    .map(([damageType, amount]) => [damageType, Number(amount ?? 0)] as [string, number])
-    .filter(([, amount]) => Number.isFinite(amount) && amount > 0);
-  return rows.length > 0 ? rows : [[event.damage_type, Number(event.amount ?? 0)]];
 }
 
 function hitVfxTargetId(event: Pick<SkillEvent, "target_entity" | "payload">) {
@@ -18018,134 +17910,6 @@ function finishCompletedProjectileBody<TBolt extends Pick<
   };
 }
 
-function usesCanvasProjectileVfx(bolt: Pick<FireBolt, "vfxKey" | "visualEffect" | "skillTemplateId">) {
-  return projectileVfxKind(bolt.vfxKey) === "burning_shot"
-    || projectileVfxKind(bolt.visualEffect) === "burning_shot"
-    || projectileVfxKind(bolt.skillTemplateId) === "burning_shot";
-}
-
-function usesCanvasHitVfx(vfx: Pick<HitVfx, "vfxKey" | "skillTemplateId">) {
-  return projectileVfxKind(vfx.vfxKey) === "burning_shot"
-    || projectileVfxKind(vfx.skillTemplateId) === "burning_shot";
-}
-
-function projectileBodyVisualScale(
-  bolt: Pick<FireBolt, "projectileWidth" | "projectileHeight" | "vfxScale">,
-  sheets: ReturnType<typeof projectileVfxSheets>
-) {
-  const requestedScale = normalizedVfxScale(bolt.vfxScale);
-  const targetWidth = Math.max(1, Number(bolt.projectileWidth ?? sheets.projectileVisibleWidth));
-  const targetHeight = Math.max(1, Number(bolt.projectileHeight ?? sheets.projectileVisibleHeight));
-  const fitScale = Math.min(targetWidth / sheets.projectileVisibleWidth, targetHeight / sheets.projectileVisibleHeight);
-  return clamp(Math.min(requestedScale, fitScale), 0.18, 1.15);
-}
-
-function projectileImpactVisualScale(
-  vfx: Pick<HitVfx, "projectileWidth" | "projectileHeight" | "impactRadius" | "vfxScale">,
-  sheets: ReturnType<typeof projectileVfxSheets>
-) {
-  const requestedScale = normalizedVfxScale(vfx.vfxScale);
-  const targetWidth = Math.max(Number(vfx.projectileWidth ?? 0), Number(vfx.impactRadius ?? 0) * 2, 1);
-  const targetHeight = Math.max(Number(vfx.projectileHeight ?? 0), Number(vfx.impactRadius ?? 0) * 2, 1);
-  const fitScale = Math.min(targetWidth / sheets.impactVisibleWidth, targetHeight / sheets.impactVisibleHeight);
-  return clamp(Math.min(requestedScale, fitScale), 0.18, 1.15);
-}
-
-function fireBoltExitFadeDuration(bolt: FireBolt) {
-  return Math.max(0, bolt.fadeDuration ?? PROJECTILE_BODY_EXIT_FADE_DURATION);
-}
-
-function fireBoltAliveRemaining(bolt: FireBolt) {
-  return Math.max(0, bolt.ttl - fireBoltExitFadeDuration(bolt));
-}
-
-function fireBoltTravel(bolt: FireBolt) {
-  return clamp(1 - fireBoltAliveRemaining(bolt) / Math.max(0.001, bolt.duration), 0, 1);
-}
-
-function projectileBodyOpacity(bolt: FireBolt) {
-  const fadeDuration = fireBoltExitFadeDuration(bolt);
-  if (fadeDuration <= 0 || bolt.ttl > fadeDuration) return 1;
-  return clamp(bolt.ttl / fadeDuration, 0, 1);
-}
-
-function fireBoltWorldPoint(bolt: FireBolt, travel = fireBoltTravel(bolt)) {
-  if (bolt.projectileVisualMode === "falling_arrow") {
-    return {
-      x: bolt.targetX,
-      y: bolt.targetY
-    };
-  }
-  const base = {
-    x: bolt.x + (bolt.targetX - bolt.x) * travel,
-    y: bolt.y + (bolt.targetY - bolt.y) * travel
-  };
-  if (bolt.trajectory !== "sine") return base;
-  const amplitude = Number(bolt.sineAmplitude ?? 0);
-  const frequency = Number(bolt.sineFrequency ?? 0);
-  if (!Number.isFinite(amplitude) || !Number.isFinite(frequency) || amplitude === 0 || frequency === 0) return base;
-  const dx = bolt.targetX - bolt.x;
-  const dy = bolt.targetY - bolt.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const wave = Math.sin(travel * frequency * Math.PI * 2) * amplitude;
-  return {
-    x: base.x + (-dy / length) * wave,
-    y: base.y + (dx / length) * wave
-  };
-}
-
-function ballisticArcVisualLift(bolt: FireBolt, travel = fireBoltTravel(bolt)) {
-  if (bolt.projectileVisualMode === "falling_arrow") {
-    const arcHeight = Math.max(0, Number(bolt.arcHeight ?? 0));
-    return arcHeight * 2.8 * (1 - travel);
-  }
-  if (bolt.trajectory !== "ballistic") return 0;
-  const arcHeight = Math.max(0, Number(bolt.arcHeight ?? 0));
-  return arcHeight * 1.75 * 4 * travel * (1 - travel);
-}
-
-function ballisticShadowStyle(
-  bolt: FireBolt,
-  point: { x: number; y: number },
-  depthIndex: number,
-  opacity: number,
-  travel = fireBoltTravel(bolt)
-): CSSProperties | null {
-  if (bolt.trajectory !== "ballistic") return null;
-  const visualPoint = projectBattleWorldToScreen(point.x, point.y);
-  const lift = ballisticArcVisualLift(bolt, travel);
-  const scale = clamp(1 - lift / 260, 0.42, 0.9);
-  return {
-    left: visualPoint.x,
-    top: visualPoint.y,
-    opacity: opacity * clamp(0.5 + lift / 300, 0.5, 0.82),
-    transform: `translate(-50%, -50%) scale(${scale})`,
-    zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex - 1,
-  };
-}
-
-function fireBoltVfxLayerStyle(
-  worldPoint: { x: number; y: number },
-  sheet: VfxSpriteSheet,
-  depthIndex: number,
-  opacity: number,
-  transformSuffix = "",
-  fakeZ = FIRE_BOLT_FAKE_Z,
-  vfxScale = 1
-): CSSProperties {
-  const visualPoint = projectBattleWorldToScreen(worldPoint.x, worldPoint.y);
-  return {
-    left: visualPoint.x,
-    top: visualPoint.y - fakeZ,
-    width: sheet.frameWidth,
-    height: sheet.frameHeight,
-    opacity,
-    zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-    mixBlendMode: sheet.blendMode,
-    transform: `translate(${-sheet.anchorX * 100}%, ${-sheet.anchorY * 100}%)${transformSuffix} scale(${vfxScale})`
-  };
-}
-
 function FireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number }) {
   const vfxKind = projectileVfxKind(bolt.vfxKey) ?? projectileVfxKind(bolt.visualEffect) ?? projectileVfxKind(bolt.skillTemplateId);
   if (!vfxKind) {
@@ -18159,7 +17923,9 @@ function FireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number
         fireBoltTravel={fireBoltTravel}
         fireBoltWorldPoint={fireBoltWorldPoint}
         ballisticArcVisualLift={ballisticArcVisualLift}
-        ballisticShadowStyle={ballisticShadowStyle}
+        ballisticShadowStyle={(legacyBolt, point, legacyDepthIndex, opacity, travel) => (
+          ballisticShadowStyle(legacyBolt, point, legacyDepthIndex, opacity, projectBattleWorldToScreen, BATTLE_ENTITY_Z_INDEX_BASE, travel)
+        )}
         cssToken={cssToken}
         visualTone={visualTone}
         zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
@@ -18173,124 +17939,24 @@ function FireBoltView({ bolt, depthIndex }: { bolt: FireBolt; depthIndex: number
   if (vfxKind === "burning_shot") {
     return <BurningShotProjectileView bolt={bolt} depthIndex={depthIndex} />;
   }
-
-  const sheets = projectileVfxSheets(vfxKind);
-  const bodyVfxScale = projectileBodyVisualScale(bolt, sheets);
-  const duration = Math.max(0.001, bolt.duration);
-  const aliveRemaining = fireBoltAliveRemaining(bolt);
-  const opacity = projectileBodyOpacity(bolt);
-  const travel = fireBoltTravel(bolt);
-  const point = fireBoltWorldPoint(bolt, travel);
-  const visualLift = ballisticArcVisualLift(bolt, travel);
-  const shadowStyle = ballisticShadowStyle(bolt, point, depthIndex, opacity, travel);
-  const direction = bolt.projectileVisualMode === "falling_arrow"
-    ? normalizedWorldDirection({ x: 0, y: 1 })
-    : normalizedWorldDirection({
-        x: typeof bolt.velocityX === "number" ? bolt.velocityX : bolt.directionX,
-        y: typeof bolt.velocityY === "number" ? bolt.velocityY : bolt.directionY
-      });
-  const angle = worldDirectionToBattleScreenAngle(direction, point);
-  const projectileAngle = angle - sheets.artFacingOffset;
-  const projectileFrame = vfxFrameIndexInRow(sheets.projectile, sheets.projectileFrameRow, aliveRemaining, duration, clamp);
-  const muzzleOpacity = vfxKind === "penetrating_shot" ? clamp(1 - travel / 0.18, 0, 1) : 0;
-
   return (
-    <>
-      {shadowStyle && (
-        <span
-          className="ballistic-projectile-shadow"
-          style={shadowStyle}
-          data-skill-event="projectile_spawn"
-          data-projectile-id={bolt.projectileId}
-          aria-hidden="true"
-        />
+    <LegacyFireBoltView
+      bolt={bolt}
+      depthIndex={depthIndex}
+      projectBattleWorldToScreen={projectBattleWorldToScreen}
+      normalizedVfxScale={normalizedVfxScale}
+      projectileBodyOpacity={projectileBodyOpacity}
+      fireBoltTravel={fireBoltTravel}
+      fireBoltWorldPoint={fireBoltWorldPoint}
+      ballisticArcVisualLift={ballisticArcVisualLift}
+      ballisticShadowStyle={(legacyBolt, point, legacyDepthIndex, opacity, travel) => (
+        ballisticShadowStyle(legacyBolt, point, legacyDepthIndex, opacity, projectBattleWorldToScreen, BATTLE_ENTITY_Z_INDEX_BASE, travel)
       )}
-      {sheets.muzzle && muzzleOpacity > 0 && (
-        <span
-          className={`fire-bolt-vfx ${vfxKind}-vfx penetrating_shot-muzzle-vfx`}
-          style={fireBoltVfxLayerStyle(
-            { x: bolt.x, y: bolt.y },
-            sheets.muzzle,
-            depthIndex,
-            muzzleOpacity,
-            ` rotate(${projectileAngle}rad) scale(${0.92 + (1 - muzzleOpacity) * 0.1})`,
-            sheets.projectileFakeZ,
-            bodyVfxScale
-          )}
-          data-skill-event="cast_start"
-          data-vfx-key={bolt.vfxKey}
-          data-projectile-id={bolt.projectileId}
-          data-skill-id={bolt.skillId ?? bolt.skillTemplateId}
-          data-spawn-world-x={bolt.x}
-          data-spawn-world-y={bolt.y}
-          data-direction-world-x={direction.x}
-          data-direction-world-y={direction.y}
-          aria-hidden="true"
-        >
-          <span className="vfx-sprite" style={vfxSpriteStyle(sheets.muzzle, vfxFrameIndex(sheets.muzzle, aliveRemaining, duration, false))} />
-        </span>
-      )}
-      {Array.from({ length: sheets.trailLength }, (_, index) => {
-        const speedScale = clamp((bolt.projectileSpeed ?? 520) / 760, 0.72, 1.34);
-        const backDistance = (index + 1) * (vfxKind === "penetrating_shot" ? 13 * speedScale : 9);
-        const trailTravel = clamp(travel - (index + 1) * 0.055, 0, 1);
-        const trailPoint = bolt.trajectory === "ballistic"
-          ? fireBoltWorldPoint(bolt, trailTravel)
-          : {
-              x: point.x - direction.x * backDistance,
-              y: point.y - direction.y * backDistance
-            };
-        const trailLift = bolt.trajectory === "ballistic" ? ballisticArcVisualLift(bolt, trailTravel) : 0;
-        const frameIndex = Math.min(sheets.trail.frameCount - 1, index);
-        const trailOpacity = opacity * (1 - index / sheets.trailLength) * (vfxKind === "penetrating_shot" ? 0.52 : 0.68);
-        const scale = Math.max(0.42, (vfxKind === "penetrating_shot" ? 0.86 : 0.92) - index * 0.055);
-        return (
-          <span
-            key={`trail-${bolt.id}-${index}`}
-            className={`fire-bolt-vfx ${vfxKind}-vfx fire-bolt-trail-puff ${vfxKind}-trail-vfx`}
-            style={fireBoltVfxLayerStyle(trailPoint, sheets.trail, depthIndex, trailOpacity, ` rotate(${angle}rad) scale(${scale})`, sheets.projectileFakeZ + trailLift, bodyVfxScale)}
-            aria-hidden="true"
-          >
-            <span className="vfx-sprite" style={vfxSpriteStyle(sheets.trail, frameIndex)} />
-          </span>
-        );
-      })}
-      <span
-        className={`fire-bolt-vfx ${vfxKind}-vfx fire-bolt-projectile-vfx ${vfxKind}-projectile-vfx`}
-        style={fireBoltVfxLayerStyle(point, sheets.projectile, depthIndex, opacity, ` rotate(${projectileAngle}rad)`, sheets.projectileFakeZ + visualLift, bodyVfxScale)}
-        data-skill-template={bolt.skillTemplateId}
-        data-skill-event="projectile_spawn"
-        data-vfx-key={bolt.vfxKey}
-        data-projectile-id={bolt.projectileId}
-        data-skill-id={bolt.skillId ?? bolt.skillTemplateId}
-        data-projectile-index={bolt.projectileIndex}
-        data-projectile-count={bolt.projectileCount}
-        data-spawn-world-x={bolt.x}
-        data-spawn-world-y={bolt.y}
-        data-current-world-x={point.x}
-        data-current-world-y={point.y}
-        data-direction-world-x={direction.x}
-        data-direction-world-y={direction.y}
-        data-velocity-world-x={bolt.velocityX ?? direction.x}
-        data-velocity-world-y={bolt.velocityY ?? direction.y}
-        data-impact-world-x={bolt.targetX}
-        data-impact-world-y={bolt.targetY}
-        data-fan-angle={bolt.fanAngle}
-        data-local-spread-angle={bolt.localSpreadAngle}
-        data-pierce-remaining={bolt.pierceRemaining}
-        data-projectile-speed={bolt.projectileSpeed}
-        data-projectile-trajectory={bolt.trajectory}
-        data-projectile-arc-height={bolt.arcHeight}
-        data-projectile-visual-mode={bolt.projectileVisualMode}
-        data-projectile-visual-lift={visualLift}
-        data-projectile-alive-remaining={aliveRemaining}
-        data-projectile-fade-duration={fireBoltExitFadeDuration(bolt)}
-        data-shape-effects={bolt.shapeEffects.map((effect) => effect.id).join(",")}
-        aria-hidden="true"
-      >
-        <span className="vfx-sprite" style={vfxSpriteStyle(sheets.projectile, projectileFrame)} />
-      </span>
-    </>
+      cssToken={cssToken}
+      visualTone={visualTone}
+      zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
+      fakeZ={FIRE_BOLT_FAKE_Z}
+    />
   );
 }
 
@@ -18421,112 +18087,17 @@ function HitVfxView({ vfx, depthIndex }: { vfx: HitVfx; depthIndex: number }) {
   if (vfxKind === "sparkle") {
     return <SparkleHitVfxView vfx={vfx} depthIndex={depthIndex} />;
   }
-
-  const sheets = projectileVfxSheets(vfxKind);
-  const vfxScale = projectileImpactVisualScale(vfx, sheets);
-  const duration = Math.max(0.001, vfx.duration);
-  const opacity = Math.max(0, vfx.ttl / duration);
-  const impactSheet = sheets.impact;
-  const sparksSheet = sheets.sparks;
-  const vfxDuration = sheets.impactDurationMs / 1000;
-  const frameDuration = Math.max(duration, vfxDuration);
-  const fakeZ = sheets.impactFakeZ;
-  const impactFrame = vfxFrameIndex(impactSheet, vfx.ttl, frameDuration, false);
-  const sparksFrame = sparksSheet ? vfxFrameIndex(sparksSheet, vfx.ttl, frameDuration, false) : 0;
-  const impactPoint = { x: vfx.x, y: vfx.y };
-  const sparksPoint = { x: vfx.x, y: vfx.y };
-  const impactScale = vfxKind === "penetrating_shot"
-    ? (vfx.impactKind === "projectile_final_impact" ? 1.06 : 0.86)
-    : 1 + (1 - opacity) * 0.08;
-  const impactStyle = fireBoltVfxLayerStyle(impactPoint, impactSheet, depthIndex, opacity, ` scale(${impactScale})`, fakeZ, vfxScale);
-  const sparksStyle = sparksSheet ? fireBoltVfxLayerStyle(sparksPoint, sparksSheet, depthIndex, opacity * 0.86, ` scale(${1 + (1 - opacity) * 0.18})`, fakeZ, vfxScale) : null;
-  const showFireBoltNova = hasShapeEffect(vfx.shapeEffects, "fire_bolt_nova");
-  const showFireBoltRain = hasShapeEffect(vfx.shapeEffects, "fire_bolt_rain");
-  const showFireBoltFork = hasShapeEffect(vfx.shapeEffects, "fire_bolt_fork");
-  const shapePoint = projectBattleWorldToScreen(vfx.x, vfx.y);
-  const shapeStyle: CSSProperties = {
-    left: shapePoint.x,
-    top: shapePoint.y - (vfxKind === "penetrating_shot" ? fakeZ : fakeZ * 0.55),
-    opacity,
-    zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex + 1,
-    transform: `translate(-50%, -50%) scale(${vfxScale})`
-  };
-  if (vfxKind !== "penetrating_shot") {
-    impactStyle.top = Number(impactStyle.top) + fakeZ * 0.45;
-    if (sparksStyle) sparksStyle.top = Number(sparksStyle.top) + fakeZ * 0.35;
-  }
   return (
-    <>
-      <span
-        className={`fire-bolt-vfx ${vfxKind}-vfx fire-bolt-impact-vfx ${vfxKind}-impact-vfx`}
-        style={impactStyle}
-        data-skill-event="hit_vfx"
-        data-vfx-key={vfx.vfxKey}
-        data-projectile-id={vfx.projectileId}
-        data-projectile-index={vfx.projectileIndex}
-        data-projectile-count={vfx.projectileCount}
-        data-target-id={vfx.targetId}
-        data-pierce-remaining={vfx.pierceRemaining}
-        data-impact-kind={vfx.impactKind}
-        data-impact-world-x={vfx.x}
-        data-impact-world-y={vfx.y}
-        data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-        aria-hidden="true"
-      >
-        <span className="vfx-sprite" style={vfxSpriteStyle(impactSheet, impactFrame)} />
-      </span>
-      {sparksSheet && sparksStyle && (
-        <span
-          className={`fire-bolt-vfx ${vfxKind}-vfx fire-bolt-sparks-vfx ${vfxKind}-sparks-vfx`}
-          style={sparksStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.sparks`}
-          data-projectile-id={vfx.projectileId}
-          data-projectile-index={vfx.projectileIndex}
-          data-projectile-count={vfx.projectileCount}
-          data-target-id={vfx.targetId}
-          data-impact-world-x={vfx.x}
-          data-impact-world-y={vfx.y}
-          aria-hidden="true"
-        >
-          <span className="vfx-sprite" style={vfxSpriteStyle(sparksSheet, sparksFrame)} />
-        </span>
-      )}
-      {showFireBoltFork && (
-        <span
-          className="hit-fork-sparks-vfx"
-          style={shapeStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.fire_bolt_fork`}
-          data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-          aria-hidden="true"
-        >
-          {Array.from({ length: 7 }, (_, index) => <span key={index} className={`hit-fork-spark hit-fork-spark-${index + 1}`} />)}
-        </span>
-      )}
-      {showFireBoltNova && (
-        <span
-          className="hit-nova-ring-vfx"
-          style={shapeStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.fire_bolt_nova`}
-          data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-          aria-hidden="true"
-        />
-      )}
-      {showFireBoltRain && (
-        <span
-          className="hit-meteor-rain-vfx"
-          style={shapeStyle}
-          data-skill-event="hit_vfx"
-          data-vfx-key={`${vfx.vfxKey}.fire_bolt_rain`}
-          data-shape-effects={vfx.shapeEffects.map((effect) => effect.id).join(",")}
-          aria-hidden="true"
-        >
-          {Array.from({ length: 6 }, (_, index) => <span key={index} className={`hit-meteor-streak hit-meteor-streak-${index + 1}`} />)}
-        </span>
-      )}
-    </>
+    <LegacyHitVfxView
+      vfx={vfx}
+      depthIndex={depthIndex}
+      projectBattleWorldToScreen={projectBattleWorldToScreen}
+      normalizedVfxScale={normalizedVfxScale}
+      cssToken={cssToken}
+      visualTone={visualTone}
+      hasShapeEffect={hasShapeEffect}
+      zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
+    />
   );
 }
 
