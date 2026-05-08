@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, rmSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 const root = process.cwd();
 const require = createRequire(import.meta.url);
 const app = readFileSync(join(root, "webapp", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
+const webappSources = collectWebappSources(join(root, "webapp"));
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
@@ -32,6 +33,22 @@ const bakedMapMeta = JSON.parse(readFileSync(join(bakedMapDir, "map_meta.json"),
 
 function isNonAsciiCheck(text) {
   return /[^\x00-\x7F]/.test(text);
+}
+
+function collectWebappSources(directory) {
+  const sources = [];
+  for (const entry of readdirSync(directory)) {
+    const fullPath = join(directory, entry);
+    const stats = statSync(fullPath);
+    if (stats.isDirectory()) {
+      sources.push(...collectWebappSources(fullPath));
+      continue;
+    }
+    if (/\.(ts|tsx)$/.test(entry)) {
+      sources.push(readFileSync(fullPath, "utf8").replace(/\r\n/g, "\n"));
+    }
+  }
+  return sources;
 }
 
 function pngSize(path) {
@@ -508,7 +525,7 @@ const requiredCode = [
 ];
 
 for (const text of requiredCode) {
-  if (![app, css, battleGeometryRenderer, battleGeometryCanvas, mapTileRenderer, mapTileVisuals].some((source) => source.includes(text))) {
+  if (![...webappSources, css, battleGeometryRenderer, battleGeometryCanvas, mapTileRenderer, mapTileVisuals].some((source) => source.includes(text))) {
     if (isNonAsciiCheck(text)) continue;
     throw new Error(`缂哄皯 WebApp 浜や簰鎴栨牱寮忚兘鍔涳細${text}`);
   }
@@ -638,12 +655,13 @@ for (const forbidden of [
   }
 }
 
-const mapEditorStart = app.indexOf("function MapEditorScene");
+const mapEditorModule = webappSources.find((source) => source.includes("function MapEditorScene")) ?? app;
+const mapEditorStart = mapEditorModule.indexOf("function MapEditorScene");
 const mapEditorEndCandidates = [
-  app.indexOf("function runtimeBattleMapOptions"),
-  app.indexOf("function createEmptyMapEditorTiles")
+  mapEditorModule.indexOf("function runtimeBattleMapOptions"),
+  mapEditorModule.indexOf("function createEmptyMapEditorTiles")
 ].filter((index) => index > mapEditorStart);
-const mapEditorSource = app.slice(mapEditorStart, Math.min(...mapEditorEndCandidates));
+const mapEditorSource = mapEditorModule.slice(mapEditorStart, Math.min(...mapEditorEndCandidates));
 if (!mapEditorSource.includes("data-no-monsters=\"true\"")) {
   throw new Error("map editor must declare that the first version has no monster generation.");
 }
@@ -653,7 +671,7 @@ for (const forbidden of ["createEnemy", "setEnemies", "enemySpawnPoints", "elite
   }
 }
 
-const mapEditorFileDocumentSource = app.slice(app.indexOf("function createMapEditorFileDocument"), app.indexOf("function isMapEditorAbortError"));
+const mapEditorFileDocumentSource = mapEditorModule.slice(mapEditorModule.indexOf("function createMapEditorFileDocument"), mapEditorModule.indexOf("function isMapEditorAbortError"));
 for (const forbidden of ["autotile", "neighborMask", "edgeMask", "cornerMask", "visualMask"]) {
   if (mapEditorFileDocumentSource.includes(forbidden)) {
     throw new Error(`map editor save format must keep visual autotile state derived instead of persisted: ${forbidden}`);
@@ -793,7 +811,7 @@ const spriteTestChecks = [
 ];
 
 for (const text of spriteTestChecks) {
-  if (!app.includes(text)) {
+  if (!webappSources.some((source) => source.includes(text))) {
     if (isNonAsciiCheck(text)) continue;
     throw new Error(`缂哄皯 Sprites 鍔ㄤ綔娴嬭瘯鍦哄叆鍙ｆ垨涓枃鐣岄潰锟?{text}`);
   }

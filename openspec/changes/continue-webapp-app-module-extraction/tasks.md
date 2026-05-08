@@ -7,7 +7,7 @@
 
 ## 2. Low-Risk Module Extractions
 
-- [ ] 2.1 Extract `MapEditorScene` and its private map-editor types/helpers into `webapp/components/map-editor/` without changing behavior.
+- [x] 2.1 Extract `MapEditorScene` and its private map-editor types/helpers into `webapp/components/map-editor/` without changing behavior.
 - [ ] 2.2 Extract `SpriteTestScene` and its private sprite-test helpers into `webapp/components/sprite-test/` without changing behavior.
 - [ ] 2.3 Keep `App()` mode dispatch in `webapp/App.tsx` and update only imports/call sites required by the moved modules.
 - [ ] 2.4 Build after the tool-mode extraction group and fix only extraction-related issues.
