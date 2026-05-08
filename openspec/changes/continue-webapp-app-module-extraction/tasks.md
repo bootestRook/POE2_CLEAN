@@ -21,16 +21,16 @@
 
 ## 4. Type And Utility Boundaries
 
-- [ ] 4.1 Create thin `webapp/types/` modules only when extracted components need shared types without importing from `App.tsx`.
-- [ ] 4.2 Move type definitions with field names, optionality, literal values, and semantics unchanged.
-- [ ] 4.3 Move pure deterministic display helpers into `webapp/utils/` only when they have no React state, browser side effects, storage access, or gameplay ownership.
-- [ ] 4.4 Check for circular imports after type and utility extraction and resolve them by narrowing imports or moving types, not by adding behavior.
+- [x] 4.1 Create thin `webapp/types/` modules only when extracted components need shared types without importing from `App.tsx`.
+- [x] 4.2 Move type definitions with field names, optionality, literal values, and semantics unchanged.
+- [x] 4.3 Move pure deterministic display helpers into `webapp/utils/` only when they have no React state, browser side effects, storage access, or gameplay ownership.
+- [x] 4.4 Check for circular imports after type and utility extraction and resolve them by narrowing imports or moving types, not by adding behavior.
 
 ## 5. Tooltip And Battle Visual Boundaries
 
 - [ ] 5.1 Extract tooltip presentation modules only after their needed shared types/helpers are available without importing from `App.tsx`.
 - [ ] 5.2 Extract projectile and hit VFX view components only as renderers of supplied runtime state; do not recalculate trajectory, targets, timing, damage, pierce, chain, or damage-zone origins.
-- [ ] 5.3 Leave high-coupling `GameApp` battle loop, runtime refs, damage application, target selection, monster movement, save orchestration, and skill event consumption in `App.tsx` unless a later change scopes them separately.
+- [x] 5.3 Leave high-coupling `GameApp` battle loop, runtime refs, damage application, target selection, monster movement, save orchestration, and skill event consumption in `App.tsx` unless a later change scopes them separately.
 - [ ] 5.4 Build after tooltip or battle visual extraction and fix only extraction-related issues.
 
 ## 6. Verification And Review
