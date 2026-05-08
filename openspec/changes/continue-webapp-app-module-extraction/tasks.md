@@ -35,9 +35,9 @@
 
 ## 6. Verification And Review
 
-- [ ] 6.1 Run the project build/check command used by the WebApp and record pass/fail in the implementation summary.
-- [ ] 6.2 Launch or match the actual WebApp through the project root `run.bat` flow; do not use skill-editor routes, port `8765`, or `dist-skill-editor`.
-- [ ] 6.3 Exercise the actual playable WebApp view affected by the extractions and capture a browser screenshot under `artifacts/screenshots/`.
-- [ ] 6.4 Describe the visible screenshot result and clearly state any frontend behavior that could not be verified.
-- [ ] 6.5 Confirm no screenshots, logs, captures, or test outputs were written to the repository root.
-- [ ] 6.6 Review the final diff for no gameplay, copy, CSS, storage, backend, dependency, asset, or skill-editor changes.
+- [x] 6.1 Run the project build/check command used by the WebApp and record pass/fail in the implementation summary.
+- [x] 6.2 Launch or match the actual WebApp through the project root `run.bat` flow; do not use skill-editor routes, port `8765`, or `dist-skill-editor`.
+- [x] 6.3 Exercise the actual playable WebApp view affected by the extractions and capture a browser screenshot under `artifacts/screenshots/`.
+- [x] 6.4 Describe the visible screenshot result and clearly state any frontend behavior that could not be verified.
+- [x] 6.5 Confirm no screenshots, logs, captures, or test outputs were written to the repository root.
+- [x] 6.6 Review the final diff for no gameplay, copy, CSS, storage, backend, dependency, asset, or skill-editor changes.
