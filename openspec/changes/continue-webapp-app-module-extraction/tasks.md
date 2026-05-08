@@ -20,10 +20,10 @@
 
 ## 4. Skill-Board Presentation Extraction
 
-- [ ] 4.1 Identify any thin shared type definitions needed for board presentation imports and move only shape-preserving type definitions when necessary.
-- [ ] 4.2 Move board cell rendering, gem ghost rendering, support preview display, boundary class helpers, hover class helpers, and support preview class helpers into `webapp/components/skill-board/`.
-- [ ] 4.3 Keep placement legality, drag/drop mutation, floating item state, tooltip state, support modifier calculation, mounted skill recalculation, storage, and save ownership unchanged in `webapp/App.tsx`.
-- [ ] 4.4 Run focused TypeScript/build checks for the skill-board extraction and review the diff for behavior, copy, CSS, storage, backend, or runtime changes.
+- [x] 4.1 Identify any thin shared type definitions needed for board presentation imports and move only shape-preserving type definitions when necessary.
+- [x] 4.2 Move board cell rendering, gem ghost rendering, support preview display, boundary class helpers, hover class helpers, and support preview class helpers into `webapp/components/skill-board/`.
+- [x] 4.3 Keep placement legality, drag/drop mutation, floating item state, tooltip state, support modifier calculation, mounted skill recalculation, storage, and save ownership unchanged in `webapp/App.tsx`.
+- [x] 4.4 Run focused TypeScript/build checks for the skill-board extraction and review the diff for behavior, copy, CSS, storage, backend, or runtime changes.
 
 ## 5. Verification
 
