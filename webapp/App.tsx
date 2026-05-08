@@ -80,7 +80,7 @@ import type { CharacterPanelView } from "./components/character/CharacterInfoPan
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildEquipmentRarityToneForGem, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16935,68 +16935,23 @@ function replaceGemTagRichLines(gem: Gem, lines: TooltipRichLine[] | undefined) 
 }
 
 function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
-  if (gem.item_kind !== "equipment") return view?.rarity_tone ?? "";
-  return equipmentRarityTone(gem.equipment_rarity ?? view?.rarity_tone ?? gem.rarity_text ?? view?.subtitle_text.split(" · ")[0]);
+  return buildEquipmentTooltipRarityTone(gem, view);
 }
 
 function equipmentRarityToneForGem(gem: Gem) {
-  if (gem.item_kind !== "equipment") return "";
-  return equipmentRarityTone(gem.equipment_rarity ?? gem.tooltip_view?.rarity_tone ?? gem.rarity_text);
+  return buildEquipmentRarityToneForGem(gem);
 }
 
 function normalizedEquipmentTooltipTags(gem: Gem, view: TooltipView, rarityTone: string) {
-  if (gem.item_kind !== "equipment" || !rarityTone) return view.tags;
-  return view.tags.map((tag) => (
-    isEquipmentRarityTag(gem, tag) ? { ...tag, tone: `rarity-${rarityTone}` } : tag
-  ));
+  return buildNormalizedEquipmentTooltipTags(gem, view, rarityTone, frontendEquipmentRarities);
 }
 
 function equipmentTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
-  const slotText = equipmentTooltipSlotText(gem);
-  return lines.map((line) => (
-    isEquipmentTooltipSourceLine(line)
-      ? { ...line, label_text: "\u90e8\u4f4d", value_text: slotText }
-      : line
-  ));
-}
-
-function isEquipmentTooltipSourceLine(line: TooltipStatLine) {
-  const label = line.label_text.trim().toLowerCase();
-  return label === "\u6765\u6e90" || label === "\u93c9\u30e6\u7c2e" || label === "source";
-}
-
-function equipmentTooltipSlotText(gem: Gem) {
-  const slotId = equipmentSourceSlotId(gem);
-  if (slotId === "head") return "\u5934\u90e8";
-  if (slotId === "chest") return "\u80f8\u7532";
-  if (slotId === "amulet") return "\u9879\u94fe";
-  if (slotId === "gloves") return "\u624b\u5957";
-  if (slotId === "belt") return "\u8170\u5e26";
-  if (slotId === "boots") return "\u978b\u5b50";
-  if (slotId === "ring" || slotId === "ring_1" || slotId === "ring_2") return "\u6212\u6307";
-  if (slotId === "weapon" || slotId === "main_weapon" || slotId === "off_weapon" || isWeaponItem(gem)) return "\u6b66\u5668";
-  return gem.category_text || gem.gem_type?.display_text || "\u88c5\u5907";
+  return buildEquipmentTooltipStatLines(gem, lines, equipmentSourceSlotId, isWeaponItem);
 }
 
 function equipmentTooltipBonusLines(gem: Gem, lines: string[]) {
-  if (gem.equipment_affixes && gem.equipment_affixes.length > 0) {
-    return gem.equipment_affixes.map((affix) => equipmentTooltipAffixLine(affix.effect, affix.tier));
-  }
-  return lines.map(normalizeEquipmentTooltipBonusLine);
-}
-
-function normalizeEquipmentTooltipBonusLine(line: string) {
-  const match = line.match(/^(?:(?:\u521d\u9636|\u8fdb\u9636|\u81f3\u81fb|\u57fa\u7840)(?:\u524d\u7f00|\u540e\u7f00)?|[^\s\uff1a:]+(?:\u524d\u7f00|\u540e\u7f00))\s*T(\d+)\s*[\uff1a:]\s*(.+)$/u);
-  if (!match) return line;
-  return equipmentTooltipAffixLine(match[2], Number(match[1]));
-}
-
-function isEquipmentRarityTag(gem: Gem, tag: TooltipTagView) {
-  const id = String(tag.id ?? "").toLowerCase();
-  if (id === "white" || id === "blue" || id === "purple" || id === "pink") return true;
-  const text = tag.text.trim();
-  if (text && text === gem.rarity_text) return true;
-  return frontendEquipmentRarities().some((rarity) => text === rarity.name_text);
+  return buildEquipmentTooltipBonusLines(gem, lines);
 }
 
 const sudokuGemIconSprites: Record<number, string> = {
