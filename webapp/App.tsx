@@ -80,7 +80,7 @@ import type { CharacterPanelView } from "./components/character/CharacterInfoPan
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16661,11 +16661,7 @@ function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationF
 }
 
 function buildGemTooltipViewModel(gem: Gem) {
-  const view = gem.tooltip_view;
-  if (!view) return view;
-  if (view.variant === "support") return normalizeSupportTooltipView(gem, view);
-  if (view.variant !== "active" && view.variant !== "passive") return view;
-  return normalizeActiveTooltipView(gem, view);
+  return buildGemTooltipViewModelWithNormalizers(gem, normalizeSupportTooltipView, normalizeActiveTooltipView);
 }
 
 function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem {

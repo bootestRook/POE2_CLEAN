@@ -1,5 +1,5 @@
 import type { TooltipRichLine } from "./TooltipPrimitives";
-import type { TooltipStatLine } from "./tooltipViewModel";
+import type { TooltipStatLine, TooltipView } from "./tooltipViewModel";
 
 const tooltipHighlightTones: Record<string, string> = {
   "红色": "color-red",
@@ -319,4 +319,16 @@ export function frontendSkillPreviewEffectiveLevelText(
   const effectiveLevel = Math.max(1, Math.floor(Number(sourceContext.effective_gem_level ?? 1)));
   const baseLevel = Math.max(1, effectiveLevel - equipmentLevelAdd);
   return `${effectiveLevel}(${baseLevel}+${equipmentLevelAdd})`;
+}
+
+export function buildGemTooltipViewModelWithNormalizers<TGem extends { tooltip_view?: TooltipView }, TView extends TooltipView>(
+  gem: TGem,
+  normalizeSupportTooltipView: (gem: TGem, view: TView) => TView,
+  normalizeActiveTooltipView: (gem: TGem, view: TView) => TView
+) {
+  const view = gem.tooltip_view as TView | undefined;
+  if (!view) return view;
+  if (view.variant === "support") return normalizeSupportTooltipView(gem, view);
+  if (view.variant !== "active" && view.variant !== "passive") return view;
+  return normalizeActiveTooltipView(gem, view);
 }
