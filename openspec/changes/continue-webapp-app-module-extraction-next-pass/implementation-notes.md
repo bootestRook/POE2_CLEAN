@@ -68,3 +68,13 @@
   - `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
   - Focused TypeScript filter for `vfxSpriteFrame` produced no matching errors; full `tsc --noEmit` still has broader existing type debt outside this split.
   - `run.bat` served the playable WebApp at `http://127.0.0.1:8766/`; screenshot `artifacts/screenshots/vfx-frame-extraction-battle.png` shows the actual battle map running with terrain visible and generated monster budget/stat text.
+
+## Final Verification
+
+- `openspec validate continue-webapp-app-module-extraction-next-pass --strict` passed.
+- `npm test` passed.
+- `npm run build` passed.
+- Focused TypeScript filter across `tooltipViewModel`, `FloatingGemView`, `FireBoltAlignmentDebug`, and `vfxSpriteFrame` produced no matching errors. Full `npx tsc --noEmit` still reports broader existing type debt outside this extraction pass.
+- `run.bat` was used for the playable WebApp verification surface. Screenshots were written under `artifacts/screenshots/`, and run logs were written under `artifacts/logs/`.
+- Repository root artifact check found no root-level `.png`, `.jpg`, `.jpeg`, `.webp`, `.log`, `.trace`, or `.har` files.
+- Final diff still contains unrelated dirty WebApp files from parallel work; extraction commits were staged narrowly so those unrelated changes were not included.

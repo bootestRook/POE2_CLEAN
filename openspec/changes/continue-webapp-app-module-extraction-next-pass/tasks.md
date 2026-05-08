@@ -35,9 +35,9 @@
 
 ## 6. Final Verification
 
-- [ ] 6.1 Run `openspec validate continue-webapp-app-module-extraction-next-pass --strict`.
-- [ ] 6.2 Run the repo's relevant WebApp checks, including build, smoke tests, and focused TypeScript checks for touched files.
-- [ ] 6.3 Launch the project through the root `run.bat` flow and verify the actual playable WebApp, not the skill editor.
-- [ ] 6.4 Store screenshots under `artifacts/screenshots/` and ensure no screenshots or logs are written to the repository root.
-- [ ] 6.5 Inspect the final diff to confirm no backend coupling, CSS-only churn, gameplay runtime rewrites, save/schema changes, or unrelated dirty files were included.
-- [ ] 6.6 Update task checkboxes and implementation notes with verification results before final handoff.
+- [x] 6.1 Run `openspec validate continue-webapp-app-module-extraction-next-pass --strict`.
+- [x] 6.2 Run the repo's relevant WebApp checks, including build, smoke tests, and focused TypeScript checks for touched files.
+- [x] 6.3 Launch the project through the root `run.bat` flow and verify the actual playable WebApp, not the skill editor.
+- [x] 6.4 Store screenshots under `artifacts/screenshots/` and ensure no screenshots or logs are written to the repository root.
+- [x] 6.5 Inspect the final diff to confirm no backend coupling, CSS-only churn, gameplay runtime rewrites, save/schema changes, or unrelated dirty files were included.
+- [x] 6.6 Update task checkboxes and implementation notes with verification results before final handoff.
