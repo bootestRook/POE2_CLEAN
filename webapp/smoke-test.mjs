@@ -1589,7 +1589,22 @@ const monsterSkillEventBuilderChecks = [
   [monsterSkillEventBuilder, "player_leash_range: skill.range.leash_range", "Monster projectile events must preserve leash range payload."],
   [monsterSkillEventBuilder, "hit_marker_id: skill.hit_marker_id", "Monster projectile events must preserve hit marker payload."],
   [monsterSkillEventBuilder, "suppress_hit_vfx: monsterSkillSuppressHitVfx(skill)", "Monster projectile events must preserve suppress-hit-VFX payload."],
-  [monsterSkillEventBuilder, "damage_form: monsterSkillDamageForm(skill)", "Monster projectile events must preserve damage form payload."]
+  [monsterSkillEventBuilder, "damage_form: monsterSkillDamageForm(skill)", "Monster projectile events must preserve damage form payload."],
+  [monsterSkillEventBuilder, 'event_id: `${indexedZoneId}.prime`', "Monster damage-zone events must preserve warning event ids."],
+  [monsterSkillEventBuilder, 'type: "damage_zone_prime"', "Monster damage-zone events must preserve warning event type."],
+  [monsterSkillEventBuilder, 'event_id: `${indexedZoneId}.damage_zone`', "Monster damage-zone events must preserve damage event ids."],
+  [monsterSkillEventBuilder, 'type: skill.module === "monster_melee_arc" ? "melee_arc" : "damage_zone"', "Monster melee-zone events must preserve event type selection."],
+  [monsterSkillEventBuilder, "zone_id: indexedZoneId", "Monster damage-zone events must preserve zone ids."],
+  [monsterSkillEventBuilder, "repeat_index: repeatIndex", "Monster damage-zone events must preserve repeat index payload."],
+  [monsterSkillEventBuilder, "repeat_count: repeatCount", "Monster damage-zone events must preserve repeat count payload."],
+  [monsterSkillEventBuilder, 'shape: "circle"', "Monster damage-zone events must preserve circle shape payload."],
+  [monsterSkillEventBuilder, "origin_world_position: center", "Monster damage-zone events must preserve origin payload."],
+  [monsterSkillEventBuilder, "damage_amount: damageAmount * Math.max(0, Number(skill.damage_multiplier ?? 1))", "Monster damage-zone events must preserve damage amount formula."],
+  [monsterSkillEventBuilder, "trigger_marker_id: skill.trigger_marker_id", "Monster damage-zone events must preserve trigger marker payload."],
+  [monsterSkillEventBuilder, "arc_angle: Number(skill.arc_angle ?? 120)", "Monster melee arc events must preserve arc angle fallback."],
+  [monsterSkillEventBuilder, "arc_radius: radius", "Monster melee arc events must preserve arc radius payload."],
+  [monsterSkillEventBuilder, "range: radius", "Monster melee arc events must preserve range payload."],
+  [monsterSkillEventBuilder, "zones: centers.length === 1 ? [{ ...center, radius }] : centers.map((center) => ({ ...center, radius }))", "Monster pending damage-zone hits must preserve repeated zone payloads."]
 ];
 for (const [source, token, message] of monsterSkillEventBuilderChecks) {
   if (!source.includes(token)) throw new Error(message);

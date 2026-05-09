@@ -58,7 +58,7 @@
 
 - [x] 7.1 Create `webapp/runtime/monsterSkillEventBuilder.ts` or an equivalent focused module for monster skill `SkillEvent` payload construction.
 - [x] 7.2 Extract projectile event payload construction for monster skills while preserving event ids, timestamps, source/target fields, positions, directions, delays, durations, damage type/form fields, VFX keys, projectile ids, speed/range/radius/width/lifetime fields, leash fields, hit marker fields, suppress-hit-VFX fields, and source enemy metadata.
-- [ ] 7.3 Extract damage-zone and melee-arc event payload construction while preserving warning events, damage-zone events, melee-arc event type selection, zone ids, repeat fields, shape fields, radius, origin, direction, duration, damage amount, trigger/hit marker fields, and range/arc payload fields.
+- [x] 7.3 Extract damage-zone and melee-arc event payload construction while preserving warning events, damage-zone events, melee-arc event type selection, zone ids, repeat fields, shape fields, radius, origin, direction, duration, damage amount, trigger/hit marker fields, and range/arc payload fields.
 - [ ] 7.4 Extract guard/support display-event construction only where it can remain deterministic; leave `setTexts`, `setAreaNovas`, healing mutation, ally buff mutation, and combat log mutation in App unless separately dependency-injected and tested.
 - [ ] 7.5 Keep `consumeSkillEventTimeline`, pending hit queues, `setTexts`, `setAreaNovas`, runtime refs, and battle-loop scheduling App-owned during this batch.
 - [ ] 7.6 Add focused tests comparing representative generated event payloads for projectile, damage-zone, melee-arc, guard/support pulse, repeated zones, and special-case skills before/after extraction.
