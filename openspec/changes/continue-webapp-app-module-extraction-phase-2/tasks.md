@@ -41,7 +41,7 @@
 
 ## 6. Final Verification And Closeout
 
-- [ ] 6.1 Run `npm run build`.
+- [x] 6.1 Run `npm run build`.
 - [ ] 6.2 Run `npm test`.
 - [ ] 6.3 Run `run.bat --check` and store command output under `artifacts/logs/`.
 - [ ] 6.4 Launch or match the actual WebApp through `run.bat`, exercise the affected playable surfaces, and capture final screenshots under `artifacts/screenshots/`.
