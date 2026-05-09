@@ -79,9 +79,10 @@ import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 import { CharacterInfoPanel } from "./components/character/CharacterInfoPanel";
 import type { CharacterPanelView } from "./components/character/CharacterInfoPanel";
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
+import { equipmentTooltipBonusLines, equipmentTooltipRarityTone, equipmentTooltipStatLines, normalizedEquipmentTooltipTags } from "./components/tooltips/equipmentTooltipAdapters";
 import { GemOrb } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
@@ -16358,22 +16359,6 @@ function frontendConduitRelationDescriptionText(relation: string) {
 
 function frontendSupportTargetTagTexts(gem: Gem) {
   return frontendTargetTagTexts(gem, frontendRecord);
-}
-
-function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
-  return buildEquipmentTooltipRarityTone(gem, view);
-}
-
-function normalizedEquipmentTooltipTags(gem: Gem, view: TooltipView, rarityTone: string) {
-  return buildNormalizedEquipmentTooltipTags(gem, view, rarityTone, frontendEquipmentRarities);
-}
-
-function equipmentTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
-  return buildEquipmentTooltipStatLines(gem, lines, equipmentSourceSlotId, isWeaponItem);
-}
-
-function equipmentTooltipBonusLines(gem: Gem, lines: string[]) {
-  return buildEquipmentTooltipBonusLines(gem, lines);
 }
 
 function usesSkillEventPipeline(skill: SkillPreview) {
