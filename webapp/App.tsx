@@ -135,6 +135,7 @@ import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget,
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
+import { inventoryItemById, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
 import { createStashStateHelpers } from "./components/inventory/stashState";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { CombatFeed, HelpText, MapDebugToggle, SpawnPlanWarningPanel } from "./components/layout/AppShellPanels";
@@ -1052,7 +1053,7 @@ const {
 } = createStashStateHelpers<Gem>({
   pageCount: STASH_PAGE_COUNT,
   pageSlotCount: STASH_PAGE_SLOT_COUNT,
-  normalizeEquipmentSlots
+  normalizeEquipmentSlots: (slots) => normalizeEquipmentSlotsState(slots, EQUIPMENT_SLOT_COUNT)
 });
 
 function sanitizeFrontendStorageState(state: AppState): AppState {
@@ -6393,7 +6394,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
       equipment_slots: nextState.equipment_slots,
       ui_text: nextState.ui_text ?? current.ui_text
     }));
-    if (nextState.equipment_slots) setEquipmentSlots(normalizeEquipmentSlots(nextState.equipment_slots));
+    if (nextState.equipment_slots) setEquipmentSlots(normalizeEquipmentSlotsState(nextState.equipment_slots, EQUIPMENT_SLOT_COUNT));
   }
 
   function applyDamageEventBatch(events: SkillEvent[]) {
@@ -6600,12 +6601,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     }
     const targetItem = inventoryItemById(state, inventorySlots[slotIndex]);
     setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
-    setInventorySlots((slots) => moveItemToInventorySlot(slots, instanceId, slotIndex));
+    setInventorySlots((slots) => moveItemToInventorySlotState(slots, instanceId, slotIndex, INVENTORY_SLOT_COUNT));
     if (!dragged.board_position) {
       applyFrontendState((currentState) => ({
         ...currentState,
         stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
-        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots ?? []), [instanceId]),
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlotsState(currentState.equipment_slots ?? [], EQUIPMENT_SLOT_COUNT), [instanceId]),
       }));
       return targetItem ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "bag", slotIndex, instanceId: targetItem.instance_id } } : { type: "place" };
     }
@@ -6637,7 +6638,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       return {
         ...unmountedState,
         stash_pages: moveItemToStashSlot(unmountedState.stash_pages, instanceId, safePageIndex, safeSlotIndex),
-        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(unmountedState.equipment_slots ?? []), [instanceId])
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlotsState(unmountedState.equipment_slots ?? [], EQUIPMENT_SLOT_COUNT), [instanceId])
       };
     });
     setNotice(`已将${dragged.name_text}放入仓库。`);
@@ -6673,15 +6674,16 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const previousState = state;
     const previousInventorySlots = inventorySlots;
     const previousEquipmentSlots = equipmentSlots;
-    setEquipmentSlots((slots) => moveItemToEquipmentSlot(removeItemsFromEquipmentSlots(slots, displacedIds), instanceId, targetIndices));
+    setEquipmentSlots((slots) => moveItemToEquipmentSlotState(removeItemsFromEquipmentSlots(slots, displacedIds), instanceId, targetIndices, EQUIPMENT_SLOT_COUNT));
     setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
     applyFrontendState((currentState) => ({
       ...currentState,
       stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
-      equipment_slots: moveItemToEquipmentSlot(
-        removeItemsFromEquipmentSlots(normalizeEquipmentSlots(currentState.equipment_slots ?? []), displacedIds),
+      equipment_slots: moveItemToEquipmentSlotState(
+        removeItemsFromEquipmentSlots(normalizeEquipmentSlotsState(currentState.equipment_slots ?? [], EQUIPMENT_SLOT_COUNT), displacedIds),
         instanceId,
-        targetIndices
+        targetIndices,
+        EQUIPMENT_SLOT_COUNT
       ),
     }));
     setNotice(`已将${dragged.name_text}放入${slot.label}。`);
@@ -8547,7 +8549,7 @@ function removeInventoryItemFromState(state: AppState, instanceId: string): AppS
     ...state,
     inventory: state.inventory.filter((item) => item.instance_id !== instanceId),
     stash_pages: removeItemsFromStashPages(state.stash_pages, [instanceId]),
-    equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlots(state.equipment_slots ?? []), [instanceId]),
+    equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlotsState(state.equipment_slots ?? [], EQUIPMENT_SLOT_COUNT), [instanceId]),
     board: {
       ...state.board,
       cells: state.board.cells.map((row) =>
@@ -8612,37 +8614,8 @@ function reconcileInventorySlots(current: (string | null)[], state: AppState, fl
   return next;
 }
 
-function moveItemToInventorySlot(slots: (string | null)[], instanceId: string, slotIndex: number) {
-  const next = slots.slice(0, INVENTORY_SLOT_COUNT);
-  while (next.length < INVENTORY_SLOT_COUNT) next.push(null);
-  for (let index = 0; index < next.length; index += 1) {
-    if (next[index] === instanceId) next[index] = null;
-  }
-  next[slotIndex] = instanceId;
-  return next;
-}
-
-function moveItemToEquipmentSlot(slots: (string | null)[], instanceId: string, slotIndices: number | readonly number[]) {
-  const next = slots.slice(0, EQUIPMENT_SLOT_COUNT);
-  while (next.length < EQUIPMENT_SLOT_COUNT) next.push(null);
-  const indices = Array.isArray(slotIndices) ? slotIndices : [slotIndices];
-  for (let index = 0; index < next.length; index += 1) {
-    if (next[index] === instanceId) next[index] = null;
-  }
-  for (const slotIndex of indices) {
-    next[slotIndex] = instanceId;
-  }
-  return next;
-}
-
-function normalizeEquipmentSlots(slots: (string | null)[]) {
-  const next = slots.slice(0, EQUIPMENT_SLOT_COUNT);
-  while (next.length < EQUIPMENT_SLOT_COUNT) next.push(null);
-  return next.map((instanceId) => instanceId ?? null);
-}
-
 function sanitizeEquipmentSlotsForState(state: AppState): AppState {
-  const normalizedSlots = normalizeEquipmentSlots(state.equipment_slots ?? []);
+  const normalizedSlots = normalizeEquipmentSlotsState(state.equipment_slots ?? [], EQUIPMENT_SLOT_COUNT);
   const equipment_slots = normalizedSlots.map((instanceId, slotIndex) => {
     if (!instanceId) return null;
     const item = inventoryItemById(state, instanceId);
@@ -8650,11 +8623,6 @@ function sanitizeEquipmentSlotsForState(state: AppState): AppState {
     return item && slot && canPlaceItemInEquipmentSlot(item, slot) ? instanceId : null;
   });
   return { ...state, equipment_slots };
-}
-
-function removeItemsFromEquipmentSlots(slots: (string | null)[], instanceIds: string[]) {
-  const idSet = new Set(instanceIds.filter(Boolean));
-  return slots.map((slotInstanceId) => (slotInstanceId && idSet.has(slotInstanceId) ? null : slotInstanceId));
 }
 
 function pointFromUnknown(value: unknown): { x: number; y: number } | null {
@@ -9639,52 +9607,6 @@ function rotateDirection(direction: { x: number; y: number }, angleDeg: number) 
 function randomAngleOffset(maxDegrees: number) {
   if (maxDegrees <= 0) return 0;
   return (Math.random() * 2 - 1) * maxDegrees;
-}
-
-function optimisticUnmountBoardItem(state: AppState, instanceId: string) {
-  return {
-    ...state,
-    inventory: state.inventory.map((item) => (
-      item.instance_id === instanceId ? { ...item, board_position: null } : item
-    )),
-    board: {
-      ...state.board,
-      cells: state.board.cells.map((row) =>
-        row.map((cell) => (
-          cell.gem?.instance_id === instanceId ? { ...cell, gem: null } : cell
-        ))
-      ),
-    },
-  };
-}
-
-function optimisticPlaceItemOnBoard(state: AppState, instanceId: string, row: number, column: number, displacedInstanceId?: string) {
-  const dragged = state.inventory.find((item) => item.instance_id === instanceId);
-  if (!dragged) return state;
-  const placedGem = { ...dragged, board_position: { row, column } };
-  return {
-    ...state,
-    inventory: state.inventory.map((item) => {
-      if (item.instance_id === instanceId) return placedGem;
-      if (item.instance_id === displacedInstanceId) return { ...item, board_position: null };
-      return item;
-    }),
-    board: {
-      ...state.board,
-      cells: state.board.cells.map((boardRow) =>
-        boardRow.map((cell) => {
-          if (cell.row === row && cell.column === column) return { ...cell, gem: placedGem };
-          if (cell.gem?.instance_id === instanceId || cell.gem?.instance_id === displacedInstanceId) return { ...cell, gem: null };
-          return cell;
-        })
-      ),
-    },
-  };
-}
-
-function inventoryItemById(state: AppState, instanceId: string | null | undefined) {
-  if (!instanceId) return null;
-  return state.inventory.find((item) => item.instance_id === instanceId) ?? null;
 }
 
 function isAllowedRoute(source: Gem, target: Gem) {
