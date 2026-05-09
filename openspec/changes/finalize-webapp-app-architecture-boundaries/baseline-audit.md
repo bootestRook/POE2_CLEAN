@@ -1,0 +1,45 @@
+# Baseline Audit
+
+This file records the current `webapp/App.tsx` responsibility map for `finalize-webapp-app-architecture-boundaries`. Line numbers are temporary navigation notes only; ownership boundaries are the durable reference.
+
+## Current Branch And Worktree
+
+- Branch at audit time: `main`.
+- Starting overlap check: no unrelated dirty edits in `webapp/App.tsx`, WebApp docs, or planned WebApp target modules.
+- Current `webapp/App.tsx` size at audit time: 9,817 lines.
+
+## App.tsx Responsibility Map
+
+- Lines 1-229: imports for app metadata, map assets, spawn/runtime config, skill runtimes, equipment runtime, editor-disabled modules, playable battle scene, inventory, layout, battle presentation, skill-board, map editor, state helpers, utilities, sprite test, and rest-area scene.
+- Lines 231-907: App-local domain shapes and constants, including `Gem`, `Cell`, `SkillEvent`, `AppState`, save payload, map-run monster/drop/portal views, GM option views, player runtime, battle VFX runtime, tooltip/floating item/placement prompt shapes, camera and unit visual runtime shapes.
+- Lines 909-986: static gameplay, rendering, inventory, stash, tooltip, discard, starter, monster-test, and progression constants.
+- Lines 990-1107: frontend data cloning, local preference helpers, frontend state helper wiring, sanitization, skill/equipment recalculation, GM option/affix local request helpers, and disabled backend request shim.
+- Lines 1114-1154: top-level `App` mode routing and launch cache clearing.
+- Lines 1155-1329: `GameApp` state and ref initialization for save flow, rest area, skill-editor-disabled state, player/enemy/runtime visual state, inventory/tooltip/drag state, map/debug state, battle runtime queues, performance summaries, spawn/drop ids, recovery cooldown refs, and status-effect refs.
+- Lines 1332-2095: App state application, player runtime resource setters, minimap reset/reveal, player buffs, movement equipment effects, self damage, energy shield recharge, block/recovery, enemy buff advancement, save loading, GM option loading, map loading/rest-area setup, global pointer/keyboard effects, and rest-area movement.
+- Lines 2099-2276: main playable battle tick orchestration, including player movement, enemy AI update calls, monster skill updates, boss/supreme boss runtime updates, damage-zone ticking, projectile/hit/floating-text visual advancement, runtime performance tracking, and game-over transition.
+- Lines 2279-2345: existing runtime monster melee attack handling and player-hit application.
+- Lines 2348-2814: monster skill dispatch, release, movement skill positioning, projectile event creation, damage-zone/melee-arc event creation, zone center/spread/VFX/aim helper logic.
+- Lines 2817-3313: legacy boss skill timers, basic projectile, area warning/damage, circular barrage, and boss interval helper logic.
+- Lines 3314-3423: player-hit application, guard mitigation, and channel movement buff handling.
+- Lines 3424-6385: frontend playable skill release, skill event building/consumption, projectile/damage-zone/melee/nova/chain/channel/status/forced-movement handling, damage events, damage batches, VFX anchoring, and related runtime orchestration.
+- Lines 6388-6556: damage event batch application, enemy damage/resource mutation, kill/drop/progression side effects, and event result handling.
+- Lines 6559-6839: floating item placement, drag/drop target handling, inventory/equipment/stash/board movement, discard/drop prompt handling, and floating item state helpers.
+- Lines 6840-7140: map instance creation, boss portal creation, frontend drop spawning, inventory item creation from drops, pickup logic, boss portal confirmation, keyboard interaction, and battle runtime reset.
+- Lines 7140-7549: start game flow, monster-test spawning/destruction, disabled skill-editor open stub, drag start, hover tooltip setup, derived inventory/board/support/gm data, GM submit, save-slot selection/loading/deletion, rest-area interaction, resolution change, inventory close, pause/exit/end-game flows.
+- Lines 7553-8068: main JSX return, including `PlayableBattleScene`, monster test panel, release-debug HUD, title screen, save selection, debug panels, overlays, disabled skill-editor panel, rest-area map selection, combat feed, and the inline inventory overlay with GM panel, character panel, stash panel, equipment grid, board grid, bag grid, tooltip, floating gem, placement prompt, and discard prompt.
+- Lines 8079-8228: stat/resource helpers, tooltip positioning, typing-target guard, map bounds, dropped item kind, inventory removal, equipment sanitization, point parsing, battle viewport projection helpers.
+- Lines 8230-8435: boss pack ids, monster skill config constants, monster skill materialization, procedural spawn plan creation, and stage scope/boss-pack helpers.
+- Lines 8448-8689: monster level scaling, attack/defense stat construction, shape effect parsing, and procedural spawn log formatting.
+- Lines 8693-9058: monster offense, outgoing damage, accuracy, player evasion, player damage mitigation, ailments, resistances, enemy damage scaling, enemy avoidance/block, enemy resource damage, enemy resistance/stat helpers, and status damage interactions.
+- Lines 9060-9244: targeting, projectile launch helpers, projectile spread/direction math, battle camera/projection/terrain transform, render item adapter, and battle render presentation helper creation.
+- Lines 9246-9350: gem tooltip view-model enrichment, active tooltip normalization, support tooltip normalization, conduit tooltip sections, conduit descriptions, and support target tag text.
+- Lines 9352-9526: skill pipeline classification, thundercloud detection, damage-zone dedupe, projectile template checks, VFX scale helpers, forced element selection, stable hash/percent, hit target extraction, projectile follow-up suppression, VFX/projectile anchoring, and projectile completion helpers.
+- Lines 9529-9817: enemy creation, runtime debug corner helpers, monster test option/enemy factories, monster-test stat helpers, random spawn, skill-test dummies, encounter palette helpers, and visual budget helpers.
+
+## First Extraction Implications
+
+- The lowest-risk render-only block is the inline inventory overlay at lines 7830-8068.
+- The highest-value runtime pure-helper block is monster skill helper logic at lines 2712-2814.
+- Monster skill event construction at lines 2519-2709 is valuable but must follow pure helper extraction because it still feeds App-owned side effects.
+- App-owned side effects that must not move first include `consumeSkillEventTimeline`, pending hit queues, `setTexts`, `setAreaNovas`, save writes, pickup completion, battle tick scheduling, and runtime refs.

@@ -2,7 +2,7 @@
 
 - [x] 1.1 Confirm current branch and working tree status before implementation; stop if unrelated dirty files overlap `webapp/App.tsx`, WebApp docs, or planned target modules.
 - [x] 1.2 Re-read `AGENTS.md`, `docs/webapp-module-boundaries.md`, `docs/webapp-app-decomposition-map.md`, this change's `proposal.md`, `design.md`, and spec deltas before editing.
-- [ ] 1.3 Record the current `webapp/App.tsx` responsibility map by function/render block, using current line numbers only as temporary navigation notes.
+- [x] 1.3 Record the current `webapp/App.tsx` responsibility map by function/render block, using current line numbers only as temporary navigation notes.
 - [ ] 1.4 Identify current App-owned state, refs, callbacks, storage keys, runtime queues, and event consumers that must remain unchanged during this change.
 - [ ] 1.5 Identify current source-text/smoke tests that read `webapp/App.tsx` for functions or invariants that may move to focused modules.
 - [ ] 1.6 Confirm no implementation task in this change requires backend APIs, server runtime behavior, save-schema changes, CSS redesign, copy changes, gameplay balance changes, or skill-editor verification.
