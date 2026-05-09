@@ -16,6 +16,7 @@ const webappSourceText = webappSources.join("\n");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
+const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
 const mapSpawnConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "map_spawn_v1.json"), "utf8"));
 const monsterSkillConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "monster_skills.json"), "utf8"));
 const monsterDefsToml = readFileSync(join(root, "configs", "monsters", "monster_defs.toml"), "utf8");
@@ -1526,7 +1527,7 @@ const monsterSkillStaticChecks = [
   [app, "monsterBossMajorInitialCooldownMs", "Boss enemies must carry materialized major-skill initial cooldown data."],
   [app, "monsterSkillDamageMultiplierBonus", "Monster support/guard skills must reuse outgoing damage multiplier state."],
   [app, "const travel = Math.max(1, Number(skill.range.effect_range))", "Monster projectile travel must derive from effect_range."],
-  [app, "const placementDistance = Math.min(distance(enemy, target), Math.max(1, Number(skill.range.effect_range)))", "Monster damage-zone placement must clamp to effect_range."],
+  [monsterSkillPresentation, "const placementDistance = Math.min(distance(enemy, target), Math.max(1, Number(skill.range.effect_range)))", "Monster damage-zone placement must clamp to effect_range."],
   [app, "const radius = Math.max(1, Number(skill.buff_radius ?? skill.range.effect_range))", "Monster support radius must derive from finite effect_range."],
   [app, "applyBossSkillHitToPlayer", "Monster skill hits must reuse the boss/player hit adapter."],
   [app, "resolveFrontendPlayerBlock(hitEnemy, options.hitKind)", "Monster skill hits must pass through player block resolution."],
@@ -1544,6 +1545,37 @@ const monsterSkillStaticChecks = [
 
 for (const [source, token, message] of monsterSkillStaticChecks) {
   if (!source.includes(token)) throw new Error(message);
+}
+
+const monsterSkillPresentationChecks = [
+  [monsterSkillPresentation, 'skill.projectile_pattern ?? "fan"', "Monster skill presentation must preserve fan projectile default."],
+  [monsterSkillPresentation, 'pattern === "ring"', "Monster skill presentation must preserve ring projectile/zone patterns."],
+  [monsterSkillPresentation, 'pattern === "spiral"', "Monster skill presentation must preserve spiral projectile pattern."],
+  [monsterSkillPresentation, 'pattern === "cross"', "Monster skill presentation must preserve cross projectile/zone pattern."],
+  [monsterSkillPresentation, 'pattern === "wide_fan"', "Monster skill presentation must preserve wide_fan projectile spacing."],
+  [monsterSkillPresentation, 'pattern === "around_player"', "Monster skill presentation must preserve around_player zone pattern."],
+  [monsterSkillPresentation, 'pattern === "line"', "Monster skill presentation must preserve line zone pattern."],
+  [monsterSkillPresentation, 'skill.id === "mon_skill_poison_weave_mist"', "Monster skill presentation must preserve poison weave target-centered zone."],
+  [monsterSkillPresentation, 'skill.id === "boss_star_mother_triple_mark"', "Monster skill presentation must preserve star mother target-centered zone."],
+  [monsterSkillPresentation, 'clampMonsterSkillZoneCenter', "Monster skill presentation must keep clamped zone placement helper."],
+  [monsterSkillPresentation, 'return skill.damage_type;', "Monster skill presentation must keep damage type passthrough."],
+  [monsterSkillPresentation, 'return skill.damage_form;', "Monster skill presentation must keep damage form passthrough."],
+  [monsterSkillPresentation, 'mon_skill_dust_ring_scrape', "Monster skill presentation must preserve dust scrape VFX special case."],
+  [monsterSkillPresentation, 'monster_twilight_sentry_bolt', "Monster skill presentation must preserve twilight sentry VFX key."],
+  [monsterSkillPresentation, 'monster_mirror_shard', "Monster skill presentation must preserve mirror amplify VFX key."],
+  [monsterSkillPresentation, 'monster_melee_arc_${monsterSkillDamageType(skill) ?? "physical"}', "Monster skill presentation must preserve melee arc VFX key shape."],
+  [monsterSkillPresentation, 'return true;', "Monster skill presentation must preserve suppress-hit-VFX policy."],
+  [monsterSkillPresentation, 'mon_skill_frost_crystal_slow_bolt', "Monster skill presentation must preserve frost crystal aim policy special case."],
+  [monsterSkillPresentation, '"target_current_position"', "Monster skill presentation must preserve target-current aim policy string."],
+  [monsterSkillPresentation, '"authored_target_position"', "Monster skill presentation must preserve authored-target aim policy string."]
+];
+for (const [source, token, message] of monsterSkillPresentationChecks) {
+  if (!source.includes(token)) throw new Error(message);
+}
+for (const forbidden of ["useState", "useRef", "localStorage", "sessionStorage", "fetch(", "playerStateRef", "enemiesStateRef", "scheduledSkillEvents", "activeDamageZones"]) {
+  if (monsterSkillPresentation.includes(forbidden)) {
+    throw new Error(`Monster skill presentation helper must stay pure and client-local: ${forbidden}`);
+  }
 }
 
 const runtimeMonsterAttackBody = functionBody(app, "applyRuntimeMonsterAttacks");
