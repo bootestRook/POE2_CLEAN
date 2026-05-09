@@ -19,6 +19,10 @@ const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRunti
 const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
 const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
+const frontendAppState = readFileSync(join(root, "webapp", "state", "frontendAppState.ts"), "utf8");
+const frontendDropState = readFileSync(join(root, "webapp", "state", "frontendDropState.ts"), "utf8");
+const stashState = readFileSync(join(root, "webapp", "components", "inventory", "stashState.ts"), "utf8");
+const frontendSaveStorage = readFileSync(join(root, "webapp", "utils", "frontendSaveStorage.ts"), "utf8");
 const mapSpawnConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "map_spawn_v1.json"), "utf8"));
 const monsterSkillConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "monster_skills.json"), "utf8"));
 const monsterDefsToml = readFileSync(join(root, "configs", "monsters", "monster_defs.toml"), "utf8");
@@ -127,33 +131,32 @@ for (const requiredRestAreaCode of [
   }
 }
 
-const clientStateSource = webappSourceText;
-const frontendSavePayloadBody = functionBody(clientStateSource, "frontendSavePayloadFromState");
+const frontendSavePayloadBody = functionBody(frontendAppState, "frontendSavePayloadFromState");
 if (
   !frontendSavePayloadBody.includes("frontendSavePayloadFromSanitizedState")
-  || !webappSourceText.includes("stash_pages: state.stash_pages")
+  || !frontendSaveStorage.includes("stash_pages: state.stash_pages")
 ) {
   throw new Error("Frontend save payload must persist stash_pages.");
 }
-const createFrontendNewSaveStarterStateBody = functionBody(clientStateSource, "createFrontendNewSaveStarterState");
+const createFrontendNewSaveStarterStateBody = functionBody(frontendAppState, "createFrontendNewSaveStarterState");
 if (!createFrontendNewSaveStarterStateBody.includes("state.stash_pages = createEmptyStashPages();")) {
   throw new Error("New saves must initialize empty stash pages.");
 }
-const createRandomNewSaveStarterGemBody = functionBody(clientStateSource, "createRandomNewSaveStarterGem");
-if (!clientStateSource.includes('const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);')) {
+const createRandomNewSaveStarterGemBody = functionBody(frontendAppState, "createRandomNewSaveStarterGem");
+if (!app.includes('const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);')) {
   throw new Error("New save starter gem exclusions must include active_stoneskin.");
 }
 if (!createRandomNewSaveStarterGemBody.includes("!excludedStarterBaseGemIds.has(String(gem.base_gem_id ?? gem.instance_id))")) {
   throw new Error("New save random active starter gems must exclude stoneskin.");
 }
-const appStateFromFrontendSaveBody = functionBody(clientStateSource, "appStateFromFrontendSave");
+const appStateFromFrontendSaveBody = functionBody(frontendAppState, "appStateFromFrontendSave");
 if (
   !appStateFromFrontendSaveBody.includes("frontendStateCandidateFromSave")
-  || !webappSourceText.includes("normalizeStashPages(save.stash_pages")
+  || !frontendSaveStorage.includes("normalizeStashPages(save.stash_pages")
 ) {
   throw new Error("Existing saves must migrate/sanitize stash_pages on load.");
 }
-const sanitizeFrontendStorageStateBody = functionBody(clientStateSource, "sanitizeFrontendStorageState");
+const sanitizeFrontendStorageStateBody = functionBody(app, "sanitizeFrontendStorageState");
 for (const requiredSanitizerCode of [
   "sanitizeEquipmentSlotsForState",
   "normalizeStashPages(equipmentState.stash_pages, equipmentState)"
@@ -162,7 +165,7 @@ for (const requiredSanitizerCode of [
     throw new Error(`Stash duplicate ownership sanitizer missing: ${requiredSanitizerCode}`);
   }
 }
-const normalizeStashPagesBody = functionBody(clientStateSource, "normalizeStashPages");
+const normalizeStashPagesBody = functionBody(stashState, "normalizeStashPages");
 for (const requiredNormalizeCode of [
   "const used = new Set<string>();",
   "!used.has(instanceId)",
@@ -174,7 +177,15 @@ for (const requiredNormalizeCode of [
     throw new Error(`Stash page normalization must reject duplicate/foreign ownership: ${requiredNormalizeCode}`);
   }
 }
-const placeItemInStashBody = functionBody(clientStateSource, "placeItemInStash");
+const stashItemIdsBody = functionBody(stashState, "stashItemIds");
+if (!stashItemIdsBody.includes("new Set(normalizeStashPages(stashPages).flat().filter(Boolean) as string[])")) {
+  throw new Error("Stash item id collection must remain owned by stashState.");
+}
+const removeItemsFromStashPagesBody = functionBody(stashState, "removeItemsFromStashPages");
+if (!removeItemsFromStashPagesBody.includes("normalizeStashPages(stashPages).map")) {
+  throw new Error("Stash removal must normalize pages before removing ids.");
+}
+const placeItemInStashBody = functionBody(app, "placeItemInStash");
 for (const requiredStashTransferCode of [
   "moveItemToStashSlot",
   "removeItemsFromEquipmentSlots",
@@ -183,6 +194,33 @@ for (const requiredStashTransferCode of [
 ]) {
   if (!placeItemInStashBody.includes(requiredStashTransferCode)) {
     throw new Error(`Stash transfer must preserve item ownership via: ${requiredStashTransferCode}`);
+  }
+}
+for (const requiredDropOwnerCode of [
+  "export function createFrontendDrop",
+  "frontendMonsterDropAttempts",
+  "frontendMonsterDropChance",
+  "frontendDropKind",
+  "frontendMapEntryTargetStage",
+  "frontendEquipmentDropRarity",
+  "chooseFrontendGemDropOption",
+  "export function createFrontendInventoryItem"
+]) {
+  if (!frontendDropState.includes(requiredDropOwnerCode)) {
+    throw new Error(`Frontend drop behavior must be checked in frontendDropState: ${requiredDropOwnerCode}`);
+  }
+}
+for (const requiredSaveStorageOwnerCode of [
+  'FRONTEND_AUTOSAVE_STORAGE_KEY = "poe2.v1.frontend.autosave"',
+  'FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY = "poe2.v1.frontend.active_save_slot"',
+  'FRONTEND_SAVE_SLOT_KEY_PREFIX = "poe2.v1.frontend.save.slot."',
+  "FRONTEND_SAVE_SLOT_COUNT = 5",
+  "FRONTEND_SAVE_VERSION = 1",
+  "migrateLegacyFrontendAutosaveToSaveSlots",
+  "saveFrontendAutosavePayload"
+]) {
+  if (!frontendSaveStorage.includes(requiredSaveStorageOwnerCode)) {
+    throw new Error(`Frontend save storage invariant must be checked in frontendSaveStorage: ${requiredSaveStorageOwnerCode}`);
   }
 }
 for (const requiredRestAreaCss of [
