@@ -118,7 +118,10 @@ for (const requiredRestAreaCode of [
 }
 
 const frontendSavePayloadBody = functionBody(app, "frontendSavePayloadFromState");
-if (!frontendSavePayloadBody.includes("stash_pages: sanitized.stash_pages")) {
+if (
+  !frontendSavePayloadBody.includes("frontendSavePayloadFromSanitizedState")
+  || !webappSourceText.includes("stash_pages: state.stash_pages")
+) {
   throw new Error("Frontend save payload must persist stash_pages.");
 }
 const createFrontendNewSaveStarterStateBody = functionBody(app, "createFrontendNewSaveStarterState");

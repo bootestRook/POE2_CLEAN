@@ -13,6 +13,7 @@ export type FrontendSaveSlotSummary<TSave> = {
 export type FrontendSaveStoragePayload = {
   version: number;
   saved_at?: string;
+  player_name?: string;
   [key: string]: unknown;
 };
 
@@ -149,4 +150,27 @@ export function saveFrontendAutosavePayload<TSave extends FrontendSaveStoragePay
 
 export function clearFrontendAutosave(storage: Storage = window.localStorage) {
   storage.removeItem(FRONTEND_AUTOSAVE_STORAGE_KEY);
+}
+
+export function frontendSavePayloadFromSanitizedState<TState extends Record<string, unknown>, TPayload extends FrontendSaveStoragePayload>(
+  state: TState,
+  normalizePlayerName: (value: unknown) => string
+): TPayload {
+  return {
+    version: FRONTEND_SAVE_VERSION,
+    saved_at: new Date().toISOString(),
+    player_name: normalizePlayerName(state.player_name),
+    inventory: state.inventory,
+    stash_pages: state.stash_pages,
+    board: state.board,
+    skill_preview: state.skill_preview,
+    skill_error: state.skill_error,
+    drops: state.drops,
+    logs: state.logs,
+    player_stats: state.player_stats,
+    character_panel: state.character_panel,
+    equipment_slots: state.equipment_slots,
+    map_progression: state.map_progression,
+    ui_text: state.ui_text
+  } as TPayload;
 }

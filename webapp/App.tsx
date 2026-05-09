@@ -95,7 +95,7 @@ import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
-import { FRONTEND_SAVE_VERSION, clearFrontendAutosave, clearFrontendSaveSlot, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
+import { FRONTEND_SAVE_VERSION, clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { clientRectToGameViewportRect, clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
@@ -3025,23 +3025,7 @@ function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | 
 
 function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
   const sanitized = sanitizeFrontendStorageState(state);
-  return {
-    version: FRONTEND_SAVE_VERSION,
-    saved_at: new Date().toISOString(),
-    player_name: normalizePlayerName(sanitized.player_name),
-    inventory: sanitized.inventory,
-    stash_pages: sanitized.stash_pages,
-    board: sanitized.board,
-    skill_preview: sanitized.skill_preview,
-    skill_error: sanitized.skill_error,
-    drops: sanitized.drops,
-    logs: sanitized.logs,
-    player_stats: sanitized.player_stats,
-    character_panel: sanitized.character_panel,
-    equipment_slots: sanitized.equipment_slots,
-    map_progression: sanitized.map_progression,
-    ui_text: sanitized.ui_text
-  };
+  return frontendSavePayloadFromSanitizedState<AppState, FrontendSavePayload>(sanitized, normalizePlayerName);
 }
 
 function saveFrontendAutosave(state: AppState) {
