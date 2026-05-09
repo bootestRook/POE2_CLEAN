@@ -90,7 +90,7 @@
 - [x] 10.2 Extract the title screen display while preserving text, class names, aria labels, button behavior, and entry-step transitions.
 - [x] 10.3 Extract shell overlay composition for release-debug HUD, map debug toggle, procedural spawn debug panel, spawn warnings, game failure overlay, pause overlay, portal confirm overlay, help text, skill-editor disabled toggles, map selection panel gate, and combat feed only as render-only composition.
 - [x] 10.4 Keep mode state, save state, pause state, game failure state, portal confirmation state, skill-editor disabled state, and runtime logs owned by App.
-- [ ] 10.5 Run build checks and visually verify title/save/rest/battle overlay surfaces in the actual playable WebApp.
+- [x] 10.5 Run build checks and visually verify title/save/rest/battle overlay surfaces in the actual playable WebApp.
 
 ## 11. App Boundary Cleanup
 
