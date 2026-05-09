@@ -34,7 +34,7 @@
 - [x] 4.5 Preserve two-handed weapon blocked-slot behavior, equipment hover behavior, stash page behavior, board hover behavior, support line rendering, placement preview rendering, floating item rendering, discard prompt behavior, and GM panel toggling.
 - [x] 4.6 Replace the inline App overlay block with `<InventoryOverlay />` and only the required prop wiring.
 - [x] 4.7 Run build/type checks and a focused smoke check covering inventory/stash/equipment/board source invariants.
-- [ ] 4.8 Verify the actual playable WebApp inventory surface through the `run.bat` flow and capture screenshots under `artifacts/screenshots/`.
+- [x] 4.8 Verify the actual playable WebApp inventory surface through the `run.bat` flow and capture screenshots under `artifacts/screenshots/`.
 
 ## 5. Inventory And Skill-Board Subpanel Refinement
 
