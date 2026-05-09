@@ -62,7 +62,7 @@
 - [x] 7.4 Extract guard/support display-event construction only where it can remain deterministic; leave `setTexts`, `setAreaNovas`, healing mutation, ally buff mutation, and combat log mutation in App unless separately dependency-injected and tested.
 - [x] 7.5 Keep `consumeSkillEventTimeline`, pending hit queues, `setTexts`, `setAreaNovas`, runtime refs, and battle-loop scheduling App-owned during this batch.
 - [x] 7.6 Add focused tests comparing representative generated event payloads for projectile, damage-zone, melee-arc, guard/support pulse, repeated zones, and special-case skills before/after extraction.
-- [ ] 7.7 Update smoke/source-boundary checks so protected monster skill event invariants read the event-builder module instead of forcing event builders to remain in `App.tsx`.
+- [x] 7.7 Update smoke/source-boundary checks so protected monster skill event invariants read the event-builder module instead of forcing event builders to remain in `App.tsx`.
 - [ ] 7.8 Run build/test checks and visually verify representative monster skill projectiles/zones/arcs in the actual playable WebApp, with screenshots under `artifacts/screenshots/`.
 
 ## 8. Player Damage Runtime Helper Extraction
