@@ -33,7 +33,7 @@
 
 ## 5. Small Display, Type, And Utility Cleanup
 
-- [ ] 5.1 Identify any remaining small pure helpers in `webapp/App.tsx` that are display-only or type-only, such as tooltip positioning wrappers, dropped-item kind display mapping, point parsing, or formatting helpers.
+- [x] 5.1 Identify any remaining small pure helpers in `webapp/App.tsx` that are display-only or type-only, such as tooltip positioning wrappers, dropped-item kind display mapping, point parsing, or formatting helpers.
 - [ ] 5.2 Move helpers only into existing focused modules when the move removes App coupling and does not require runtime state, refs, storage writes, save data, browser side effects, backend calls, or gameplay calculations.
 - [ ] 5.3 Stop and defer any helper whose extraction requires changing App state flow, runtime event queues, inventory mutation orchestration, map progression, or save/load behavior.
 - [ ] 5.4 Run `npm run build`, `npm test`, and final diff review for each small cleanup batch before committing.
