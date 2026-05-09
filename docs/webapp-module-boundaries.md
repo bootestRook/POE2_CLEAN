@@ -16,12 +16,19 @@ If no existing owner fits the work, update this module-boundary plan or create a
 
 ## Current Target Folders
 
-- `webapp/components/tooltips/`: tooltip presentation, tooltip panels, and tooltip-only display controls.
-- `webapp/components/inventory/`: inventory grids, equipment slots, stash grids, item cells, and item drag/drop presentation.
-- `webapp/components/battle/`: battle HUD and battle-only visual layers that do not own gameplay simulation.
-- `webapp/components/rest-area/`: rest-area panels, NPC panels, and rest-area-only controls.
+- `webapp/components/tooltips/`: tooltip presentation, tooltip panels, tooltip-only display controls, tooltip formatting adapters, rich tooltip sections, and gem orbs.
+- `webapp/components/inventory/`: inventory overlay composition, bag grids, equipment slots, stash grids, item cells, floating item display, discard prompts, and drag/drop presentation.
+- `webapp/components/skill-board/`: skill-board visible UI, board cells, support lines, support preview display, board hover presentation, and support preview hooks.
+- `webapp/components/battle/`: battle HUD, battle-only visual layers, VFX views, projectile bodies, hit effects, minimap display, ground drops, boss portal display, and debug overlays that do not own gameplay simulation.
+- `webapp/features/playable-battle/`: playable battle scene composition and presentation wiring.
+- `webapp/components/rest-area/`: rest-area panels, NPC panels, stash/stage entry controls, and rest-area-only controls.
+- `webapp/components/layout/`: title/save shell presentation, non-gameplay app chrome, release debug panels, pause/failure/portal overlay composition, and help/combat-feed presentation.
+- `webapp/runtime/`: deterministic gameplay/runtime helpers such as monster skill presentation helpers, monster skill event builders, player damage formulas, projectile lifecycle helpers, and enemy runtime helpers. Runtime modules must not create alternate gameplay paths.
+- `webapp/monsterSkillRuntime.ts`: monster skill config validation, assignment lookup, candidate selection, timer readiness, and cooldown bookkeeping.
+- `webapp/state/`: frontend App state helpers, save payload helpers, deterministic drop/map-run helpers, and state recalculation adapters.
 - `webapp/hooks/`: reusable React hooks after the owning state and side effects are clear.
-- `webapp/utils/`: pure formatting, type guards, and deterministic helpers with no React state.
+- `webapp/utils/`: pure formatting, type guards, math, viewport metrics, token helpers, and deterministic helpers with no React state.
+- `webapp/types/`: shared type-only shapes used to avoid imports from `webapp/App.tsx`; type modules must contain no runtime behavior.
 
 ## Extraction Rule
 
