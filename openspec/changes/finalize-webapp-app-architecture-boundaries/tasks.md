@@ -96,7 +96,7 @@
 
 - [x] 11.1 Remove unused imports, local types, helper functions, constants, and callbacks from `webapp/App.tsx` after each extraction batch.
 - [x] 11.2 Confirm remaining App functions are intentionally App-owned orchestration or adapters, not presentation-only blocks or pure helper families that now have owners.
-- [ ] 11.3 Confirm no extracted module imports from `webapp/App.tsx`.
+- [x] 11.3 Confirm no extracted module imports from `webapp/App.tsx`.
 - [ ] 11.4 Confirm App imports focused modules instead of redefining their responsibilities locally.
 - [ ] 11.5 Confirm no new module duplicates gameplay runtime, target selection, hit timing, damage application, projectile trajectory decisions, or event consumption.
 - [ ] 11.6 Update comments only where they clarify ownership boundaries; avoid broad explanatory comments that repeat code.
