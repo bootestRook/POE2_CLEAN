@@ -112,15 +112,15 @@
 
 ## 13. Frontend Verification
 
-- [ ] 13.1 Run `cmd /c npm run build`.
-- [ ] 13.2 Run `npm test` or the repository's accepted WebApp test command, documenting any pre-existing unrelated failure if one blocks completion.
-- [ ] 13.3 Run `node webapp/smoke-test.mjs` if it remains part of the WebApp acceptance flow.
-- [ ] 13.4 Start/open the WebApp through the project `run.bat` flow.
-- [ ] 13.5 Verify the actual playable WebApp title/save/rest flow, inventory overlay, stash panel, equipment/board surface, playable battle view, monster skill projectile/zone/arc visuals, and pause/portal/failure overlays as applicable to touched batches.
-- [ ] 13.6 Capture screenshots under `artifacts/screenshots/` for the verified playable WebApp surfaces.
-- [ ] 13.7 Store logs or generated verification evidence under `artifacts/logs/` or a task-specific `artifacts/` subdirectory.
-- [ ] 13.8 Confirm no screenshots, logs, traces, test outputs, or generated evidence were left in the repository root.
-- [ ] 13.9 Do not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, or `dist-skill-editor` as verification surfaces.
+- [x] 13.1 Run `cmd /c npm run build`.
+- [x] 13.2 Run `npm test` or the repository's accepted WebApp test command, documenting any pre-existing unrelated failure if one blocks completion.
+- [x] 13.3 Run `node webapp/smoke-test.mjs` if it remains part of the WebApp acceptance flow.
+- [x] 13.4 Start/open the WebApp through the project `run.bat` flow.
+- [x] 13.5 Verify the actual playable WebApp title/save/rest flow, inventory overlay, stash panel, equipment/board surface, playable battle view, monster skill projectile/zone/arc visuals, and pause/portal/failure overlays as applicable to touched batches.
+- [x] 13.6 Capture screenshots under `artifacts/screenshots/` for the verified playable WebApp surfaces.
+- [x] 13.7 Store logs or generated verification evidence under `artifacts/logs/` or a task-specific `artifacts/` subdirectory.
+- [x] 13.8 Confirm no screenshots, logs, traces, test outputs, or generated evidence were left in the repository root.
+- [x] 13.9 Do not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, or `dist-skill-editor` as verification surfaces.
 
 ## 14. Completion Review
 
