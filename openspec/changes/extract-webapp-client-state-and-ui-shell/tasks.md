@@ -3,7 +3,7 @@
 - [x] 1.1 Inspect branch and `git status --short`; identify unrelated dirty files and keep them out of this extraction.
 - [x] 1.2 Review `docs/webapp-module-boundaries.md`, `webapp/App.tsx`, `webapp/smoke-test.mjs`, and existing extracted component/state folders to confirm target ownership before editing.
 - [x] 1.3 Run or confirm the current baseline with `npm run build` and `npm test`; document any pre-existing unrelated blocker before extraction.
-- [ ] 1.4 Confirm implementation will not use backend APIs, server runtime behavior, skill-editor routes, port `8765`, `dist-skill-editor`, or skill-editor preview surfaces as acceptance evidence.
+- [x] 1.4 Confirm implementation will not use backend APIs, server runtime behavior, skill-editor routes, port `8765`, `dist-skill-editor`, or skill-editor preview surfaces as acceptance evidence.
 
 ## 2. UI Shell Extraction
 
