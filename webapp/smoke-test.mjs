@@ -1704,6 +1704,7 @@ for (const zoneType of ["entrance", "corridor", "main_room", "large_room", "dead
 }
 
 runMonsterSkillRuntimeSmoke();
+runMonsterSkillEventBuilderSmoke();
 runProceduralSpawnRuntimeSmoke();
 
 if (!existsSync(join(root, "dist", "index.html"))) {
@@ -1795,6 +1796,133 @@ function runMonsterSkillRuntimeSmoke() {
   runtime.markMonsterSkillReleased(bossTimer, atMajor.skill, 5000 + majorSkill.initial_cooldown_ms);
   const afterNormalCooldown = runtime.nextMonsterSkillCandidate(monsterSkillConfig, starMotherAssignment, bossTimer, 5000 + majorSkill.initial_cooldown_ms + majorSkill.cooldown_ms, majorSkill.range.min_cast_range, true);
   if (!afterNormalCooldown || afterNormalCooldown.skill.id !== majorSkill.id) throw new Error("boss major skill did not reuse normal cooldown after first release.");
+}
+
+function runMonsterSkillEventBuilderSmoke() {
+  const outDir = join(root, ".vite", "monster-skill-event-builder-smoke");
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  execFileSync(process.execPath, [
+    join(root, "node_modules", "typescript", "bin", "tsc"),
+    "webapp/runtime/monsterSkillEventBuilder.ts",
+    "--target", "ES2020",
+    "--module", "CommonJS",
+    "--moduleResolution", "Node",
+    "--skipLibCheck",
+    "--esModuleInterop",
+    "--resolveJsonModule",
+    "--outDir", outDir,
+    "--noEmitOnError", "true"
+  ], { cwd: root, encoding: "utf8" });
+
+  const builder = require(join(outDir, "runtime", "monsterSkillEventBuilder.js"));
+  const enemy = { id: 17, x: 100, y: 200 };
+  const player = { x: 260, y: 200 };
+  const projectileSkill = {
+    id: "mon_skill_twilight_sentry_bolt",
+    chinese_form: "Twilight Bolt",
+    module: "monster_projectile",
+    range: { cast_range: 500, effect_range: 300, leash_range: 420 },
+    projectile_count: 2,
+    projectile_speed: 150,
+    projectile_radius: 9,
+    projectile_width: 11,
+    windup_ms: 120,
+    damage_multiplier: 1.4,
+    damage_type: "lightning",
+    damage_form: "hit",
+    hit_kind: "spell",
+    hit_marker_id: "bolt_hit"
+  };
+  const projectileEvents = builder.buildMonsterSkillProjectileEvents({ enemy, target: player, skill: projectileSkill, sequence: 3, nowMs: 12345 });
+  if (projectileEvents.length !== 2) throw new Error("monster projectile builder must emit projectile_count events.");
+  const projectile = projectileEvents[0];
+  if (projectile.event_id !== "monster_17_mon_skill_twilight_sentry_bolt_3_1_12345.spawn") throw new Error("monster projectile builder changed event id shape.");
+  if (projectile.delay_ms !== 120 || projectile.duration_ms !== 2000) throw new Error("monster projectile builder changed windup/lifetime timing.");
+  if (projectile.damage_type !== "lightning" || projectile.payload.damage_form !== "hit") throw new Error("monster projectile builder changed damage type/form payload.");
+  if (projectile.payload.projectile_range !== 300 || projectile.payload.player_leash_range !== 420) throw new Error("monster projectile builder changed range/leash payload.");
+  if (projectile.payload.source_enemy_id !== 17 || projectile.payload.hit_marker_id !== "bolt_hit") throw new Error("monster projectile builder changed source or hit marker payload.");
+
+  const zoneSkill = {
+    id: "mon_skill_poison_weave_mist",
+    chinese_form: "Poison Weave",
+    module: "monster_damage_zone",
+    range: { cast_range: 500, effect_range: 160, leash_range: 240 },
+    radius: 32,
+    warning_ms: 300,
+    duration_ms: 480,
+    repeat_count: 2,
+    repeat_interval_ms: 100,
+    damage_multiplier: 1.25,
+    damage_type: "chaos",
+    damage_form: "dot",
+    hit_kind: "spell",
+    hit_marker_id: "poison_hit",
+    trigger_marker_id: "poison_trigger"
+  };
+  const zoneBuilt = builder.buildMonsterSkillMeleeZoneEvents({
+    enemy,
+    target: player,
+    skill: zoneSkill,
+    sequence: 4,
+    nowMs: 20000,
+    repeatIndex: 2,
+    repeatCount: 2,
+    damageAmount: 80
+  });
+  if (zoneBuilt.events.length !== 2) throw new Error("monster zone builder must emit warning plus damage events.");
+  if (zoneBuilt.events[0].type !== "damage_zone_prime" || zoneBuilt.events[1].type !== "damage_zone") throw new Error("monster zone builder changed warning/damage event types.");
+  if (zoneBuilt.events[1].delay_ms !== 300 || zoneBuilt.events[1].duration_ms !== 480) throw new Error("monster zone builder changed delay/duration payload.");
+  if (zoneBuilt.events[1].payload.damage_amount !== 100) throw new Error("monster zone builder changed damage amount formula.");
+  if (zoneBuilt.events[1].payload.repeat_index !== 2 || zoneBuilt.events[1].payload.repeat_count !== 2) throw new Error("monster zone builder changed repeat payload.");
+  if (zoneBuilt.events[1].payload.origin_world_position.x !== player.x || zoneBuilt.events[1].payload.origin_world_position.y !== player.y) {
+    throw new Error("monster zone builder changed poison weave target-centered placement.");
+  }
+  if (zoneBuilt.pendingDamageZoneHit.zones.length !== 1 || zoneBuilt.pendingDamageZoneHit.damageForm !== "dot") throw new Error("monster zone builder changed pending hit payload.");
+
+  const arcSkill = {
+    id: "mon_skill_dust_ring_scrape",
+    chinese_form: "Dust Scrape",
+    module: "monster_melee_arc",
+    range: { cast_range: 220, effect_range: 90, leash_range: 140 },
+    radius: 66,
+    windup_ms: 80,
+    duration_ms: 260,
+    arc_angle: 150,
+    damage_multiplier: 2,
+    damage_type: "physical",
+    damage_form: "secondary",
+    hit_kind: "attack"
+  };
+  const arcBuilt = builder.buildMonsterSkillMeleeZoneEvents({ enemy, target: player, skill: arcSkill, sequence: 5, nowMs: 22000, repeatIndex: 1, repeatCount: 1, damageAmount: 50 });
+  if (arcBuilt.events.length !== 1 || arcBuilt.events[0].type !== "melee_arc") throw new Error("monster melee arc builder must emit melee_arc event.");
+  if (arcBuilt.events[0].payload.arc_angle !== 150 || arcBuilt.events[0].payload.arc_radius !== 66 || arcBuilt.events[0].payload.range !== 66) {
+    throw new Error("monster melee arc builder changed arc payload.");
+  }
+
+  const repeatedRingSkill = {
+    ...zoneSkill,
+    id: "repeated_ring_smoke",
+    zone_pattern: "ring",
+    zone_count: 5,
+    zone_spacing: 80,
+    radius: 24
+  };
+  const repeatedRing = builder.buildMonsterSkillMeleeZoneEvents({ enemy, target: player, skill: repeatedRingSkill, sequence: 6, nowMs: 23000, repeatIndex: 1, repeatCount: 3, damageAmount: 40 });
+  if (repeatedRing.pendingDamageZoneHit.zones.length < 4) throw new Error("monster repeated ring zone builder must preserve multi-zone payloads.");
+
+  const supportDisplay = builder.buildMonsterSupportDisplayEvents({
+    source: enemy,
+    skill: { ...zoneSkill, id: "support_smoke" },
+    radius: 120,
+    healedAllies: [{ x: 110, y: 210, amount: 25.4 }, { x: 120, y: 220, amount: 0 }],
+    nextTextId: 30,
+    nextAreaNovaId: 8,
+    includeHealPulse: true
+  });
+  if (supportDisplay.texts.length !== 1 || supportDisplay.texts[0].id !== 30 || supportDisplay.texts[0].text !== "+25") throw new Error("monster support display builder changed heal text payload.");
+  if (!supportDisplay.areaNova || supportDisplay.areaNova.id !== 8 || supportDisplay.areaNova.vfxKey !== "monster_heal_pulse") throw new Error("monster support display builder changed heal pulse payload.");
+  if (supportDisplay.nextTextId !== 31 || supportDisplay.nextAreaNovaId !== 9) throw new Error("monster support display builder changed id advancement.");
 }
 
 function runProceduralSpawnRuntimeSmoke() {
