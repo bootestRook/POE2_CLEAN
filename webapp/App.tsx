@@ -16371,15 +16371,45 @@ function frontendDirectDamageTotal(value: Record<string, unknown>) {
 }
 
 function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
+  const conduitSections = frontendConduitTooltipSections(gem);
   return {
     ...view,
     tags: view.tags.map((tag) => frontendDisplayGemKindTag(gem, tag)),
     summary_lines: replaceGemTagRichLines(gem, view.summary_lines),
     sections: {
       ...view.sections,
+      ...conduitSections,
       conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions, frontendRecord),
     },
   };
+}
+
+function frontendConduitTooltipSections(gem: Gem): Partial<TooltipView["sections"]> {
+  const relation = frontendConduitRelation(gem);
+  if (!relation) return {};
+  const skillLevelAdd = frontendSkillLevelTableValueById(
+    frontendSupportLevelTableId(gem),
+    frontendSupportEffectiveLevel(gem, 0),
+    "skill_level_add"
+  );
+  const relationText = frontendConduitRelationDescriptionText(relation);
+  return {
+    description: {
+      title_text: "",
+      lines: [],
+      rich_lines: [[{ text: `使${relationText}连接的技能等级提高。`, tone: "body" }]],
+    } as TooltipView["sections"]["description"] & { rich_lines: TooltipRichLine[] },
+    base_bonuses: Number.isFinite(skillLevelAdd) && Number(skillLevelAdd) !== 0 ? {
+      rich_lines: [[{ text: `技能等级 ${formatModifierValue("active_gem_level_add", Number(skillLevelAdd))}`, tone: "bonus-positive" }]],
+    } : undefined,
+  };
+}
+
+function frontendConduitRelationDescriptionText(relation: string) {
+  if (relation === "same_row") return "同行";
+  if (relation === "same_column") return "同列";
+  if (relation === "same_box") return "同宫";
+  return "连接";
 }
 
 function frontendSupportTargetTagTexts(gem: Gem) {

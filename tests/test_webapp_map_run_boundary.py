@@ -357,6 +357,11 @@ def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
     assert "`等级 ${levelText}`" in support_tooltip_body
     assert "const descriptionLines = supportDescriptionRichLines(sections.description)" in support_tooltip_body
     assert "descriptionLines.map((line, index) => <RichText key={index} line={line} />)" in support_tooltip_body
+    assert "const conduitSections = frontendConduitTooltipSections(gem)" in source
+    assert "...conduitSections" in source
+    assert 'rich_lines: [[{ text: `使${relationText}连接的技能等级提高。`, tone: "body" }]]' in source
+    assert '`技能等级 ${formatModifierValue("active_gem_level_add", Number(skillLevelAdd))}`' in source
+    assert "frontendSupportEffectiveLevel(gem, 0)" in source
     assert "ensureGemLevelStatLine(gem, view.sections.stats.lines)" in active_normalizer_body
     assert "if (isEffectiveSkillLevelValue(line.value_text)) return line" in level_line_body
     assert "return { ...line, value_text: levelText }" in level_line_body
