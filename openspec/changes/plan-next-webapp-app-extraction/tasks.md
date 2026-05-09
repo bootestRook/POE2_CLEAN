@@ -8,11 +8,11 @@
 ## 2. Tooltip View-Model Extraction
 
 - [x] 2.1 Identify tooltip-only types and helpers in `webapp/App.tsx`, including rich-text highlighting, tooltip stat/tag normalization, support tooltip lines, equipment tooltip lines, and `buildGemTooltipViewModel`.
-- [ ] 2.2 Move tooltip view-model and formatting helpers into focused modules under `webapp/components/tooltips/` or pure utility modules, preserving text, class names, tag ordering, rarity tones, comparison behavior, icon behavior, and hover state ownership.
-- [ ] 2.3 Keep App-owned tooltip state, pointer/hover state, drag state, item lookup maps, and `GemTooltipOverlay` usage unchanged.
-- [ ] 2.4 Update static checks only as needed so required tooltip strings and helper coverage are still enforced after moving code out of `App.tsx`.
-- [ ] 2.5 Run `npm run build`, `npm test`, playable WebApp verification through `run.bat`, and screenshot capture under `artifacts/screenshots/`; review the diff for unrelated changes.
-- [ ] 2.6 Commit the tooltip extraction before starting the next extraction batch.
+- [x] 2.2 Move tooltip view-model and formatting helpers into focused modules under `webapp/components/tooltips/` or pure utility modules, preserving text, class names, tag ordering, rarity tones, comparison behavior, icon behavior, and hover state ownership.
+- [x] 2.3 Keep App-owned tooltip state, pointer/hover state, drag state, item lookup maps, and `GemTooltipOverlay` usage unchanged.
+- [x] 2.4 Update static checks only as needed so required tooltip strings and helper coverage are still enforced after moving code out of `App.tsx`.
+- [x] 2.5 Run `npm run build`, `npm test`, playable WebApp verification through `run.bat`, and screenshot capture under `artifacts/screenshots/`; review the diff for unrelated changes.
+- [x] 2.6 Commit the tooltip extraction before starting the next extraction batch.
 
 ## 3. Inventory And Equipment Helper Extraction
 
