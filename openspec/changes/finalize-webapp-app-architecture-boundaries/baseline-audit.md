@@ -123,3 +123,9 @@ These App-local shapes are likely to be needed by extracted modules. They should
 - Tooltip and drag types: `Tooltip`, `FloatingGem`.
 
 Initial extraction should prefer generic props for render-only components. Shared type modules are justified only when multiple focused modules need the same shape and importing from App would create a circular or reverse dependency.
+
+Type boundary decision for the first extraction batch:
+
+- No new type-only module is required before extracting the inventory overlay.
+- The inventory overlay can use local generic props for item, floating item, slot, tooltip, panel, and preview shapes.
+- Shared type modules should be created later only when a concrete extracted runtime or presentation module needs a stable shape that cannot be expressed locally without importing from App.
