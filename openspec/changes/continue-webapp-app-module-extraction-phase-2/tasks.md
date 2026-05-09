@@ -46,4 +46,6 @@
 - [x] 6.3 Run `run.bat --check` and store command output under `artifacts/logs/`.
 - [x] 6.4 Launch or match the actual WebApp through `run.bat`, exercise the affected playable surfaces, and capture final screenshots under `artifacts/screenshots/`.
 - [x] 6.5 Review `git diff` and `git status --short` to confirm there are no unrelated refactors, CSS redesigns, copy edits, dependency changes, save-schema changes, gameplay behavior changes, backend calls, root-level screenshots/logs, or skill-editor acceptance changes.
-- [ ] 6.6 Record the final `webapp/App.tsx` line count and summarize which extraction batches were committed.
+- [x] 6.6 Record the final `webapp/App.tsx` line count and summarize which extraction batches were committed.
+
+Final line count: `webapp/App.tsx` is 9,771 lines. Committed extraction batches: frontend loot/drop state helpers, skill-board support preview hooks, battle render layer presentation helpers, small tooltip/display formatting helpers, smoke-test source-boundary update, and final verification checkpoints.
