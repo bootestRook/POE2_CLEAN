@@ -37,7 +37,7 @@
 - [x] 5.2 Move helpers only into existing focused modules when the move removes App coupling and does not require runtime state, refs, storage writes, save data, browser side effects, backend calls, or gameplay calculations.
 - [x] 5.3 Stop and defer any helper whose extraction requires changing App state flow, runtime event queues, inventory mutation orchestration, map progression, or save/load behavior.
 - [x] 5.4 Run `npm run build`, `npm test`, and final diff review for each small cleanup batch before committing.
-- [ ] 5.5 Launch the WebApp through `run.bat` for any frontend-affecting cleanup, capture screenshots under `artifacts/screenshots/`, and confirm no artifacts were written to the repository root.
+- [x] 5.5 Launch the WebApp through `run.bat` for any frontend-affecting cleanup, capture screenshots under `artifacts/screenshots/`, and confirm no artifacts were written to the repository root.
 
 ## 6. Final Verification And Closeout
 
