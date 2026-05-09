@@ -26,11 +26,11 @@
 ## 4. Save Storage Utility Extraction
 
 - [x] 4.1 Reassess whether save storage helper extraction is still low enough risk after the previous batches; stop or split into a separate change if payload or migration semantics need alteration.
-- [ ] 4.2 If safe, move local save-slot/autosave key helpers, load helpers, summary helpers, payload conversion helpers, and clear/save helpers into a focused client-only utility module.
-- [ ] 4.3 Preserve storage keys, save payload shape, active-slot behavior, legacy autosave migration behavior, error text, timestamp handling, and save/load semantics exactly.
-- [ ] 4.4 Keep React state ownership, new-game creation, equipment/stat recalculation ownership, and UI save-selection callbacks in `webapp/App.tsx`.
-- [ ] 4.5 Run `npm run build`, `npm test`, playable WebApp verification through `run.bat`, and screenshot capture under `artifacts/screenshots/`; review the diff for storage, schema, copy, backend, or unrelated changes.
-- [ ] 4.6 Commit the save storage utility extraction only after verification passes.
+- [x] 4.2 If safe, move local save-slot/autosave key helpers, load helpers, summary helpers, payload conversion helpers, and clear/save helpers into a focused client-only utility module.
+- [x] 4.3 Preserve storage keys, save payload shape, active-slot behavior, legacy autosave migration behavior, error text, timestamp handling, and save/load semantics exactly.
+- [x] 4.4 Keep React state ownership, new-game creation, equipment/stat recalculation ownership, and UI save-selection callbacks in `webapp/App.tsx`.
+- [x] 4.5 Run `npm run build`, `npm test`, playable WebApp verification through `run.bat`, and screenshot capture under `artifacts/screenshots/`; review the diff for storage, schema, copy, backend, or unrelated changes.
+- [x] 4.6 Commit the save storage utility extraction only after verification passes.
 
 ## 5. Deferred High-Risk Areas
 
