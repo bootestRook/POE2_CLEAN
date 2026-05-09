@@ -51,7 +51,7 @@
 - [x] 6.3 Preserve every existing numeric formula, special skill-id case, VFX key string, pattern name, default value, and return shape.
 - [x] 6.4 Ensure the helper module depends only on explicit inputs and pure utilities, and does not read React state, refs, local storage, browser globals, runtime queues, player/enemy mutable state beyond supplied arguments, or backend services.
 - [x] 6.5 Add focused tests or smoke/source checks for representative fan/ring/spiral/cross spread, zone patterns, special-case zone centers, special-case VFX keys, and aim policies.
-- [ ] 6.6 Rewire `App.tsx` to import these helpers and leave side effects in App.
+- [x] 6.6 Rewire `App.tsx` to import these helpers and leave side effects in App.
 - [ ] 6.7 Run build/test checks and inspect the diff for behavior-only movement.
 
 ## 7. Monster Skill Event Builder Extraction
