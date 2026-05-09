@@ -86,7 +86,7 @@
 
 ## 10. UI Shell And Entry Flow Extraction
 
-- [ ] 10.1 Create focused layout components for title entry, non-gameplay App chrome, and shell overlays only where they reduce App JSX without moving state ownership.
+- [x] 10.1 Create focused layout components for title entry, non-gameplay App chrome, and shell overlays only where they reduce App JSX without moving state ownership.
 - [ ] 10.2 Extract the title screen display while preserving text, class names, aria labels, button behavior, and entry-step transitions.
 - [ ] 10.3 Extract shell overlay composition for release-debug HUD, map debug toggle, procedural spawn debug panel, spawn warnings, game failure overlay, pause overlay, portal confirm overlay, help text, skill-editor disabled toggles, map selection panel gate, and combat feed only as render-only composition.
 - [ ] 10.4 Keep mode state, save state, pause state, game failure state, portal confirmation state, skill-editor disabled state, and runtime logs owned by App.
