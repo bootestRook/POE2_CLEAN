@@ -52,15 +52,15 @@ export function StashPanel<TItem extends StashPanelItem, TFloatingGem>({
   onLeaveGem: () => void;
 }) {
   return (
-    <section className="stash-workbench" aria-label="浠撳簱">
+    <section className="stash-workbench" aria-label="仓库">
       <header className="stash-header">
         <div>
-          <h2>浠撳簱</h2>
-          <span>姣忛〉 10x10锛屽叡 5 椤?</span>
+          <h2>仓库</h2>
+          <span>每页 10x10，共 5 页</span>
         </div>
-        <button type="button" onClick={onClose}>杩斿洖浼戞伅鍖?</button>
+        <button type="button" onClick={onClose}>返回休息区</button>
       </header>
-      <div className="stash-page-tabs" role="tablist" aria-label="浠撳簱椤电">
+      <div className="stash-page-tabs" role="tablist" aria-label="仓库页签">
           {pages.map((_, index) => (
             <button
               key={`stash-page-${index}`}
