@@ -1573,6 +1573,27 @@ const monsterSkillPresentationChecks = [
 for (const [source, token, message] of monsterSkillPresentationChecks) {
   if (!source.includes(token)) throw new Error(message);
 }
+const monsterSkillEventBuilderChecks = [
+  [monsterSkillEventBuilder, 'event_id: `${projectileId}.spawn`', "Monster projectile events must preserve spawn event ids."],
+  [monsterSkillEventBuilder, 'source_entity: "boss"', "Monster projectile events must preserve boss source entity."],
+  [monsterSkillEventBuilder, 'target_entity: "player"', "Monster projectile events must preserve player target entity."],
+  [monsterSkillEventBuilder, "spawn_world_position: { x: enemy.x, y: enemy.y }", "Monster projectile events must preserve source spawn position."],
+  [monsterSkillEventBuilder, "target_world_position: targetWorldPosition", "Monster projectile events must preserve authored target position."],
+  [monsterSkillEventBuilder, "velocity_world: { x: direction.x * speed, y: direction.y * speed }", "Monster projectile events must preserve velocity payload."],
+  [monsterSkillEventBuilder, "projectile_speed: speed", "Monster projectile events must preserve projectile speed payload."],
+  [monsterSkillEventBuilder, "projectile_range: travel", "Monster projectile events must preserve projectile range payload."],
+  [monsterSkillEventBuilder, "projectile_width: Number(skill.projectile_width ?? skill.projectile_radius ?? 18) * 2", "Monster projectile events must preserve projectile width fallback."],
+  [monsterSkillEventBuilder, "projectile_radius: Number(skill.projectile_radius ?? 12)", "Monster projectile events must preserve projectile radius fallback."],
+  [monsterSkillEventBuilder, "lifetime_ms: lifetimeMs", "Monster projectile events must preserve computed lifetime payload."],
+  [monsterSkillEventBuilder, "source_enemy_id: enemy.id", "Monster projectile events must preserve source enemy metadata."],
+  [monsterSkillEventBuilder, "player_leash_range: skill.range.leash_range", "Monster projectile events must preserve leash range payload."],
+  [monsterSkillEventBuilder, "hit_marker_id: skill.hit_marker_id", "Monster projectile events must preserve hit marker payload."],
+  [monsterSkillEventBuilder, "suppress_hit_vfx: monsterSkillSuppressHitVfx(skill)", "Monster projectile events must preserve suppress-hit-VFX payload."],
+  [monsterSkillEventBuilder, "damage_form: monsterSkillDamageForm(skill)", "Monster projectile events must preserve damage form payload."]
+];
+for (const [source, token, message] of monsterSkillEventBuilderChecks) {
+  if (!source.includes(token)) throw new Error(message);
+}
 for (const forbidden of ["useState", "useRef", "localStorage", "sessionStorage", "fetch(", "playerStateRef", "enemiesStateRef", "scheduledSkillEvents", "activeDamageZones"]) {
   if (monsterSkillPresentation.includes(forbidden)) {
     throw new Error(`Monster skill presentation helper must stay pure and client-local: ${forbidden}`);
