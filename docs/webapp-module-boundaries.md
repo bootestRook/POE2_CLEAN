@@ -14,6 +14,18 @@ If the change seems to require editing `webapp/App.tsx`, first ask whether the c
 
 If no existing owner fits the work, update this module-boundary plan or create a focused module plan before implementing the feature. Do not add new WebApp feature code directly to `webapp/App.tsx` as the fallback destination.
 
+## App.tsx Allowed Edits
+
+`webapp/App.tsx` is the orchestration root, not a feature module. After the final architecture pass, App edits are allowed only for:
+
+- top-level mode routing between existing WebApp surfaces;
+- App-owned cross-domain React state or ref initialization;
+- viewport shell composition and launch/bootstrap flags;
+- importing focused modules and passing existing state/callbacks into them;
+- unavoidable adapter calls that connect two focused modules without taking ownership of either module's behavior.
+
+If an App edit adds feature UI, runtime formulas, event payload construction, save/storage helpers, target selection, damage logic, or display formatting, the work belongs in a focused module first.
+
 ## Current Target Folders
 
 - `webapp/components/tooltips/`: tooltip presentation, tooltip panels, tooltip-only display controls, tooltip formatting adapters, rich tooltip sections, and gem orbs.
