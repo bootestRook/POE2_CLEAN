@@ -93,6 +93,7 @@ import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
+import { isFloatingOrigin, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
@@ -1465,12 +1466,6 @@ type Tooltip = {
   comparisonGem?: Gem | null;
 };
 
-type FloatingOrigin =
-  | { kind: "board"; row: number; column: number }
-  | { kind: "bag"; slotIndex: number; instanceId: string }
-  | { kind: "equipment"; slotIndex: number; slotId: string; instanceId: string }
-  | { kind: "stash"; pageIndex: number; slotIndex: number; instanceId: string };
-
 type FloatingGem = {
   gem: Gem;
   origin: FloatingOrigin;
@@ -1479,14 +1474,6 @@ type FloatingGem = {
   offsetX: number;
   offsetY: number;
 };
-
-type DropTarget =
-  | { kind: "board"; row: number; column: number }
-  | { kind: "bag"; slotIndex: number }
-  | { kind: "equipment"; slotIndex: number; slotId: string }
-  | { kind: "stash"; pageIndex: number; slotIndex: number }
-  | { kind: "map"; position: { x: number; y: number } }
-  | { kind: "invalid" };
 
 type PlacementResult =
   | { type: "place" }
@@ -10938,54 +10925,6 @@ function tooltipPositionConfig() {
     screenPadding: TOOLTIP_SCREEN_PADDING,
     inventoryColumns: INVENTORY_COLUMNS
   };
-}
-
-function isFloatingOrigin(floatingGem: FloatingGem | null, origin: FloatingOrigin) {
-  if (!floatingGem) return false;
-  const current = floatingGem.origin;
-  if (current.kind !== origin.kind) return false;
-  if (current.kind === "bag" && origin.kind === "bag") return current.slotIndex === origin.slotIndex && current.instanceId === origin.instanceId;
-  if (current.kind === "board" && origin.kind === "board") return current.row === origin.row && current.column === origin.column;
-  if (current.kind === "equipment" && origin.kind === "equipment") {
-    return current.slotIndex === origin.slotIndex && current.slotId === origin.slotId && current.instanceId === origin.instanceId;
-  }
-  if (current.kind === "stash" && origin.kind === "stash") {
-    return current.pageIndex === origin.pageIndex && current.slotIndex === origin.slotIndex && current.instanceId === origin.instanceId;
-  }
-  return false;
-}
-
-function resolveDropTarget(element: Element | null): DropTarget {
-  const boardCell = element?.closest("[data-board-row][data-board-column]") as HTMLElement | null;
-  if (boardCell) {
-    return {
-      kind: "board",
-      row: Number(boardCell.dataset.boardRow),
-      column: Number(boardCell.dataset.boardColumn)
-    };
-  }
-
-  const bagCell = element?.closest("[data-bag-slot-index]") as HTMLElement | null;
-  if (bagCell) return { kind: "bag", slotIndex: Number(bagCell.dataset.bagSlotIndex) };
-
-  const stashCell = element?.closest("[data-stash-slot-index][data-stash-page-index]") as HTMLElement | null;
-  if (stashCell) {
-    return {
-      kind: "stash",
-      pageIndex: Number(stashCell.dataset.stashPageIndex),
-      slotIndex: Number(stashCell.dataset.stashSlotIndex)
-    };
-  }
-
-  const equipmentCell = element?.closest("[data-equipment-slot-index]") as HTMLElement | null;
-  if (equipmentCell) {
-    return {
-      kind: "equipment",
-      slotIndex: Number(equipmentCell.dataset.equipmentSlotIndex),
-      slotId: equipmentCell.dataset.equipmentSlotId ?? ""
-    };
-  }
-  return { kind: "invalid" };
 }
 
 function isInventoryDropBlockedByInterface(element: Element | null) {
