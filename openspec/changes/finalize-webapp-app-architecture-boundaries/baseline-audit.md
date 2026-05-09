@@ -43,6 +43,7 @@ This file records the current `webapp/App.tsx` responsibility map for `finalize-
 - The highest-value runtime pure-helper block is monster skill helper logic at lines 2712-2814.
 - Monster skill event construction at lines 2519-2709 is valuable but must follow pure helper extraction because it still feeds App-owned side effects.
 - App-owned side effects that must not move first include `consumeSkillEventTimeline`, pending hit queues, `setTexts`, `setAreaNovas`, save writes, pickup completion, battle tick scheduling, and runtime refs.
+- Initial `InventoryOverlay` extraction starts with the outer render shell only. Existing values and callbacks remain produced by App and flow through the component's render children; the component does not own save state, storage writes, drag/drop mutation, tooltip ownership, GM request logic, equipment stat recalculation, board mutation, or runtime refs.
 
 ## App-Owned State And Runtime Invariants To Preserve
 
