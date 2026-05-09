@@ -7,6 +7,7 @@ const root = process.cwd();
 const require = createRequire(import.meta.url);
 const app = readFileSync(join(root, "webapp", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
 const playableBattleScene = readFileSync(join(root, "webapp", "features", "playable-battle", "PlayableBattleScene.tsx"), "utf8").replace(/\r\n/g, "\n");
+const battleRenderLayer = readFileSync(join(root, "webapp", "components", "battle", "BattleRenderLayer.tsx"), "utf8").replace(/\r\n/g, "\n");
 const enemyRuntime = readFileSync(join(root, "webapp", "runtime", "enemyRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
 const enemyTypes = readFileSync(join(root, "webapp", "types", "enemyTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const runtimeEnemySourceText = [app, enemyRuntime, enemyTypes].join("\n");
@@ -385,7 +386,7 @@ const battleGeometrySnapshotEnemies = playableBattleScene.slice(
 if (!battleGeometrySnapshotEnemies.includes("lastDamagedAt: enemy.lastDamagedAt")) {
   throw new Error("Canvas battle geometry enemies must receive lastDamagedAt for damage flash.");
 }
-const renderBattleEntityBody = functionBody(app, "renderBattleEntity");
+const renderBattleEntityBody = functionBody(battleRenderLayer, "renderBattleEntity");
 if (!renderBattleEntityBody.includes("enemyHitFlashAmount(entity.lastDamagedAt")) {
   throw new Error("DOM enemy rendering must derive white hit flash from lastDamagedAt.");
 }
