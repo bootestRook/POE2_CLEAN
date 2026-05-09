@@ -51,6 +51,18 @@ Line numbers are temporary navigation notes. If the file changes, update the own
 7. Title, UI shell, and non-gameplay overlay composition.
 8. Final App boundary cleanup and source-test ownership migration.
 
+## Completion Definition
+
+The App architecture pass is complete when all of the following are true:
+
+- `webapp/App.tsx` keeps only mode routing, App-owned cross-domain state/ref initialization, viewport shell composition, callback wiring, and intentional orchestration adapters.
+- Large render-only inventory, equipment, stash, board, title, and non-gameplay shell UI blocks no longer live inline in App.
+- Monster skill pure helpers and monster skill event payload builders are searchable in focused runtime modules outside App.
+- Extracted modules do not import from `webapp/App.tsx`; shared shapes live in type-only modules when needed.
+- Source-text and smoke tests read the module that owns each protected invariant instead of requiring moved functions to remain in App.
+- Future WebApp module placement guidance is documented in `docs/webapp-module-boundaries.md`.
+- Build, tests, OpenSpec validation, and actual playable WebApp verification through the `run.bat` flow have passed for the final batch.
+
 ## Defer Unless Explicitly Scoped
 
 - Battle-loop ownership and runtime hook ownership.

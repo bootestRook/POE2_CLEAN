@@ -13,7 +13,7 @@
 - [x] 2.2 Update `docs/webapp-module-boundaries.md` with the final owner map for inventory, skill-board, battle presentation, battle runtime, monster skills, player damage, save/state, drops, tooltips, rest-area, layout shell, utils, hooks, and types.
 - [x] 2.3 Update `docs/webapp-module-boundaries.md` to state when `webapp/App.tsx` edits are allowed: mode routing, state/ref initialization, callback wiring, and unavoidable adapter calls only.
 - [x] 2.4 Update `docs/webapp-app-decomposition-map.md` so it reflects the current App shape instead of stale historical line ranges.
-- [ ] 2.5 Add the final completion definition to `docs/webapp-app-decomposition-map.md`: ownership clarity, no App imports from extracted modules, no large render-only UI in App, searchable monster skill helpers/event builders, and verified playable WebApp behavior.
+- [x] 2.5 Add the final completion definition to `docs/webapp-app-decomposition-map.md`: ownership clarity, no App imports from extracted modules, no large render-only UI in App, searchable monster skill helpers/event builders, and verified playable WebApp behavior.
 - [ ] 2.6 Document that future missing module boundaries must be planned first instead of adding new App-local feature code.
 
 ## 3. Shared Type Boundary Preparation
