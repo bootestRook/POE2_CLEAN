@@ -79,15 +79,14 @@ import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 import { CharacterInfoPanel } from "./components/character/CharacterInfoPanel";
 import type { CharacterPanelView } from "./components/character/CharacterInfoPanel";
 import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
-import { GemOrbView } from "./components/tooltips/GemOrb";
+import { GemOrb } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildEquipmentRarityToneForGem, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
-import { gemIconSprite } from "./components/tooltips/gemIconSprites";
+import { activeDpsToneClass, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
-import { gemColorKey, gemColorValue, romanGemLevel } from "./utils/gemDisplay";
+import { gemColorValue } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
@@ -16365,10 +16364,6 @@ function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
   return buildEquipmentTooltipRarityTone(gem, view);
 }
 
-function equipmentRarityToneForGem(gem: Gem) {
-  return buildEquipmentRarityToneForGem(gem);
-}
-
 function normalizedEquipmentTooltipTags(gem: Gem, view: TooltipView, rarityTone: string) {
   return buildNormalizedEquipmentTooltipTags(gem, view, rarityTone, frontendEquipmentRarities);
 }
@@ -16379,27 +16374,6 @@ function equipmentTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
 
 function equipmentTooltipBonusLines(gem: Gem, lines: string[]) {
   return buildEquipmentTooltipBonusLines(gem, lines);
-}
-
-function GemOrb({ gem }: { gem: Gem }) {
-  const isGem = isGemItem(gem);
-  const equipmentTone = equipmentRarityToneForGem(gem);
-  const sprite: string = (gem.tooltip_view?.icon_sprite
-    || (isGem ? gemIconSprite(gem) : "")
-    || (gem.item_kind === "equipment" ? frontendEquipmentIconSprite(gem.gem_type?.id ?? gem.gem_type?.display_text ?? gem.category_text) : "")
-    || "");
-  const className: string = !isGem
-    ? `item-orb ${equipmentTone ? `item-orb-rarity-${equipmentTone}` : ""}`
-    : `gem-orb-color-${String(gem.tooltip_view?.icon_color_key ?? gemColorKey(gem))}`;
-  const level = isGem ? Math.max(1, Math.floor(Number(gem.level ?? 1))) : 0;
-  return (
-    <GemOrbView
-      className={className}
-      sprite={sprite}
-      iconText={gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}
-      levelText={level > 0 ? romanGemLevel(level) : ""}
-    />
-  );
 }
 
 function usesSkillEventPipeline(skill: SkillPreview) {
