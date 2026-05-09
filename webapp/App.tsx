@@ -1047,6 +1047,8 @@ const TOOLTIP_SCREEN_PADDING = 8;
 const ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY = "poe2.v1.item_discard.skip_confirm";
 const STARTER_GEM_BOARD_POSITION = { row: 4, column: 4 } as const;
 const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);
+const MONSTER_TEST_PLAYER_LIFE = 9_999_999;
+const MONSTER_TEST_LEVEL = 86;
 
 type FrontendSaveSlotSummary = FrontendSaveStorageSlotSummary<FrontendSavePayload>;
 
@@ -2298,8 +2300,6 @@ export function App() {
   return spriteTestMode ? <SpriteTestScene /> : <GameApp />;
 }
 
-const MONSTER_TEST_PLAYER_LIFE = 9_999_999;
-const MONSTER_TEST_LEVEL = 86;
 const MONSTER_TEST_SPAWN_OFFSETS = [
   { x: 360, y: 0 },
   { x: 300, y: -160 },
