@@ -313,6 +313,62 @@ for (const file of webappSourceFiles) {
     }
   }
 }
+for (const forbiddenClientOnlyToken of [
+  "fetch(",
+  "/" + "api/",
+  "axios.",
+  "express()",
+  "createServer(",
+  "WebSocketServer",
+  "runServer" + "Combat",
+  "requestRuntime" + "SkillEvents"
+]) {
+  if (webappSourceText.includes(forbiddenClientOnlyToken)) {
+    throw new Error(`WebApp must stay client-only and not add backend/server gameplay coupling: ${forbiddenClientOnlyToken}`);
+  }
+}
+for (const forbiddenSkillEditorAcceptanceToken of [
+  "/" + "skill-editor",
+  "?skill_editor=1",
+  "view=skill_editor",
+  "dist-skill-editor",
+  "127.0.0.1:8765",
+  "localhost:8765"
+]) {
+  if (webappSourceText.includes(forbiddenSkillEditorAcceptanceToken) || html.includes(forbiddenSkillEditorAcceptanceToken)) {
+    throw new Error(`Playable WebApp acceptance must not use skill-editor surfaces: ${forbiddenSkillEditorAcceptanceToken}`);
+  }
+}
+const extractedPresentationAndStateSources = [
+  entryTitleScreen,
+  appTopHud,
+  gameShellOverlays,
+  inventoryOverlay,
+  equipmentPanel,
+  inventoryBagPanel,
+  inventorySkillBoardPanel,
+  stashState,
+  frontendAppState,
+  frontendDropState,
+  frontendSaveStorage,
+  monsterSkillPresentation
+];
+for (const source of extractedPresentationAndStateSources) {
+  for (const forbiddenRuntimeOwnerToken of [
+    "function consumeSkillEvent",
+    "function applyDamageEventBatch",
+    "setEnemies(",
+    "setRuntimePlayer",
+    "activeDamageZones",
+    "pendingBossDamageZoneHits",
+    "consumeSkillEventTimeline(",
+    "scheduledSkillEvents"
+  ]) {
+    if (source.includes(forbiddenRuntimeOwnerToken)) {
+      throw new Error(`Extracted presentation/state modules must not duplicate App gameplay runtime ownership: ${forbiddenRuntimeOwnerToken}`);
+    }
+  }
+}
 for (const requiredRestAreaCss of [
   ".rest-area-scene",
   ".rest-area-room",
