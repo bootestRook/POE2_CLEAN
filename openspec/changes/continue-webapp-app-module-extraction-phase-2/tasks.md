@@ -7,7 +7,7 @@
 
 ## 2. Frontend Loot And Drop State Extraction
 
-- [ ] 2.1 Inspect `webapp/App.tsx` loot/drop functions around map stage selection, drop rolls, drop kind selection, map-entry selection, gem weighting, drop payload creation, and inventory item creation.
+- [x] 2.1 Inspect `webapp/App.tsx` loot/drop functions around map stage selection, drop rolls, drop kind selection, map-entry selection, gem weighting, drop payload creation, and inventory item creation.
 - [ ] 2.2 Create `webapp/state/frontendDropState.ts` for deterministic client-side loot/drop helper functions with explicit dependencies passed as arguments.
 - [ ] 2.3 Move pure helpers such as map-stage selection, drop roll/chance/attempt calculations, random map level, equipment rarity selection, drop kind selection, map-entry target selection, gem weighting, gem option selection, frontend drop creation, guaranteed map-entry drop creation, next item id, and frontend inventory item creation.
 - [ ] 2.4 Keep `spawnFrontendDrops`, `applyFrontendPickup`, `beginDropPickup`, `finishDropPickup`, boss portal confirmation/use, player proximity checks, save writes, and inventory mutation orchestration in `webapp/App.tsx`.
