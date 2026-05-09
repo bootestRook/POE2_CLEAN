@@ -1,49 +1,59 @@
 # WebApp App.tsx Decomposition Map
 
-This map records safe first-pass extraction targets for `webapp/App.tsx`. It is descriptive only and must not be used to justify behavior changes.
+This map records the current `webapp/App.tsx` ownership picture and the intended final extraction direction. It is a planning aid only; it must not be used to justify behavior changes.
+
+Line numbers are temporary navigation notes. If the file changes, update the ownership descriptions instead of relying on stale ranges.
 
 ## Current Responsibilities
 
-- Lines 1-680: imports, shared item/tooltip/skill/map/runtime types, and editor bootstrap state.
-- Lines 681-1839: launch flags, viewport helpers, constants, and static configuration.
-- Lines 1843-3350: frontend state creation, save/load, stash/equipment normalization, skill preview recalculation, GM option helpers, and request shims.
-- Lines 3364-3548: top-level `App` routing between WebApp modes.
-- Lines 3549-5320: map editor scene, storage helpers, map document helpers, and map editor rendering helpers.
-- Lines 5321-14913: main WebApp/rest/battle orchestration and mode-specific JSX inside the App-owned state surface.
-- Lines 14914-20364: drag/drop, inventory/equipment/stash helpers, battle runtime helpers, render sorting, and battle entity rendering helpers.
-- Lines 20365-20533: battle unit primitives such as boss bars and unit sprites.
-- Lines 20534-21458: gem/equipment tooltip presentation, rich text, tooltip tags, tooltip normalization, and item orb presentation.
-- Lines 21459-23013: skill VFX helpers, projectile/hit views, guide layers, damage zones, buffs, arcs, chain segments, and mounted passive visual effects.
-- Lines 23014-23498: monster/runtime debug helpers, monster test factories, movement helpers, and generic math helpers.
+- Lines 1-229: imports for app metadata, map assets, spawn/runtime config, skill runtimes, equipment runtime, disabled editor modules, playable battle scene, inventory, layout, battle presentation, skill-board, map editor, state helpers, utilities, sprite test, and rest-area scene.
+- Lines 231-907: App-local domain shapes and constants, including item, skill event, App state, save payload, map run, drop, portal, GM, player runtime, battle VFX, tooltip, floating item, placement prompt, camera, and visual runtime shapes.
+- Lines 909-1107: static gameplay/rendering/inventory constants, local preference helpers, state helper wiring, sanitization, recalculation, GM local request helpers, and disabled backend request shim.
+- Lines 1114-1154: top-level App routing and launch cache clearing.
+- Lines 1155-1331: `GameApp` state and ref initialization for save/rest/battle/inventory/debug/runtime flows.
+- Lines 1332-2095: state application, resource setters, minimap helpers, player buffs, movement and recovery effects, save loading, map loading, input effects, and rest-area movement.
+- Lines 2099-2345: main battle tick orchestration and runtime monster melee player-hit handling.
+- Lines 2348-2814: monster skill dispatch, release, movement positioning, projectile event creation, damage-zone/melee-arc event creation, and monster skill pure helper logic.
+- Lines 2817-3313: legacy boss skill timer and event release logic.
+- Lines 3314-6385: player-hit handling, frontend playable skill release, event building/consumption, projectile/damage-zone/melee/nova/chain/channel/status/forced-movement handling, runtime VFX, and damage-event orchestration.
+- Lines 6388-7140: damage batch application, enemy damage and kill/drop/progression side effects, floating item placement, drag/drop movement, map instance creation, boss portal, frontend drops, pickup logic, keyboard interaction, and battle reset.
+- Lines 7140-7549: start game flow, monster-test controls, disabled skill-editor stub, drag/hover tooltip setup, derived inventory/board/support/GM data, GM submit, save-slot flow, rest-area interaction, resolution change, inventory close, and pause/exit/end-game flows.
+- Lines 7553-8068: main JSX return, including playable battle scene, title/save/rest/battle overlays, disabled editor panel, map selection, combat feed, and inline inventory overlay.
+- Lines 8079-8435: stat/resource helpers, tooltip positioning, typing guard, map bounds, inventory removal, equipment sanitization, projection helpers, boss pack ids, monster skill materialization, spawn plan creation, and stage/boss scope helpers.
+- Lines 8448-9058: monster level scaling, attack/defense stats, shape parsing, spawn logs, monster offense, damage mitigation, ailments, resistances, enemy damage/resource helpers, and status damage interactions.
+- Lines 9060-9244: targeting, projectile launch helpers, projectile spread/direction math, battle camera/projection, render item adapter, and battle render helper creation.
+- Lines 9246-9350: gem tooltip view-model enrichment, active tooltip normalization, support tooltip normalization, and conduit/support tooltip helpers.
+- Lines 9352-9817: skill pipeline classification, VFX scale/helpers, forced element selection, stable hash, hit target/projectile follow-up helpers, VFX anchoring, enemy creation, debug helpers, monster test factories, encounter palettes, and visual budget helpers.
 
-## Leaf Candidates
+## Target Ownership
 
-- `webapp/components/tooltips/`: `GemTooltip`, `GemTooltipPanel`, support tooltip display, `RichText`, `TooltipTag`, `TooltipSection`, equipment tooltip formatting helpers, and `GemOrb`.
-- `webapp/components/inventory/`: item cells, equipment slot presentation, stash page/grid presentation, inventory grid presentation, and drag/drop visual state.
-- `webapp/utils/`: pure item/equipment helpers such as slot text, affix line formatting, source search text, rarity tone, and deterministic formatter helpers.
-- `webapp/components/battle/`: `BossHealthBar`, `UnitAnimationSprite`, projectile views, hit VFX views, battle guide layers, damage zone layer, buff layer, melee arc layer, and chain segment layer.
-- `webapp/components/rest-area/`: rest-area panels, NPC controls, stash entry controls, and rest-area overlays after their props are stable.
-- `webapp/hooks/`: viewport hook, mounted passive visual effects hook, and other hooks only after their state ownership is clear.
+- `webapp/App.tsx`: top-level mode routing, App-owned cross-domain state/ref initialization, viewport shell composition, callback wiring, and intentional orchestration adapters.
+- `webapp/components/inventory/`: inventory overlay, bag/stash/equipment presentation, floating item display, discard prompt, and item-cell visuals.
+- `webapp/components/skill-board/`: skill-board visible UI, board cells, support line display, support preview display, and board hover presentation.
+- `webapp/components/battle/` and `webapp/features/playable-battle/`: battle scene composition, HUD/layers/VFX presentation, minimap, drops, boss portal display, and debug overlays.
+- `webapp/runtime/`: deterministic gameplay/runtime helpers such as monster skill presentation helpers, monster skill event builders, player damage formulas, projectile lifecycle helpers, and enemy runtime helpers.
+- `webapp/monsterSkillRuntime.ts`: monster skill config validation, assignment lookup, candidate selection, timer readiness, and cooldown bookkeeping.
+- `webapp/state/`: frontend state helpers, save payload helpers, deterministic drop/map-run helpers, and recalculation adapters.
+- `webapp/components/tooltips/`: tooltip rendering, view models, rich text, tags, formatting adapters, and gem orbs.
+- `webapp/components/rest-area/`: rest-area scene/panel/control presentation.
+- `webapp/components/layout/`: title/save shell presentation, non-gameplay app chrome, debug panels, pause/failure/portal overlay composition, help text, and combat feed.
+- `webapp/types/`: shared type-only shapes needed by extracted modules.
+- `webapp/utils/` and `webapp/hooks/`: pure helpers and focused hooks after ownership is clear.
 
-## First-Pass Folder Layout
+## Risk-Ordered Extraction Path
 
-- `webapp/components/tooltips/TooltipPrimitives.tsx`
-- `webapp/components/tooltips/GemTooltip.tsx`
-- `webapp/components/tooltips/GemOrb.tsx`
-- `webapp/components/inventory/InventoryGrid.tsx`
-- `webapp/components/inventory/EquipmentSlots.tsx`
-- `webapp/components/inventory/StashGrid.tsx`
-- `webapp/components/battle/BattleUnits.tsx`
-- `webapp/components/battle/BattleVfxLayers.tsx`
-- `webapp/components/rest-area/RestAreaPanels.tsx`
-- `webapp/hooks/useGameViewport.ts`
-- `webapp/utils/equipmentDisplay.ts`
-- `webapp/utils/tooltipDisplay.ts`
+1. Inventory overlay render-only composition.
+2. Inventory/skill-board subpanels if the overlay remains too broad.
+3. Monster skill pure presentation/runtime helper logic.
+4. Monster skill event builder logic.
+5. Pure player damage/runtime helpers that can move without state ownership changes.
+6. Deterministic save/state/drop/stash helpers that still live in App.
+7. Title, UI shell, and non-gameplay overlay composition.
+8. Final App boundary cleanup and source-test ownership migration.
 
-## Risky Areas To Defer
+## Defer Unless Explicitly Scoped
 
-- App-owned state transitions, save/load mutation, autosave, and new-game creation.
-- Gameplay/runtime event generation, target selection, hit timing, damage application, projectile pathing, and monster AI.
-- Map editor implementation, because it is large and disabled as a verification surface for this WebApp refactor.
-- Shared equipment placement logic that is used by both drag/drop behavior and tooltip comparison.
-- Any extraction that requires editing Chinese display strings, CSS class names, storage keys, or runtime payload shapes.
+- Battle-loop ownership and runtime hook ownership.
+- Target selection, hit timing, projectile trajectory decisions, damage-zone origin decisions, damage application, monster AI behavior, and runtime event consumption.
+- Save-schema changes, storage-key changes, CSS redesign, copy changes, and gameplay balance changes.
+- Any extraction that would require backend coupling, duplicate gameplay runtime, or skill-editor verification.
