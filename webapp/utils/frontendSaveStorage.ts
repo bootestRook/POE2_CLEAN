@@ -174,3 +174,45 @@ export function frontendSavePayloadFromSanitizedState<TState extends Record<stri
     ui_text: state.ui_text
   } as TPayload;
 }
+
+export function frontendStateCandidateFromSave<
+  TState extends Record<string, any>,
+  TPayload extends FrontendSaveStoragePayload & { app_state?: unknown }
+>(
+  save: TPayload | null,
+  createInitialState: () => TState,
+  normalizePlayerName: (value: unknown) => string,
+  normalizeStashPages: (value: unknown, state?: Pick<TState, "inventory" | "equipment_slots" | "board">) => TState["stash_pages"]
+): TState | null {
+  if (!save || Number(save.version) !== FRONTEND_SAVE_VERSION) return null;
+  const legacyState = save.app_state;
+  if (legacyState && typeof legacyState === "object") return legacyState as TState;
+
+  const initial = createInitialState();
+  const inventory = Array.isArray(save.inventory) ? save.inventory : initial.inventory;
+  const equipmentSlots = Array.isArray(save.equipment_slots) ? save.equipment_slots : initial.equipment_slots;
+  const board = save.board ?? initial.board;
+  return {
+    ...initial,
+    player_name: normalizePlayerName(save.player_name ?? initial.player_name),
+    inventory,
+    stash_pages: normalizeStashPages(save.stash_pages, {
+      ...initial,
+      inventory,
+      board,
+      equipment_slots: equipmentSlots
+    }),
+    board,
+    skill_preview: Array.isArray(save.skill_preview) ? save.skill_preview : initial.skill_preview,
+    skill_error: save.skill_error ?? null,
+    drops: Array.isArray(save.drops) ? save.drops : [],
+    logs: Array.isArray(save.logs) ? save.logs : initial.logs,
+    player_stats: save.player_stats ?? initial.player_stats,
+    character_panel: save.character_panel ?? initial.character_panel,
+    equipment_slots: equipmentSlots,
+    map_progression: save.map_progression ?? initial.map_progression,
+    current_map_run: null,
+    autosave: initial.autosave,
+    ui_text: save.ui_text ?? initial.ui_text
+  } as TState;
+}

@@ -136,7 +136,10 @@ if (!createRandomNewSaveStarterGemBody.includes("!EXCLUDED_NEW_SAVE_STARTER_BASE
   throw new Error("New save random active starter gems must exclude stoneskin.");
 }
 const appStateFromFrontendSaveBody = functionBody(app, "appStateFromFrontendSave");
-if (!appStateFromFrontendSaveBody.includes("normalizeStashPages(save.stash_pages")) {
+if (
+  !appStateFromFrontendSaveBody.includes("frontendStateCandidateFromSave")
+  || !webappSourceText.includes("normalizeStashPages(save.stash_pages")
+) {
   throw new Error("Existing saves must migrate/sanitize stash_pages on load.");
 }
 const sanitizeFrontendStorageStateBody = functionBody(app, "sanitizeFrontendStorageState");

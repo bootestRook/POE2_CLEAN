@@ -95,7 +95,7 @@ import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
-import { FRONTEND_SAVE_VERSION, clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
+import { clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, frontendStateCandidateFromSave, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { clientRectToGameViewportRect, clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
@@ -2992,35 +2992,13 @@ function normalizePlayerName(value: unknown) {
 }
 
 function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | null {
-  if (!save || Number(save.version) !== FRONTEND_SAVE_VERSION) return null;
-  const legacyState = save.app_state;
-  if (legacyState && typeof legacyState === "object") {
-    return recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(legacyState as AppState)));
-  }
-  const initial = createFrontendInitialAppState();
-  return recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState({
-    ...initial,
-    player_name: normalizePlayerName(save.player_name ?? initial.player_name),
-    inventory: Array.isArray(save.inventory) ? save.inventory : initial.inventory,
-    stash_pages: normalizeStashPages(save.stash_pages, {
-      ...initial,
-      inventory: Array.isArray(save.inventory) ? save.inventory : initial.inventory,
-      board: save.board ?? initial.board,
-      equipment_slots: Array.isArray(save.equipment_slots) ? save.equipment_slots : initial.equipment_slots
-    }),
-    board: save.board ?? initial.board,
-    skill_preview: Array.isArray(save.skill_preview) ? save.skill_preview : initial.skill_preview,
-    skill_error: save.skill_error ?? null,
-    drops: Array.isArray(save.drops) ? save.drops : [],
-    logs: Array.isArray(save.logs) ? save.logs : initial.logs,
-    player_stats: save.player_stats ?? initial.player_stats,
-    character_panel: save.character_panel ?? initial.character_panel,
-    equipment_slots: Array.isArray(save.equipment_slots) ? save.equipment_slots : initial.equipment_slots,
-    map_progression: save.map_progression ?? initial.map_progression,
-    current_map_run: null,
-    autosave: initial.autosave,
-    ui_text: save.ui_text ?? initial.ui_text
-  })));
+  const candidate = frontendStateCandidateFromSave<AppState, FrontendSavePayload>(
+    save,
+    createFrontendInitialAppState,
+    normalizePlayerName,
+    normalizeStashPages
+  );
+  return candidate ? recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(candidate))) : null;
 }
 
 function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
