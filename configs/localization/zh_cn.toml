@@ -426,7 +426,7 @@
 "ui.tooltip.support.target_prefix" = "辅助："
 "ui.tooltip.support.connection_prefix" = "连接："
 "ui.tooltip.support.connections" = "行、列、宫格"
-"ui.tooltip.support.sudoku_rule" = "同数独数字宝石不能位于同一行、列或宫格"
+"ui.tooltip.support.sudoku_rule" = "同颜色宝石不能位于同一行、列或宫格"
 "ui.tooltip.shape_effect" = "形态改变"
 "ui.gem_color.red" = "红色"
 "ui.gem_color.blue" = "蓝色"

@@ -272,7 +272,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -582,7 +582,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -837,7 +837,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -1113,7 +1113,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -1395,7 +1395,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -1667,7 +1667,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -1941,7 +1941,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -2213,7 +2213,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -2460,7 +2460,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -2698,7 +2698,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -2973,7 +2973,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -3233,7 +3233,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -3500,7 +3500,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -3746,7 +3746,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -4017,7 +4017,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -4282,7 +4282,7 @@ export const FRONTEND_GEM_DROP_POOL = [
         "bonuses": {
           "title_text": "当前加成",
           "lines": [
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -4462,7 +4462,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "title_text": "当前加成",
           "lines": [
             "影响玩家属性：每秒生命回复 +4",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -4638,7 +4638,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "title_text": "当前加成",
           "lines": [
             "影响主动技能：冰霜伤害提高 +1.6%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -4826,7 +4826,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "title_text": "当前加成",
           "lines": [
             "影响主动技能：物理伤害提高 +1.6%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -5002,7 +5002,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "title_text": "当前加成",
           "lines": [
             "影响主动技能：法术伤害提高 +1.6%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -5193,7 +5193,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "lines": [
             "影响主动技能：暴击值 +6.1",
             "影响主动技能：最终伤害修正 +11%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -5369,7 +5369,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "title_text": "当前加成",
           "lines": [
             "影响主动技能：闪电伤害提高 +1.6%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -5561,7 +5561,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "lines": [
             "影响主动技能：投射物伤害提高 +1.6%",
             "影响主动技能：投射物速度提高 +10%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -5742,7 +5742,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "title_text": "当前加成",
           "lines": [
             "影响玩家属性：最大能量护盾 +12",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -5946,7 +5946,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "lines": [
             "影响玩家属性：最大魔力 +5",
             "影响主动技能：施法速度提高 +10%",
-            "同数独数字宝石不能位于同一行、列或宫格"
+            "同颜色宝石不能位于同一行、列或宫格"
           ]
         }
       }
@@ -6201,7 +6201,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -6501,7 +6501,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -6801,7 +6801,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -7044,7 +7044,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -7279,7 +7279,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -7533,7 +7533,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -7792,7 +7792,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -8048,7 +8048,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -8301,7 +8301,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -8573,7 +8573,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -8813,7 +8813,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -9050,7 +9050,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -9284,7 +9284,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -9539,7 +9539,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -9800,7 +9800,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -10058,7 +10058,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -10308,7 +10308,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -10560,7 +10560,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -10812,7 +10812,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -11081,7 +11081,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -11333,7 +11333,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -11588,7 +11588,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -11850,7 +11850,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -12105,7 +12105,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -12354,7 +12354,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -12688,7 +12688,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -12943,7 +12943,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -13188,7 +13188,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -13449,7 +13449,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -13732,7 +13732,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -13972,7 +13972,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -14249,7 +14249,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -14553,7 +14553,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -14781,7 +14781,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -14965,7 +14965,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -15149,7 +15149,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -15326,7 +15326,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -15535,7 +15535,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -15755,7 +15755,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]
@@ -15983,7 +15983,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "同数独数字宝石不能位于同一行、列或宫格",
+                "text": "同颜色宝石不能位于同一行、列或宫格",
                 "tone": "rule"
               }
             ]

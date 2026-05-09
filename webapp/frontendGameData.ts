@@ -256,7 +256,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -532,7 +532,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -809,7 +809,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -1090,7 +1090,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -1327,7 +1327,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -1597,7 +1597,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -1868,7 +1868,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -2113,7 +2113,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -2367,7 +2367,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -2642,7 +2642,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -2909,7 +2909,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -3214,7 +3214,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -3485,7 +3485,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -3757,7 +3757,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -4003,7 +4003,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
@@ -4267,7 +4267,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "bonuses": {
             "title_text": "当前加成",
             "lines": [
-              "同数独数字宝石不能位于同一行、列或宫格"
+              "同颜色宝石不能位于同一行、列或宫格"
             ]
           }
         }
