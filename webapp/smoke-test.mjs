@@ -1,5 +1,5 @@
 import { readFileSync, existsSync, mkdirSync, rmSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 
@@ -11,7 +11,8 @@ const battleRenderLayer = readFileSync(join(root, "webapp", "components", "battl
 const enemyRuntime = readFileSync(join(root, "webapp", "runtime", "enemyRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
 const enemyTypes = readFileSync(join(root, "webapp", "types", "enemyTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const runtimeEnemySourceText = [app, enemyRuntime, enemyTypes].join("\n");
-const webappSources = collectWebappSources(join(root, "webapp"));
+const webappSourceFiles = collectWebappSourceFiles(join(root, "webapp"));
+const webappSources = webappSourceFiles.map((file) => file.source);
 const webappSourceText = webappSources.join("\n");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
@@ -72,6 +73,25 @@ function collectWebappSources(directory) {
     }
   }
   return sources;
+}
+
+function collectWebappSourceFiles(directory) {
+  const files = [];
+  for (const entry of readdirSync(directory)) {
+    const fullPath = join(directory, entry);
+    const stats = statSync(fullPath);
+    if (stats.isDirectory()) {
+      files.push(...collectWebappSourceFiles(fullPath));
+      continue;
+    }
+    if (/\.(ts|tsx)$/.test(entry)) {
+      files.push({
+        path: relative(root, fullPath).replace(/\\/g, "/"),
+        source: readFileSync(fullPath, "utf8").replace(/\r\n/g, "\n")
+      });
+    }
+  }
+  return files;
 }
 
 function pngSize(path) {
@@ -272,6 +292,26 @@ const appOrchestrationChecks = [
 ];
 for (const token of appOrchestrationChecks) {
   if (!app.includes(token)) throw new Error(`App orchestration boundary check missing: ${token}`);
+}
+const appImportAllowlist = new Set(["webapp/main.tsx"]);
+for (const file of webappSourceFiles) {
+  if (file.path === "webapp/App.tsx" || appImportAllowlist.has(file.path)) continue;
+  for (const forbiddenAppImport of [
+    'from "./App"',
+    'from "../App"',
+    'from "../../App"',
+    'from "../../../App"',
+    'from "webapp/App"',
+    "from './App'",
+    "from '../App'",
+    "from '../../App'",
+    "from '../../../App'",
+    "from 'webapp/App'"
+  ]) {
+    if (file.source.includes(forbiddenAppImport)) {
+      throw new Error(`Extracted WebApp module must not import from App.tsx: ${file.path}`);
+    }
+  }
 }
 for (const requiredRestAreaCss of [
   ".rest-area-scene",
