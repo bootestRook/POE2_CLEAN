@@ -40,4 +40,4 @@
 - [x] 6.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable view affected by UI shell and inventory/state extraction.
 - [x] 6.4 Capture frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
 - [x] 6.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
-- [ ] 6.6 Review the final diff to confirm no gameplay runtime, skill runtime, save schema, storage key, copy, CSS, backend, dependency, or skill-editor acceptance changes were introduced.
+- [x] 6.6 Review the final diff to confirm no gameplay runtime, skill runtime, save schema, storage key, copy, CSS, backend, dependency, or skill-editor acceptance changes were introduced.
