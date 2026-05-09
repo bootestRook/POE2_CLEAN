@@ -31,7 +31,7 @@
 - [x] 5.1 Move stash page creation, stash normalization, stash item id collection, stash item removal, and stash slot movement helpers into a focused inventory/stash state module.
 - [x] 5.2 Preserve page counts, slot counts, duplicate rejection, foreign-item rejection, board/equipment ownership exclusion, slot movement behavior, and sanitized state results.
 - [x] 5.3 Move equipment slot sanitization or related helper code only if dependency direction remains one-way and App imports do not create cycles.
-- [ ] 5.4 Run focused TypeScript/build checks and `npm test` for the stash helper extraction.
+- [x] 5.4 Run focused TypeScript/build checks and `npm test` for the stash helper extraction.
 
 ## 6. Verification
 
