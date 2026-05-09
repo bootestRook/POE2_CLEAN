@@ -68,3 +68,78 @@ export function replaceGemTagRichLines(gem: TooltipGemTagSource, lines: TooltipR
       : segment.text === "\u5b9d\u77f3" ? { ...segment, text: frontendGemKindTagText(gem) } : segment
   )));
 }
+
+export function replaceGemTagRichLineSection(gem: TooltipGemTagSource, section: { rich_lines: TooltipRichLine[] } | undefined) {
+  if (!section) return section;
+  return {
+    ...section,
+    rich_lines: replaceGemTagRichLines(gem, section.rich_lines) ?? [],
+  };
+}
+
+export function normalizeSupportConditionRichLineSection(
+  gem: TooltipGemTagSource,
+  section: { rich_lines: TooltipRichLine[] } | undefined,
+  readRecord: (value: unknown) => Record<string, unknown>
+) {
+  const normalized = replaceGemTagRichLineSection(gem, section);
+  if (!normalized) return normalized;
+  const targetLine = supportTargetTagRichLine(gem, readRecord);
+  return {
+    ...normalized,
+    rich_lines: [targetLine, ...normalized.rich_lines.slice(1)],
+  };
+}
+
+export function supportTargetTagRichLine(
+  gem: TooltipGemTagSource,
+  readRecord: (value: unknown) => Record<string, unknown>
+): TooltipRichLine {
+  const targetTexts = frontendTargetTagTexts(gem, readRecord);
+  const targetText = targetTexts.length > 0 ? targetTexts.join("\u3001") : "\u6240\u6709\u7c7b\u578b";
+  return [
+    { text: "\u8f85\u52a9\uff1a", tone: "label" },
+    { text: targetText, tone: "body" },
+  ];
+}
+
+export function frontendTargetTagTexts(
+  gem: TooltipGemTagSource,
+  readRecord: (value: unknown) => Record<string, unknown>
+) {
+  const canAffect = readRecord(readRecord(gem).can_affect);
+  const tags = [
+    ...frontendTagTextEntries(canAffect.tags_any, readRecord),
+    ...frontendTagTextEntries(canAffect.tags_all, readRecord),
+  ];
+  const seen = new Set<string>();
+  return tags.filter((tag) => {
+    if (!tag.text || isNonTargetSupportTag(tag, gem) || seen.has(tag.text)) return false;
+    seen.add(tag.text);
+    return true;
+  }).map((tag) => tag.text);
+}
+
+function frontendTagTextEntries(value: unknown, readRecord: (value: unknown) => Record<string, unknown>) {
+  return Array.isArray(value)
+    ? value.map((entry) => {
+      const record = readRecord(entry);
+      return {
+        id: String(record.id ?? ""),
+        text: String(record.text ?? record.id ?? ""),
+      };
+    })
+    : [];
+}
+
+function isNonTargetSupportTag(tag: { id: string; text: string }, gem: TooltipGemTagSource) {
+  return tag.id === "gem"
+    || tag.id === "support_gem"
+    || tag.id === "active_skill_gem"
+    || tag.id === "passive_skill_gem"
+    || tag.id === "loot_gem"
+    || tag.id.startsWith("gem_type_")
+    || tag.text === "\u5b9d\u77f3"
+    || tag.text === frontendGemKindTagText(gem)
+    || isGemTypeTagText(gem, tag.text);
+}

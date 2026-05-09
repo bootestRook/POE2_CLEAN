@@ -82,7 +82,7 @@ import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/Tool
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
 import { activeDpsToneClass, buildEquipmentRarityToneForGem, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
-import { frontendDisplayGemKindTag, frontendGemKindTagText, isGemTypeTagText, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
+import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16357,7 +16357,7 @@ function passiveAffectsActiveSkills(gem: Gem) {
 }
 
 function frontendPassiveTargetTagTexts(gem: Gem) {
-  return frontendTargetTagTexts(gem);
+  return frontendTargetTagTexts(gem, frontendRecord);
 }
 
 function frontendDirectDamageTotal(value: Record<string, unknown>) {
@@ -16377,78 +16377,13 @@ function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
     summary_lines: replaceGemTagRichLines(gem, view.summary_lines),
     sections: {
       ...view.sections,
-      conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions),
+      conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions, frontendRecord),
     },
   };
 }
 
-function replaceGemTagRichLineSection(gem: Gem, section: { rich_lines: TooltipRichLine[] } | undefined) {
-  if (!section) return section;
-  return {
-    ...section,
-    rich_lines: replaceGemTagRichLines(gem, section.rich_lines) ?? [],
-  };
-}
-
-function normalizeSupportConditionRichLineSection(gem: Gem, section: { rich_lines: TooltipRichLine[] } | undefined) {
-  const normalized = replaceGemTagRichLineSection(gem, section);
-  if (!normalized) return normalized;
-  const targetLine = supportTargetTagRichLine(gem);
-  return {
-    ...normalized,
-    rich_lines: [targetLine, ...normalized.rich_lines.slice(1)],
-  };
-}
-
-function supportTargetTagRichLine(gem: Gem): TooltipRichLine {
-  const targetTexts = frontendSupportTargetTagTexts(gem);
-  const targetText = targetTexts.length > 0 ? targetTexts.join("\u3001") : "\u6240\u6709\u7c7b\u578b";
-  return [
-    { text: "\u8f85\u52a9\uff1a", tone: "label" },
-    { text: targetText, tone: "body" },
-  ];
-}
-
 function frontendSupportTargetTagTexts(gem: Gem) {
-  return frontendTargetTagTexts(gem);
-}
-
-function frontendTargetTagTexts(gem: Gem) {
-  const canAffect = frontendRecord(frontendRecord(gem).can_affect);
-  const tags = [
-    ...frontendTagTextEntries(canAffect.tags_any),
-    ...frontendTagTextEntries(canAffect.tags_all),
-  ];
-  const seen = new Set<string>();
-  return tags.filter((tag) => {
-    if (!tag.text || isNonTargetSupportTag(tag, gem) || seen.has(tag.text)) return false;
-    seen.add(tag.text);
-    return true;
-  }).map((tag) => tag.text);
-}
-
-function frontendTagTextEntries(value: unknown) {
-  return Array.isArray(value)
-    ? value.map((entry) => {
-      const record = frontendRecord(entry);
-      return {
-        id: String(record.id ?? ""),
-        text: String(record.text ?? record.id ?? ""),
-      };
-    })
-    : [];
-}
-
-function isNonTargetSupportTag(tag: { id: string; text: string }, gem: Gem) {
-  return tag.id === "gem"
-    || tag.id === "support_gem"
-    || tag.id === "active_skill_gem"
-    || tag.id === "passive_skill_gem"
-    || tag.id === "loot_gem"
-    || tag.id.startsWith("gem_type_")
-    || tag.text === "\u5b9d\u77f3"
-    || tag.text === frontendGemKindTagText(gem)
-    || isGemTypeTagText(gem, tag.text);
+  return frontendTargetTagTexts(gem, frontendRecord);
 }
 
 function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
