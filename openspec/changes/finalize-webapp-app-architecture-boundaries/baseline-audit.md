@@ -43,3 +43,38 @@ This file records the current `webapp/App.tsx` responsibility map for `finalize-
 - The highest-value runtime pure-helper block is monster skill helper logic at lines 2712-2814.
 - Monster skill event construction at lines 2519-2709 is valuable but must follow pure helper extraction because it still feeds App-owned side effects.
 - App-owned side effects that must not move first include `consumeSkillEventTimeline`, pending hit queues, `setTexts`, `setAreaNovas`, save writes, pickup completion, battle tick scheduling, and runtime refs.
+
+## App-Owned State And Runtime Invariants To Preserve
+
+These values are intentionally App-owned at the start of the change. Extraction batches may pass them through props or explicit function inputs, but must not silently move ownership.
+
+- Mode and shell state: `spriteTestMode`, `mapEditorMode`, `monsterTestMode`, `skillEditorMode`, `entryStep`, `gameResolutionMode`, `notice`, `playing`, `battlePauseOpen`, `battlePauseView`, `gameFailureOpen`.
+- Save/rest state: `state`, `saveSlots`, `selectedSaveSlotId`, `saveStartMode`, `newPlayerName`, `restAreaPanel`, `restAreaInteractionTarget`, `restAreaMapEntryKey`.
+- Map/debug state: `selectedMapId`, `battleMap`, `mapDebugEnabled`, `playableMinimapMode`, `exploredMinimapCells`, `authoredSpawnPlanActive`, `authoredAggroSources`, `spawnPlanWarnings`, `proceduralSpawnDebug`, `runtimeBoundaryScan`.
+- Player/enemy state: `player`, `enemies`, `activePlayerBuffs`, `kills`, `elapsed`, `combatLogs`, `runtimePerfSummary`.
+- Battle visual state: `bossPortal`, `bossPortalConfirm`, `texts`, `bolts`, `areaNovas`, `meleeArcs`, `chainSegments`, `damageZones`, `hitVfxs`.
+- Inventory and interaction state: `bagOpen`, `hoveredGemId`, `hoveredBoardCell`, `hoveredBagSlot`, `hoveredEquipmentSlot`, `tooltip`, `compareModifierHeld`, `floatingGem`, `placementPrompt`, `itemDiscardPrompt`, `skipItemDiscardConfirmToday`, `showPersistentSupportLines`, `gmOpen`, `gmOptions`, `gmAffixes`, `inventorySlots`, `equipmentSlots`, `stashPageIndex`.
+- Input and drag refs: `keys`, `floatingGemRef`, `dropInProgressRef`, `pendingDropPickup`, `pendingBossPortalUse`, `pickupRequestInFlight`, `dropDisplayPositions`, `knownDropIds`.
+- Id/timer refs: `lastFrame`, `nextEnemyId`, `nextTextId`, `nextPlayerBuffId`, `nextBoltId`, `nextAreaNovaId`, `nextMeleeArcId`, `nextChainSegmentId`, `nextDamageZoneId`, `nextHitVfxId`, `nextPromptId`, `frontendDropId`, `frontendItemId`, `frontendBossPortalId`.
+- Runtime queue refs: `attackTimers`, `thundercloudChannels`, `damageZoneChannels`, `scheduledSkillEvents`, `continuousAttackRuntime`, `activeDamageZones`, `bossSkillTimers`, `monsterSkillTimers`, `supremeBossSkillTimers`, `pendingBossDamageZoneHits`, `onKillRecastCounts`.
+- Runtime mirror refs: `runtimePerf`, `runtimePerfLastSync`, `runtimeLastStepError`, `spawnTimer`, `playerVisual`, `enemyVisuals`, `exploredMinimapCellsRef`, `lastMinimapGridCellRef`, `triggeredEncounterSourceIds`, `encounterMonsterPalette`, `playerStateRef`, `activePlayerBuffsRef`, `enemiesStateRef`, `boltsStateRef`, `elapsedRef`, `elapsedLastUiSync`.
+- Recovery/equipment refs: `movementBarrierDistanceAccumulator`, `playerBlockHitCounter`, `blockLifeRecoveryReadyMs`, `blockShieldRecoveryReadyMs`, `lifeReturnReadyMs`, `shieldReturnReadyMs`, `energyShieldRechargeReadyMs`, `warIntentState`.
+
+Storage keys and local persistence that must remain unchanged:
+
+- `GAME_RESOLUTION_STORAGE_KEY`.
+- `ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY`.
+- `MAP_EDITOR_STORAGE_KEY`.
+- `MAP_EDITOR_CURRENT_FILE_STORAGE_KEY`.
+- `SKILL_EDITOR_CAMERA_STORAGE_KEY`.
+- Frontend save slot storage behavior through `loadFrontendSaveSlotSummaries`, `loadActiveFrontendSaveSlotId`, `saveActiveFrontendSaveSlotId`, and related save helpers.
+
+Runtime event consumers that must keep their current ownership until explicitly scoped:
+
+- `consumeSkillEventTimeline`.
+- `consumeImmediateSkillEvents`.
+- `processFrontendProjectileImpacts`.
+- `activeDamageZoneTickProgress`.
+- `applyDamageEventBatch`.
+- Pending hit and damage-zone mutation through `pendingBossDamageZoneHits.current` and `activeDamageZones.current`.
+- Visual state writes through `setTexts`, `setBolts`, `setAreaNovas`, `setMeleeArcs`, `setChainSegments`, `setDamageZones`, and `setHitVfxs`.
