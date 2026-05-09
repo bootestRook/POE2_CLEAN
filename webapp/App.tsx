@@ -150,6 +150,7 @@ import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDe
 import { clamp, distance, guideDirection } from "./utils/math2d";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection, unitMovementState } from "./utils/runtimeMotion";
+import { BattlePauseOverlay, GameFailureOverlay, PortalConfirmOverlay } from "./components/battle/BattleOverlays";
 import { HitVfxView } from "./components/battle/HitAndBuffViews";
 import { FireBoltView } from "./components/battle/ProjectileBodyViews";
 import {
@@ -9300,66 +9301,25 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       ) : null}
 
       {!monsterTestMode && gameFailureOpen && (
-        <section className="game-failure-overlay" role="dialog" aria-modal="true" aria-label="游戏失败">
-          <div className="game-failure-dialog">
-            <span>游戏失败</span>
-            <h2>玩家生命已归零</h2>
-            <p>本次战斗已经结束。</p>
-            <button type="button" onClick={() => setGameFailureOpen(false)}>返回休息区</button>
-          </div>
-        </section>
+        <GameFailureOverlay onClose={() => setGameFailureOpen(false)} />
       )}
 
       {!monsterTestMode && !skillEditorMode && (playing || restAreaMapActive) && battlePauseOpen && (
-        <section className="battle-pause-overlay" role="dialog" aria-modal="true" aria-label="暂停菜单">
-          <div className="battle-pause-dialog" data-view={battlePauseView}>
-            {battlePauseView === "settings" && (
-              <div className="battle-settings-panel">
-                <span>设置</span>
-                <h2>分辨率</h2>
-                <div className="battle-resolution-options">
-                  {GAME_RESOLUTION_PRESETS.map((preset) => (
-                    <button
-                      key={preset.mode}
-                      type="button"
-                      className={preset.mode === gameResolutionMode ? "selected" : ""}
-                      aria-pressed={preset.mode === gameResolutionMode}
-                      onClick={() => void applyGameResolutionMode(preset.mode)}
-                    >
-                      <strong>{preset.label}</strong>
-                      <small>{preset.width && preset.height ? `${preset.width} x ${preset.height}` : "100vw x 100vh"}</small>
-                    </button>
-                  ))}
-                </div>
-                <div className="battle-pause-actions">
-                  <button type="button" onClick={() => setBattlePauseView("menu")}>返回</button>
-                  <button type="button" onClick={continueBattleFromPause}>继续</button>
-                </div>
-              </div>
-            )}
-            <span>暂停菜单</span>
-            <h2>{playing ? "游戏已暂停" : "休息区菜单"}</h2>
-            <div className="battle-pause-actions">
-              <button type="button" onClick={continueBattleFromPause}>继续</button>
-              <button type="button" onClick={() => setBattlePauseView("settings")}>设置</button>
-              {playing ? <button type="button" onClick={exitCurrentRunToRestArea}>退出当前对局</button> : null}
-              <button type="button" onClick={endGameToTitle}>{playing ? "结束游戏" : "退出游戏"}</button>
-            </div>
-          </div>
-        </section>
+        <BattlePauseOverlay
+          view={battlePauseView}
+          playing={playing}
+          resolutionPresets={GAME_RESOLUTION_PRESETS}
+          resolutionMode={gameResolutionMode}
+          onViewChange={setBattlePauseView}
+          onResolutionModeChange={applyGameResolutionMode}
+          onContinue={continueBattleFromPause}
+          onExitRun={exitCurrentRunToRestArea}
+          onEndGame={endGameToTitle}
+        />
       )}
 
       {!monsterTestMode && !skillEditorMode && playing && bossPortalConfirm && (
-        <section className="portal-confirm-overlay" role="dialog" aria-modal="true" aria-label="离开区域确认">
-          <div className="portal-confirm-dialog">
-            <span>传送门</span>
-            <h2>是否离开该区域？</h2>
-            <div className="portal-confirm-actions">
-              <button type="button" onClick={confirmBossPortalExit}>离开</button>
-              <button type="button" onClick={cancelBossPortalConfirm}>取消</button>
-            </div>
-          </div>
-        </section>
+        <PortalConfirmOverlay onConfirm={confirmBossPortalExit} onCancel={cancelBossPortalConfirm} />
       )}
 
       <div className="help-text">
