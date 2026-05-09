@@ -93,6 +93,7 @@ import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
+import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
@@ -10410,7 +10411,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               hoveredGemId={hoveredGemId}
               slotCount={STASH_PAGE_SLOT_COUNT}
               columns={STASH_PAGE_COLUMNS}
-              cellClassName={(slotIndex, gem, currentHoveredGemId, currentFloatingGem) => bagCellClass(slotIndex, null, gem, currentHoveredGemId, currentFloatingGem)}
+              cellClassName={(slotIndex, gem, currentHoveredGemId, currentFloatingGem) => resolveBagCellClass(slotIndex, null, gem, currentHoveredGemId, currentFloatingGem, isFloatingOrigin)}
               isFloatingOrigin={isFloatingOrigin}
               renderGem={(gem) => <GemOrb gem={gem} />}
               renderGhost={() => <GemGhost />}
@@ -10469,7 +10470,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                       slotIndex={slotIndex}
                       item={item}
                       isGhost={isGhost}
-                      className={equipmentCellClass(slotIndex, hoveredEquipmentSlot, item, hoveredGemId, floatingGem, spansBothWeaponSlots)}
+                      className={resolveEquipmentCellClass(slotIndex, hoveredEquipmentSlot, item, hoveredGemId, floatingGem, slot, isFloatingOrigin, spansBothWeaponSlots)}
                       renderGem={(gem) => <GemOrb gem={gem} />}
                       renderGhost={() => <GemGhost />}
                       onBeginDrag={beginDrag}
@@ -10555,7 +10556,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               <BagGrid
                 slots={bagSlots}
                 floatingGem={floatingGem}
-                cellClassName={(slotIndex, gem) => bagCellClass(slotIndex, hoveredBagSlot, gem, hoveredGemId, floatingGem)}
+                cellClassName={(slotIndex, gem) => resolveBagCellClass(slotIndex, hoveredBagSlot, gem, hoveredGemId, floatingGem, isFloatingOrigin)}
                 emptyCellClassName={(slotIndex) => bagEmptyCellClass(slotIndex, hoveredBagSlot)}
                 isFloatingOrigin={isFloatingOrigin}
                 renderGem={(gem) => <GemOrb gem={gem} />}
@@ -10972,44 +10973,6 @@ function useActiveTargetLines(lines: SupportLine[], fullGemById: Map<string, Gem
     if (!hoveredGem?.board_position || !isActiveGem(hoveredGem)) return null;
     return lines.filter((line) => line.target.row === hoveredGem.board_position?.row && line.target.column === hoveredGem.board_position.column);
   }, [lines, fullGemById, hoveredGemId, floatingGem]);
-}
-
-function bagCellClass(slotIndex: number, hoveredBagSlot: number | null, gem: Gem, hoveredGemId: string | null, floatingGem: FloatingGem | null) {
-  const classes = ["bag-cell"];
-  if (hoveredBagSlot === slotIndex) classes.push("bag-slot-hover");
-  if (hoveredGemId === gem.instance_id) classes.push("hover-self");
-  if (isFloatingOrigin(floatingGem, { kind: "bag", slotIndex, instanceId: gem.instance_id })) classes.push("has-ghost");
-  return classes.join(" ");
-}
-
-function bagEmptyCellClass(slotIndex: number, hoveredBagSlot: number | null) {
-  const classes = ["bag-empty-cell"];
-  if (hoveredBagSlot === slotIndex) classes.push("bag-slot-hover");
-  return classes.join(" ");
-}
-
-function equipmentCellClass(
-  slotIndex: number,
-  hoveredEquipmentSlot: number | null,
-  item: Gem,
-  hoveredGemId: string | null,
-  floatingGem: FloatingGem | null,
-  spansBothWeaponSlots = false
-) {
-  const classes = ["equipment-cell"];
-  if (hoveredEquipmentSlot === slotIndex) classes.push("equipment-slot-hover");
-  if (hoveredGemId === item.instance_id) classes.push("hover-self");
-  if (spansBothWeaponSlots) classes.push("equipment-cell-two-hand");
-  const slot = EQUIPMENT_SLOT_SPECS[slotIndex];
-  if (slot && isFloatingOrigin(floatingGem, { kind: "equipment", slotIndex, slotId: slot.id, instanceId: item.instance_id })) classes.push("has-ghost");
-  return classes.join(" ");
-}
-
-function equipmentEmptyCellClass(slotIndex: number, hoveredEquipmentSlot: number | null, floatingGem: FloatingGem | null, slot: typeof EQUIPMENT_SLOT_SPECS[number]) {
-  const classes = ["equipment-empty-cell"];
-  if (hoveredEquipmentSlot === slotIndex) classes.push("equipment-slot-hover");
-  if (floatingGem) classes.push(canPlaceItemInEquipmentSlot(floatingGem.gem, slot) ? "legal-equipment-cell" : "invalid-equipment-cell");
-  return classes.join(" ");
 }
 
 function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number): Omit<Tooltip, "gem"> {
