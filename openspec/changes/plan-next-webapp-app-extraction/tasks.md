@@ -34,14 +34,16 @@
 
 ## 5. Deferred High-Risk Areas
 
-- [ ] 5.1 Confirm no extraction in this change moved or changed monster AI, enemy navigation, damage resolution, skill event generation, projectile targeting, hit timing, damage-zone origin, runtime event consumption, or battle-loop mutation.
-- [ ] 5.2 Record any high-risk combat/runtime candidates discovered during implementation as follow-up work instead of folding them into this change.
+- [x] 5.1 Confirm no extraction in this change moved or changed monster AI, enemy navigation, damage resolution, skill event generation, projectile targeting, hit timing, damage-zone origin, runtime event consumption, or battle-loop mutation.
+- [x] 5.2 Record any high-risk combat/runtime candidates discovered during implementation as follow-up work instead of folding them into this change.
+
+Follow-up candidates kept out of this change: monster AI/navigation helpers, damage resolution helpers, runtime skill event generation/consumption, projectile targeting/timing helpers, damage-zone origin/tick helpers, battle-loop mutation helpers, map-drop boundary handling, and keyboard target handling that cannot be fully accepted from the current reachable playable surface.
 
 ## 6. Final Verification
 
-- [ ] 6.1 Run final `npm run build`.
-- [ ] 6.2 Run final `npm test` or document any pre-existing unrelated blocker.
-- [ ] 6.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable view affected by the completed extraction batches.
-- [ ] 6.4 Capture final frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
-- [ ] 6.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
-- [ ] 6.6 Review the final diff to confirm no gameplay, save schema, storage key, copy, CSS, backend, dependency, skill-runtime, or skill-editor acceptance changes were introduced.
+- [x] 6.1 Run final `npm run build`.
+- [x] 6.2 Run final `npm test` or document any pre-existing unrelated blocker.
+- [x] 6.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable view affected by the completed extraction batches.
+- [x] 6.4 Capture final frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
+- [x] 6.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
+- [x] 6.6 Review the final diff to confirm no gameplay, save schema, storage key, copy, CSS, backend, dependency, skill-runtime, or skill-editor acceptance changes were introduced.
