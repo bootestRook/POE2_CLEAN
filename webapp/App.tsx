@@ -50,8 +50,6 @@ import {
 } from "./mapInstanceRuntime";
 import type { MapInstanceMetadata, MapInstanceRotation } from "./mapInstanceRuntime";
 import { resolveUnitAnimation, UnitAnimationContext, UnitAnimationFrame } from "./unitAnimation";
-import { BattleGeometryCanvas } from "./BattleGeometryCanvas";
-import type { BattleGeometrySnapshot } from "./battleGeometryRenderer";
 import { fallbackUnitVisualForMonster, MONSTER_GEOMETRY_VISUALS, MONSTER_RARITY_VISUALS, resolveMonsterGeometryVisual } from "./monsterGeometryVisuals";
 import {
   selectEnemyUnitType,
@@ -87,6 +85,7 @@ import type {
 import { DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS, loadSkillEditorCameraSettings, SKILL_EDITOR_CAMERA_STORAGE_KEY } from "./features/disabled-skill-editor/disabledSkillEditorSettings";
 import { SkillEditorDebugToggles } from "./features/disabled-skill-editor/SkillEditorDebugToggles";
 import { SkillEditorPanel } from "./features/disabled-skill-editor/SkillEditorPanel";
+import { PlayableBattleScene } from "./features/playable-battle/PlayableBattleScene";
 import { CharacterInfoPanel } from "./components/character/CharacterInfoPanel";
 import type { CharacterPanelView } from "./components/character/CharacterInfoPanel";
 import type { TooltipRichLine } from "./components/tooltips/TooltipPrimitives";
@@ -120,15 +119,8 @@ import { playableMinimapCellKeyForPoint, playableMinimapRevealCells, playableMin
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection, unitMovementState } from "./utils/runtimeMotion";
-import { ChainSegmentLayer } from "./components/battle/ChainSegmentLayer";
-import { AreaNovaLayer, DamageZoneLayer, FloatingTextLayer, MeleeArcLayer, PassiveAuraLayer } from "./components/battle/BattleGroundVfxLayers";
-import { BakedMapBackground, MapDebugOverlay } from "./components/battle/BattleMapDebugLayers";
-import { BossHealthBar } from "./components/battle/BossHealthBar";
-import { BossPortalLayer } from "./components/battle/BossPortalLayer";
-import { GroundDropLayer } from "./components/battle/GroundDropLayer";
-import { HitVfxView, PlayerBuffLayer as BattlePlayerBuffLayer } from "./components/battle/HitAndBuffViews";
+import { HitVfxView } from "./components/battle/HitAndBuffViews";
 import { FireBoltView } from "./components/battle/ProjectileBodyViews";
-import { FrontendSkillGuideLayer } from "./components/battle/SkillGuideOverlay";
 import {
   FIRE_BOLT_FAKE_Z,
   FIRE_BOLT_IMPACT_DURATION_MS,
@@ -149,9 +141,7 @@ import {
   usesCanvasProjectileVfx
 } from "./components/battle/projectileVfxPresentation";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
-import { PlayableBattleMinimap } from "./components/battle/PlayableBattleMinimap";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
-import { PlayerOverheadResourceBars } from "./components/battle/PlayerOverheadResourceBars";
 import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
 import { BoardCell, GemGhost, previewRelationLabel, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
 import type { PreviewRelationType, SupportLine, SupportPreview } from "./components/skill-board/SkillBoardPresentation";
@@ -175,7 +165,7 @@ import type {
   MapEditorZoneRect,
 } from "./components/map-editor/MapEditorScene";
 import { SpriteTestScene } from "./components/sprite-test/SpriteTestScene";
-import { REST_AREA_INTERACTION_RADIUS, RestAreaMapInteractableLayer, RestAreaScene, restAreaInteractablePosition } from "./components/rest-area/RestAreaScene";
+import { REST_AREA_INTERACTION_RADIUS, RestAreaScene, restAreaInteractablePosition } from "./components/rest-area/RestAreaScene";
 
 type Gem = {
   instance_id: string;
@@ -9318,283 +9308,78 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const terrainHeight = battleMap?.meta.world_height ?? MAP_VISUAL_HEIGHT;
   const showBattleMapLayer = playing || restAreaMapActive || skillEditorMode || monsterTestMode;
   const editorBattleMap = runtimeUsesEditorMap && battleMap && isEditorRuntimeBattleMap(battleMap) ? battleMap : null;
-  const battleGeometrySnapshot: BattleGeometrySnapshot = {
-    width: terrainWidth,
-    height: terrainHeight,
-    timeMs: animationNowMs,
-    camera: battleCamera,
-    terrain: editorBattleMap ? {
-      tiles: editorBattleMap.editorTiles,
-      tileSize: editorBattleMap.meta.grid_size,
-      width: editorBattleMap.meta.world_width,
-      height: editorBattleMap.meta.world_height
-    } : undefined,
-    player: {
-      ...player,
-      moving: Math.hypot(playerVisual.current.movementVector.x, playerVisual.current.movementVector.y) > 0.001,
-      guardActive
-    },
-    enemies: visibleEnemies.map((enemy) => ({
-      id: enemy.id,
-      x: enemy.x,
-      y: enemy.y,
-      hp: enemy.hp,
-      maxHp: enemy.maxHp,
-      lastDamagedAt: enemy.lastDamagedAt,
-      monsterId: enemy.monsterId,
-      spawnRarity: enemy.spawnRarity,
-      visualPrimaryColor: enemy.visualPrimaryColor,
-      boss: enemy.boss,
-      runtimeTier: enemy.runtimeTier
-    })),
-    projectiles: anchoredBolts.map((bolt) => ({
-      id: bolt.id,
-      x: bolt.x,
-      y: bolt.y,
-      targetX: bolt.targetX,
-      targetY: bolt.targetY,
-      velocityX: bolt.velocityX,
-      velocityY: bolt.velocityY,
-      directionX: bolt.directionX,
-      directionY: bolt.directionY,
-      trajectory: bolt.trajectory,
-      arcHeight: bolt.arcHeight,
-      projectileVisualMode: bolt.projectileVisualMode,
-      projectileWidth: bolt.projectileWidth,
-      projectileHeight: bolt.projectileHeight,
-      splitProjectile: bolt.splitProjectile,
-      projectileSpeed: bolt.projectileSpeed,
-      damageType: bolt.damageType,
-      vfxKey: bolt.vfxKey,
-      ttl: bolt.ttl,
-      duration: bolt.duration,
-      fadeDuration: bolt.fadeDuration
-    })),
-    areas: [
-      ...passiveVisualEffects.map((gem, index) => ({
-        id: index,
-        kind: "passive-aura" as const,
-        x: player.x,
-        y: player.y,
-        radius: 92 + index * 16,
-        vfxKey: gem.visual_effect || gem.instance_id,
-        ttl: 1,
-        duration: 1
-      })),
-      ...areaNovas.map((nova) => ({
-        id: nova.id,
-        kind: "nova" as const,
-        x: nova.followPlayer ? player.x : nova.x,
-        y: nova.followPlayer ? player.y : nova.y,
-        radius: nova.radius,
-        ringWidth: nova.ringWidth,
-        damageType: nova.damageType,
-        vfxKey: nova.vfxKey,
-        vfxScale: nova.vfxScale,
-        ttl: nova.ttl,
-        duration: nova.duration
-      })),
-      ...damageZones.map((zone) => ({
-        id: zone.id,
-        kind: "damage-zone" as const,
-        x: zone.followPlayer ? player.x : zone.x,
-        y: zone.followPlayer ? player.y : zone.y,
-        radius: zone.shape === "circle" ? zone.radius : undefined,
-        width: zone.shape === "rectangle" ? zone.length : undefined,
-        height: zone.shape === "rectangle" ? zone.width : undefined,
-        directionX: zone.directionX,
-        directionY: zone.directionY,
-        damageType: zone.damageType,
-        vfxKey: zone.vfxKey,
-        warning: zone.warning,
-        hitAtMs: zone.hitAtMs,
-        elapsedMs: elapsedRef.current * 1000,
-        tickProgress: activeDamageZoneTickProgress(zone.zoneId) ?? zone.tickProgress,
-        ttl: zone.ttl,
-        duration: zone.duration
-      })),
-      ...meleeArcs.map((arc) => ({
-        id: arc.id,
-        kind: "melee-arc" as const,
-        x: arc.x,
-        y: arc.y,
-        radius: arc.radius,
-        directionX: arc.directionX,
-        directionY: arc.directionY,
-        arcAngle: arc.arcAngle,
-        damageType: arc.damageType,
-        vfxKey: arc.vfxKey,
-        ttl: arc.ttl,
-        duration: arc.duration
-      })),
-      ...chainSegments.map((segment) => ({
-        id: segment.id,
-        kind: "chain" as const,
-        startX: segment.startX,
-        startY: segment.startY,
-        endX: segment.endX,
-        endY: segment.endY,
-        damageType: segment.damageType,
-        vfxKey: segment.vfxKey,
-        ttl: segment.ttl,
-        duration: segment.duration
-      }))
-    ],
-    hits: anchoredHitVfxs.map((vfx) => ({
-      id: vfx.id,
-      x: vfx.x,
-      y: vfx.y,
-      radius: Math.max(vfx.impactRadius ?? 0, vfx.projectileWidth ?? 0, vfx.projectileHeight ?? 0) * 0.5,
-      damageType: vfx.damageType,
-      vfxKey: vfx.vfxKey,
-      shapeEffects: (vfx.shapeEffects ?? []).map((effect) => effect.id),
-      ttl: vfx.ttl,
-      duration: vfx.duration
-    })),
-    texts: texts.map((text) => ({
-      id: text.id,
-      x: text.x,
-      y: text.y,
-      text: text.text,
-      damageType: text.damageType,
-      ttl: text.ttl,
-      duration: text.duration
-    }))
-  };
-
   return (
     <GameViewportFrame viewport={gameViewport} mode={gameResolutionMode}>
     <main className="game-screen">
-      {activeBossEnemy && <BossHealthBar enemy={activeBossEnemy} />}
-      {showBattleMapLayer && <section className="map-layer" aria-label="可玩地图">
-        <div
-          className="terrain"
-          data-map-template-id={battleMap?.id ?? ""}
-          data-map-instance-rotation={editorBattleMap?.mapInstance?.rotation ?? 0}
-          style={{
-            width: terrainWidth,
-            height: terrainHeight,
-            transform: battleTerrainTransform(battleCamera)
-          }}
-        >
-          <div className="terrain-ground">
-            {battleMap && <BakedMapBackground map={battleMap} />}
-            {battleMap && <MapDebugOverlay map={battleMap} enabled={mapDebugEnabled} />}
-          </div>
-          {!CANVAS_GEOMETRY_SKILL_EFFECTS && (
-            <div className="battle-ground-decal-layer">
-              <PassiveAuraLayer
-                effects={passiveVisualEffects}
-                x={player.x}
-                y={player.y}
-                projectPoint={projectBattleWorldToScreen}
-                visualTone={visualTone}
-              />
-              <DamageZoneLayer
-                zones={damageZones}
-                projectPoint={projectBattleWorldToScreen}
-                directionAngle={worldDirectionToBattleScreenAngle}
-                normalizeVfxScale={normalizedVfxScale}
-                cssToken={cssToken}
-                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 2}
-              />
-              <AreaNovaLayer
-                novas={areaNovas}
-                projectPoint={projectBattleWorldToScreen}
-                normalizeVfxScale={normalizedVfxScale}
-                visualTone={visualTone}
-                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 2}
-              />
-              <MeleeArcLayer
-                arcs={meleeArcs}
-                projectPoint={projectBattleWorldToScreen}
-                directionAngle={worldDirectionToBattleScreenAngle}
-                normalizeVfxScale={normalizedVfxScale}
-                visualTone={visualTone}
-                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 1}
-              />
-              <ChainSegmentLayer
-                segments={chainSegments}
-                projectPoint={projectBattleWorldToScreen}
-                normalizeVfxScale={normalizedVfxScale}
-                visualTone={visualTone}
-                zIndex={BATTLE_ENTITY_Z_INDEX_BASE - 1}
-              />
-            </div>
-          )}
-          <div className="battle-entity-layer">
-            {sortedRenderItems
-              .filter(shouldRenderLegacyBattleItem)
-              .map((item, index) => renderBattleRenderItem(item, index, battleAnimationContexts))}
-          </div>
-          <div className="battle-effect-layer">
-            <BattlePlayerBuffLayer
-              buffs={activePlayerBuffs}
-              player={player}
-              projectBattleWorldToScreen={projectBattleWorldToScreen}
-            />
-            {skillEditorMode && (
-              <FrontendSkillGuideLayer
-                skills={activeSkills}
-                player={player}
-                enemies={enemies}
-                guidePackage={skillEditorGuidePackage}
-                debugOptions={skillEditorDebugOptions}
-                helpers={{
-                  isProjectileSkillTemplate,
-                  nearestGuideTarget: (source, guideEnemies, searchRange, maxDistance) => nearestGuideTarget(source, guideEnemies as Enemy[], searchRange, maxDistance),
-                  guideDirection,
-                  projectileSpawnWorldPosition,
-                  projectileSpreadAngleDeg,
-                  projectileAngleStepDeg,
-                  projectileSpreadDirections,
-                  projectBattleWorldToScreen,
-                  worldDirectionToBattleScreenAngle,
-                  rotateDirection,
-                  formatPreviewNumber
-                }}
-              />
-            )}
-          </div>
-          <div className="battle-text-layer">
-            {/* Legacy damage-number DOM fallback stays gated: !CANVAS_GEOMETRY_SKILL_EFFECTS && texts.map */}
-            {!CANVAS_GEOMETRY_SKILL_EFFECTS && (
-              <FloatingTextLayer
-                texts={texts}
-                projectPoint={projectBattleWorldToScreen}
-                cssToken={cssToken}
-                riseSpeed={FLOATING_TEXT_VISUAL_RISE_SPEED}
-              />
-            )}
-          </div>
-        </div>
-        <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
-        <PlayerOverheadResourceBars player={player} projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)} />
-        <GroundDropLayer
-          drops={state.drops}
-          displayPositions={dropDisplayPositions.current}
-          projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)}
-          onPickup={beginDropPickup}
-        />
-        <BossPortalLayer portal={bossPortal} camera={battleCamera} projectPosition={battleWorldToViewport} onUse={beginBossPortalUse} />
-        {restAreaMapActive && (
-          <RestAreaMapInteractableLayer
-            map={battleMap}
-            camera={battleCamera}
-            projectPosition={battleWorldToViewport}
-            interactionTarget={restAreaInteractionTarget}
-            onInteract={interactWithRestArea}
-          />
-        )}
-        {playableMinimapVisible && battleMap && (
-          <PlayableBattleMinimap
-            map={battleMap}
-            player={player}
-            exploredCells={exploredMinimapCells}
-            mode={playableMinimapMode}
-          />
-        )}
-      </section>}
+      <PlayableBattleScene
+        activeBossEnemy={activeBossEnemy}
+        showBattleMapLayer={showBattleMapLayer}
+        battleMap={battleMap}
+        editorBattleMap={editorBattleMap}
+        mapDebugEnabled={mapDebugEnabled}
+        terrainWidth={terrainWidth}
+        terrainHeight={terrainHeight}
+        terrainTransform={battleTerrainTransform(battleCamera)}
+        battleCamera={battleCamera}
+        gameViewport={gameViewport}
+        animationNowMs={animationNowMs}
+        player={player}
+        playerMoving={Math.hypot(playerVisual.current.movementVector.x, playerVisual.current.movementVector.y) > 0.001}
+        guardActive={guardActive}
+        visibleEnemies={visibleEnemies}
+        anchoredBolts={anchoredBolts}
+        anchoredHitVfxs={anchoredHitVfxs}
+        passiveVisualEffects={passiveVisualEffects}
+        areaNovas={areaNovas}
+        damageZones={damageZones}
+        meleeArcs={meleeArcs}
+        chainSegments={chainSegments}
+        texts={texts}
+        activePlayerBuffs={activePlayerBuffs}
+        sortedRenderItems={sortedRenderItems}
+        battleAnimationContexts={battleAnimationContexts}
+        renderBattleRenderItem={renderBattleRenderItem}
+        shouldRenderLegacyBattleItem={shouldRenderLegacyBattleItem}
+        projectBattleWorldToScreen={projectBattleWorldToScreen}
+        worldDirectionToBattleScreenAngle={worldDirectionToBattleScreenAngle}
+        battleWorldToViewport={battleWorldToViewport}
+        normalizedVfxScale={normalizedVfxScale}
+        visualTone={visualTone}
+        cssToken={cssToken}
+        activeDamageZoneTickProgress={activeDamageZoneTickProgress}
+        canvasGeometrySkillEffects={CANVAS_GEOMETRY_SKILL_EFFECTS}
+        battleEntityZIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
+        floatingTextVisualRiseSpeed={FLOATING_TEXT_VISUAL_RISE_SPEED}
+        skillEditorMode={skillEditorMode}
+        activeSkills={activeSkills}
+        enemies={enemies}
+        skillEditorGuidePackage={skillEditorGuidePackage}
+        skillEditorDebugOptions={skillEditorDebugOptions}
+        skillGuideHelpers={{
+          isProjectileSkillTemplate,
+          nearestGuideTarget: (source: Parameters<typeof nearestGuideTarget>[0], guideEnemies: unknown[], searchRange: number, maxDistance: number) => nearestGuideTarget(source, guideEnemies as Enemy[], searchRange, maxDistance),
+          guideDirection,
+          projectileSpawnWorldPosition,
+          projectileSpreadAngleDeg,
+          projectileAngleStepDeg,
+          projectileSpreadDirections,
+          projectBattleWorldToScreen,
+          worldDirectionToBattleScreenAngle,
+          rotateDirection,
+          formatPreviewNumber
+        }}
+        drops={state.drops}
+        dropDisplayPositions={dropDisplayPositions.current}
+        beginDropPickup={beginDropPickup}
+        bossPortal={bossPortal}
+        beginBossPortalUse={beginBossPortalUse}
+        restAreaMapActive={restAreaMapActive}
+        restAreaInteractionTarget={restAreaInteractionTarget}
+        interactWithRestArea={interactWithRestArea}
+        playableMinimapVisible={playableMinimapVisible}
+        exploredMinimapCells={exploredMinimapCells}
+        playableMinimapMode={playableMinimapMode}
+      />
 
       {monsterTestMode && (
         <section className="monster-test-panel" aria-label="怪物测试控制">

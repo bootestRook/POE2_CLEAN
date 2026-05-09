@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 const root = process.cwd();
 const require = createRequire(import.meta.url);
 const app = readFileSync(join(root, "webapp", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
+const playableBattleScene = readFileSync(join(root, "webapp", "features", "playable-battle", "PlayableBattleScene.tsx"), "utf8").replace(/\r\n/g, "\n");
 const webappSources = collectWebappSources(join(root, "webapp"));
 const webappSourceText = webappSources.join("\n");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
@@ -373,9 +374,9 @@ for (const token of ["melee_arc", "frontendMeleeArcTargets", "frontendDamageEven
 for (const token of ["area_spawn", "on_kill_recast_chance_percent", "frontendDamageEventsForTarget"]) {
   if (!buildFrontendNovaSkillEventsBody.includes(token)) throw new Error(`Nova frontend runtime coverage missing ${token}.`);
 }
-const battleGeometrySnapshotEnemies = app.slice(
-  app.indexOf("enemies: visibleEnemies.map((enemy) => ({"),
-  app.indexOf("projectiles: bolts.map((bolt) => ({")
+const battleGeometrySnapshotEnemies = playableBattleScene.slice(
+  playableBattleScene.indexOf("enemies: visibleEnemies.map((enemy) => ({"),
+  playableBattleScene.indexOf("projectiles: anchoredBolts.map((bolt) => ({")
 );
 if (!battleGeometrySnapshotEnemies.includes("lastDamagedAt: enemy.lastDamagedAt")) {
   throw new Error("Canvas battle geometry enemies must receive lastDamagedAt for damage flash.");
@@ -740,7 +741,7 @@ for (const text of [
   }
 }
 
-if (!app.includes("shapeEffects: (vfx.shapeEffects ?? []).map((effect) => effect.id)")) {
+if (!playableBattleScene.includes("shapeEffects: (vfx.shapeEffects ?? []).map((effect")) {
   throw new Error("Canvas hit VFX snapshot must tolerate hits without optional shapeEffects.");
 }
 for (const text of [
@@ -765,7 +766,7 @@ for (const text of [
   "buffType: \"channel_move_speed\"",
   "playerMovementSpeedMultiplier()"
 ]) {
-  if (!app.includes(text)) {
+  if (!webappSourceText.includes(text)) {
     throw new Error(`Caster-attached damage zones must stay anchored to the live player center: ${text}`);
   }
 }
@@ -845,8 +846,8 @@ const bakedMapChecks = [
   [webappSourceText, "MapSelectionPanel", "missing map selection panel"],
   [webappSourceText, "\u9009\u62e9\u6218\u6597\u5730\u56fe", "missing Chinese map selection title"],
   [webappSourceText, "\u5730\u56fe\u8c03\u8bd5", "missing map debug toggle"],
-  [app, "BakedMapBackground", "missing baked map background renderer"],
-  [app, "MapDebugOverlay", "missing map debug overlay"],
+  [webappSourceText, "BakedMapBackground", "missing baked map background renderer"],
+  [webappSourceText, "MapDebugOverlay", "missing map debug overlay"],
   [app, "createProceduralSpawnPlanEnemies(mapInstance", "playable map run must create frontend-owned monsters"],
   [app, "setEnemies(spawnPlan.enemies)", "playable map run must install frontend-owned monsters"],
   [css, ".map-debug-walkable", "missing walkable debug style"],
@@ -1295,12 +1296,13 @@ const abstractGeometryPhase2Checks = [
   [app, "shouldRenderLegacyBattleItem", "Phase 2 must keep a narrow legacy fallback boundary."],
   [app, "CANVAS_GEOMETRY_SKILL_EFFECTS = true", "Phase 3 skill effects must default to Canvas geometry rendering."],
   [app, "return item.kind === \"hit-vfx\" && !CANVAS_GEOMETRY_SKILL_EFFECTS;", "Player, enemies, projectiles and hit VFX must not be emitted as per-object DOM by default."],
-  [app, "!CANVAS_GEOMETRY_SKILL_EFFECTS && texts.map", "Damage numbers must stay behind the Canvas skill-effects fallback switch."],
-  [app, "hits: anchoredHitVfxs.map", "Hit VFX must be forwarded into the Canvas geometry snapshot."],
-  [app, "texts: texts.map", "Floating damage numbers must be forwarded into the Canvas geometry snapshot."],
-  [app, "moving: Math.hypot(playerVisual.current.movementVector.x", "Player geometry snapshot must preserve visual movement state for rotation speed."],
-  [app, "velocityX: bolt.velocityX", "Projectile geometry snapshot must preserve projectile velocity input."],
-  [app, "projectileSpeed: bolt.projectileSpeed", "Projectile geometry snapshot must preserve projectile speed input."],
+  [playableBattleScene, "!canvasGeometrySkillEffects && (", "Damage numbers must stay behind the Canvas skill-effects fallback switch."],
+  [playableBattleScene, "hits: anchoredHitVfxs.map", "Hit VFX must be forwarded into the Canvas geometry snapshot."],
+  [playableBattleScene, "texts: texts.map", "Floating damage numbers must be forwarded into the Canvas geometry snapshot."],
+  [app, "playerMoving={Math.hypot(playerVisual.current.movementVector.x", "Player geometry snapshot must preserve visual movement state for rotation speed."],
+  [playableBattleScene, "moving: playerMoving", "Player geometry snapshot must consume visual movement state for rotation speed."],
+  [playableBattleScene, "velocityX: bolt.velocityX", "Projectile geometry snapshot must preserve projectile velocity input."],
+  [playableBattleScene, "projectileSpeed: bolt.projectileSpeed", "Projectile geometry snapshot must preserve projectile speed input."],
   [battleGeometryCanvas, 'data-canvas-objects="entities-projectiles"', "Canvas layer must declare that entities and projectiles are canvas-rendered."],
   [battleGeometryCanvas, "data-geometry-enemies={viewportSnapshot.enemies.length}", "Canvas layer must expose enemy count for pressure validation."],
   [battleGeometryCanvas, "data-geometry-projectiles={viewportSnapshot.projectiles.length}", "Canvas layer must expose projectile count for pressure validation."],

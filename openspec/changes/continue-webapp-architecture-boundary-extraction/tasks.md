@@ -21,10 +21,10 @@
 
 ## 4. Playable Battle Scene Presentation Boundary
 
-- [ ] 4.1 Extract terrain layers, battle entity/effect/text layers, canvas geometry snapshot assembly, minimap, drops, boss portal, rest-area interactables, boss HUD, and player resource overlay wiring into a focused playable battle scene presentation module.
-- [ ] 4.2 Preserve existing DOM order, class names, aria labels, layer ordering, canvas placement, projection behavior, rendering gates, text, and callback behavior.
-- [ ] 4.3 Keep gameplay state, refs, runtime event queues, monster behavior, damage application, projectile lifecycle, target anchoring, drop pickup rules, minimap exploration, and map-run progression ownership outside the presentation module.
-- [ ] 4.4 Run focused TypeScript/build checks and review the diff for rendering-order, gameplay, CSS, copy, backend, dependency, storage, or save-schema changes.
+- [x] 4.1 Extract terrain layers, battle entity/effect/text layers, canvas geometry snapshot assembly, minimap, drops, boss portal, rest-area interactables, boss HUD, and player resource overlay wiring into a focused playable battle scene presentation module.
+- [x] 4.2 Preserve existing DOM order, class names, aria labels, layer ordering, canvas placement, projection behavior, rendering gates, text, and callback behavior.
+- [x] 4.3 Keep gameplay state, refs, runtime event queues, monster behavior, damage application, projectile lifecycle, target anchoring, drop pickup rules, minimap exploration, and map-run progression ownership outside the presentation module.
+- [x] 4.4 Run focused TypeScript/build checks and review the diff for rendering-order, gameplay, CSS, copy, backend, dependency, storage, or save-schema changes.
 
 ## 5. Enemy Runtime Helper Boundary
 
