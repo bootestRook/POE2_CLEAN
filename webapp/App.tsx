@@ -123,9 +123,10 @@ import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resol
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { StashPanel } from "./components/inventory/StashPanel";
-import { BagGrid } from "./components/inventory/BagGrid";
-import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { InventoryOverlay } from "./components/inventory/InventoryOverlay";
+import { EquipmentPanel } from "./components/inventory/EquipmentPanel";
+import { InventoryBagPanel } from "./components/inventory/InventoryBagPanel";
+import { InventorySkillBoardPanel } from "./components/inventory/InventorySkillBoardPanel";
 import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, isGemItem, isPassiveGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
@@ -172,7 +173,7 @@ import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { MonsterTestPanel } from "./components/battle/MonsterTestPanel";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
-import { BoardCell, GemGhost, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
+import { GemGhost } from "./components/skill-board/SkillBoardPresentation";
 import type { PreviewRelationType } from "./components/skill-board/SkillBoardPresentation";
 import { canPlaceGemOnBoard, cellKey, useLegalDropCells, usePlacementInvalidReason, usePlacementPreview } from "./components/skill-board/boardPlacementState";
 import { useActiveTargetLines, useLinkedGemIds, useSupportLines, useSupportPreview } from "./components/skill-board/supportPreviewState";
@@ -7876,152 +7877,84 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             />
           )}
           <section className="right-workbench">
-            <section className="equipment-panel" aria-label="装备栏">
-              <div className="equipment-grid" data-equipment-drop-target="true">
-                {EQUIPMENT_SLOT_SPECS.map((slot, slotIndex) => {
-                  const item = equippedItems[slotIndex];
-                  const spansBothWeaponSlots = Boolean(
-                    slotIndex === MAIN_WEAPON_SLOT_INDEX
-                    && item
-                    && isTwoHandedWeapon(item)
-                    && equipmentSlots[OFF_WEAPON_SLOT_INDEX] === item.instance_id
-                  );
-                  if (
-                    slotIndex === OFF_WEAPON_SLOT_INDEX
-                    && item
-                    && isTwoHandedWeapon(item)
-                    && equipmentSlots[MAIN_WEAPON_SLOT_INDEX] === item.instance_id
-                  ) {
-                    return (
-                      <div
-                        key={slot.id}
-                        className="equipment-blocked-cell"
-                        data-equipment-drop-target="true"
-                        data-equipment-slot-index={slotIndex}
-                        data-equipment-slot-id={slot.id}
-                        title="双手武器占用，禁止摆放"
-                        onMouseEnter={() => setHoveredEquipmentSlot(slotIndex)}
-                        onMouseLeave={() => setHoveredEquipmentSlot(null)}
-                      >
-                        <span className="equipment-slot-label">{slot.label}</span>
-                        <span className="equipment-blocked-mark" aria-hidden="true">X</span>
-                      </div>
-                    );
-                  }
-                  const origin = item
-                    ? { kind: "equipment" as const, slotIndex, slotId: slot.id, instanceId: item.instance_id }
-                    : null;
-                  const isGhost = Boolean(origin && isFloatingOrigin(floatingGem, origin));
-                  return item ? (
-                    <EquipmentItemCell
-                      key={slot.id}
-                      slot={slot}
-                      slotIndex={slotIndex}
-                      item={item}
-                      isGhost={isGhost}
-                      className={resolveEquipmentCellClass(slotIndex, hoveredEquipmentSlot, item, hoveredGemId, floatingGem, slot, isFloatingOrigin, spansBothWeaponSlots)}
-                      renderGem={(gem) => <GemOrb gem={gem} />}
-                      renderGhost={() => <GemGhost />}
-                      onBeginDrag={beginDrag}
-                      onPointerDrag={(event) => origin && beginPointerDrag(event, item, origin)}
-                      onHover={(event) => {
-                        setHoveredEquipmentSlot(slotIndex);
-                        onGemHover(event, item, "equipment", slotIndex);
-                      }}
-                      onMove={(event) => onGemHover(event, item, "equipment", slotIndex)}
-                      onLeave={() => {
-                        setHoveredEquipmentSlot(null);
-                        setHoveredGemId(null);
-                        setTooltip(null);
-                      }}
-                    />
-                  ) : (
-                    <EquipmentEmptyCell
-                      key={slot.id}
-                      slot={slot}
-                      slotIndex={slotIndex}
-                      className={equipmentEmptyCellClass(slotIndex, hoveredEquipmentSlot, floatingGem, slot)}
-                      onHover={() => setHoveredEquipmentSlot(slotIndex)}
-                      onLeave={() => setHoveredEquipmentSlot(null)}
-                    />
-                  );
-                })}
-              </div>
-            </section>
+            <EquipmentPanel
+              slotSpecs={EQUIPMENT_SLOT_SPECS}
+              equippedItems={equippedItems}
+              equipmentSlots={equipmentSlots}
+              mainWeaponSlotIndex={MAIN_WEAPON_SLOT_INDEX}
+              offWeaponSlotIndex={OFF_WEAPON_SLOT_INDEX}
+              hoveredEquipmentSlot={hoveredEquipmentSlot}
+              hoveredGemId={hoveredGemId}
+              floatingGem={floatingGem}
+              isTwoHandedWeapon={isTwoHandedWeapon}
+              isFloatingOrigin={isFloatingOrigin}
+              itemCellClassName={resolveEquipmentCellClass}
+              emptyCellClassName={equipmentEmptyCellClass}
+              renderGem={(gem) => <GemOrb gem={gem} />}
+              renderGhost={() => <GemGhost />}
+              onBeginDrag={beginDrag}
+              onPointerDrag={beginPointerDrag}
+              onHoverGem={onGemHover}
+              onHoverEquipmentSlot={setHoveredEquipmentSlot}
+              onLeaveEquipmentSlot={() => setHoveredEquipmentSlot(null)}
+              onLeaveGem={() => {
+                setHoveredGemId(null);
+                setTooltip(null);
+              }}
+            />
 
-            <section className="board-panel">
-              <div className="board-grid">
-                {state.board.cells.flat().map((cell) => (
-                  <BoardCell
-                    key={`${cell.row}-${cell.column}`}
-                    cell={cell}
-                    fullGem={cell.gem ? fullGemById.get(cell.gem.instance_id) ?? cell.gem : null}
-                    hoveredGemId={hoveredBoardGemId}
-                    linkedGemIds={linkedGemIds}
-                    supportPreview={supportPreview}
-                    floatingGemId={floatingGem?.gem.instance_id ?? null}
-                    selectedGemInstanceId={selectedGemInstanceId}
-                    legalPlacementCells={legalPlacementCells}
-                    hoveredBoardCell={hoveredBoardCell}
-                    previewCell={previewCell}
-                    previewAffectedCell={previewAffectedCells.get(cellKey(cell.row, cell.column)) ?? null}
-                    previewInvalidReason={hoveredBoardCell === cellKey(cell.row, cell.column) ? previewInvalidReason : null}
-                    onHoverCell={setHoveredBoardCell}
-                    onDropGem={dropGemOnCell}
-                    onDragGem={beginDrag}
-                    onPointerDragGem={beginPointerDrag}
-                    onHoverGem={onGemHover}
-                    onLeaveGem={() => {
-                      setHoveredGemId(null);
-                      setTooltip(null);
-                    }}
-                    onUnmountGem={unmountGem}
-                    renderGem={(gem) => <GemOrb gem={gem} />}
-                  />
-                ))}
-                {supportPreview
-                  ? supportPreview.targets.length > 0 && <SupportPreviewLines preview={supportPreview} />
-                  : activeTargetLines
-                    ? activeTargetLines.length > 0 && <SupportLines lines={activeTargetLines} className="support-hover-lines" />
-                  : showPersistentSupportLines && persistentSupportLines.length > 0 && <SupportLines lines={persistentSupportLines} />}
-                {placementPreview && (
-                  <div className="placement-preview-summary" data-preview-skill-refresh={previewCell ?? ""}>
-                    <strong>放下后预计影响</strong>
-                    <span>{placementPreview.previewSkillSummary}</span>
-                  </div>
-                )}
-              </div>
-              <label className="support-line-toggle">
-                <input
-                  type="checkbox"
-                  checked={showPersistentSupportLines}
-                  onChange={(event) => setShowPersistentSupportLines(event.currentTarget.checked)}
-                />
-                <span>常驻显示连线</span>
-              </label>
-            </section>
+            <InventorySkillBoardPanel
+              cells={state.board.cells}
+              fullGemById={fullGemById}
+              hoveredBoardGemId={hoveredBoardGemId}
+              linkedGemIds={linkedGemIds}
+              supportPreview={supportPreview}
+              floatingGemId={floatingGem?.gem.instance_id ?? null}
+              selectedGemInstanceId={selectedGemInstanceId}
+              legalPlacementCells={legalPlacementCells}
+              hoveredBoardCell={hoveredBoardCell}
+              previewCell={previewCell}
+              previewAffectedCells={previewAffectedCells}
+              previewInvalidReason={previewInvalidReason}
+              persistentSupportLines={persistentSupportLines}
+              activeTargetLines={activeTargetLines}
+              showPersistentSupportLines={showPersistentSupportLines}
+              placementPreview={placementPreview}
+              renderGem={(gem) => <GemOrb gem={gem} />}
+              onHoverCell={setHoveredBoardCell}
+              onDropGem={dropGemOnCell}
+              onDragGem={beginDrag}
+              onPointerDragGem={beginPointerDrag}
+              onHoverGem={onGemHover}
+              onLeaveGem={() => {
+                setHoveredGemId(null);
+                setTooltip(null);
+              }}
+              onUnmountGem={unmountGem}
+              onTogglePersistentSupportLines={setShowPersistentSupportLines}
+            />
 
-            <section className="bag-panel">
-              <BagGrid
-                slots={bagSlots}
-                floatingGem={floatingGem}
-                cellClassName={(slotIndex, gem) => resolveBagCellClass(slotIndex, hoveredBagSlot, gem, hoveredGemId, floatingGem, isFloatingOrigin)}
-                emptyCellClassName={(slotIndex) => bagEmptyCellClass(slotIndex, hoveredBagSlot)}
-                isFloatingOrigin={isFloatingOrigin}
-                renderGem={(gem) => <GemOrb gem={gem} />}
-                renderGhost={() => <GemGhost />}
-                onBeginDrag={beginDrag}
-                onPointerDrag={beginPointerDrag}
-                onHoverSlot={setHoveredBagSlot}
-                onHoverGem={onGemHover}
-                onLeaveSlot={() => setHoveredBagSlot(null)}
-                onLeaveGem={() => {
-                  setHoveredBagSlot(null);
-                  setHoveredGemId(null);
-                  setTooltip(null);
-                }}
-              />
-            </section>
+            <InventoryBagPanel
+              slots={bagSlots}
+              floatingGem={floatingGem}
+              hoveredBagSlot={hoveredBagSlot}
+              hoveredGemId={hoveredGemId}
+              cellClassName={resolveBagCellClass}
+              emptyCellClassName={bagEmptyCellClass}
+              isFloatingOrigin={isFloatingOrigin}
+              renderGem={(gem) => <GemOrb gem={gem} />}
+              renderGhost={() => <GemGhost />}
+              onBeginDrag={beginDrag}
+              onPointerDrag={beginPointerDrag}
+              onHoverSlot={setHoveredBagSlot}
+              onHoverGem={onGemHover}
+              onLeaveSlot={() => setHoveredBagSlot(null)}
+              onLeaveGem={() => {
+                setHoveredBagSlot(null);
+                setHoveredGemId(null);
+                setTooltip(null);
+              }}
+            />
           </section>
           </div>
 
