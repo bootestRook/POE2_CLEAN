@@ -212,3 +212,4 @@ Existing focused owners reviewed for this batch:
 ## Test And Smoke Boundary Updates
 
 - 12.1 smoke/source tests now directly read and check the focused owner modules for the completed extraction batches: layout presentation (`EntryTitleScreen`, `AppTopHud`, `GameShellOverlays`), inventory presentation (`InventoryOverlay`, `EquipmentPanel`, `InventoryBagPanel`, `InventorySkillBoardPanel`), stash state, frontend App state helpers, drop helpers, save storage helpers, monster skill presentation, monster skill event builders, and player damage runtime.
+- 12.2 App-specific smoke checks now focus on orchestration boundaries that should remain in `webapp/App.tsx`: exported bootstrap, `GameApp`, launch-cache clearing, runtime refs, runtime player setter, skill event timeline/batch consumption, damage batch application, disabled backend-state shim, and focused shell/inventory module composition.

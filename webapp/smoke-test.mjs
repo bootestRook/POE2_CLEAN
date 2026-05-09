@@ -254,6 +254,25 @@ const moduleOwnerChecks = [
 for (const [source, token, message] of moduleOwnerChecks) {
   if (!source.includes(token)) throw new Error(message);
 }
+const appOrchestrationChecks = [
+  "export function App()",
+  "function GameApp()",
+  "clearLaunchCacheIfRequested",
+  "const activeDamageZones = useRef<ActiveDamageZoneRuntime[]>([]);",
+  "const pendingBossDamageZoneHits = useRef<PendingBossDamageZoneHit[]>([]);",
+  "function setRuntimePlayer",
+  "function consumeSkillEventTimeline",
+  "function consumeSkillEventBatch",
+  "function applyDamageEventBatch",
+  "requestBackendState",
+  "throw new Error(",
+  "<AppTopHud",
+  "<GameShellOverlays",
+  "<InventoryOverlay"
+];
+for (const token of appOrchestrationChecks) {
+  if (!app.includes(token)) throw new Error(`App orchestration boundary check missing: ${token}`);
+}
 for (const requiredRestAreaCss of [
   ".rest-area-scene",
   ".rest-area-room",
