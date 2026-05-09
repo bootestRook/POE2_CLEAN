@@ -1,5 +1,3 @@
-import equipmentData from "./frontendEquipmentData.json";
-
 export type FrontendEquipmentAffixDefinition = {
   affix_id: string;
   source_modifier_id: string;
@@ -60,9 +58,50 @@ export type FrontendEquipmentStatModifier = {
   payload?: Record<string, unknown> | null;
 };
 
-const DEFINITIONS = (equipmentData as { definitions: FrontendEquipmentAffixDefinition[] }).definitions;
-const DEFINITIONS_BY_ID = new Map(DEFINITIONS.map((definition) => [definition.affix_id, definition]));
-const SOURCE_OPTIONS = Array.from(new Set(DEFINITIONS.filter((definition) => definition.library === "base").map((definition) => definition.source))).sort();
+type FrontendEquipmentDataState = {
+  definitions: FrontendEquipmentAffixDefinition[];
+  definitionsById: Map<string, FrontendEquipmentAffixDefinition>;
+  sourceOptions: string[];
+};
+
+let equipmentDataState: FrontendEquipmentDataState | null = null;
+let equipmentDataPromise: Promise<FrontendEquipmentDataState> | null = null;
+
+export function preloadFrontendEquipmentData(): Promise<FrontendEquipmentDataState> {
+  if (equipmentDataState) return Promise.resolve(equipmentDataState);
+  equipmentDataPromise ??= import("./data/equipment/frontendEquipmentData.json")
+    .then((module) => {
+      const definitions = (module.default as { definitions: FrontendEquipmentAffixDefinition[] }).definitions;
+      const state = {
+        definitions,
+        definitionsById: new Map(definitions.map((definition) => [definition.affix_id, definition])),
+        sourceOptions: Array.from(new Set(definitions.filter((definition) => definition.library === "base").map((definition) => definition.source))).sort()
+      };
+      equipmentDataState = state;
+      return state;
+    });
+  return equipmentDataPromise;
+}
+
+function frontendEquipmentDataState() {
+  if (!equipmentDataState) {
+    throw new Error("Equipment data has not loaded yet.");
+  }
+  return equipmentDataState;
+}
+
+function frontendEquipmentDefinitions() {
+  return frontendEquipmentDataState().definitions;
+}
+
+function frontendEquipmentDefinitionsById() {
+  return frontendEquipmentDataState().definitionsById;
+}
+
+function frontendEquipmentSourceOptions() {
+  return frontendEquipmentDataState().sourceOptions;
+}
+
 const FRONTEND_BASE_MOVE_SPEED = 250;
 const WEAPON_EQUIPMENT_SOURCE_KEYWORDS = [
   "\u5315\u9996",
@@ -104,7 +143,7 @@ const RARITY_COUNTS: Record<string, [number, number]> = {
 };
 
 export function frontendEquipmentSources() {
-  return SOURCE_OPTIONS.map((source) => ({ id: source, name_text: source }));
+  return frontendEquipmentSourceOptions().map((source) => ({ id: source, name_text: source }));
 }
 
 export function frontendEquipmentRarities() {
@@ -137,7 +176,7 @@ export function prefixSuffixCapacity(level: number): { prefix: number; suffix: n
 }
 
 export function frontendEquipmentAffixOptions(source: string, level: number) {
-  return DEFINITIONS
+  return frontendEquipmentDefinitions()
     .filter((definition) => definition.source === source && definition.enabled && definition.required_level <= level)
     .map((definition) => ({
       id: definition.affix_id,
@@ -152,21 +191,23 @@ export function frontendEquipmentAffixOptions(source: string, level: number) {
 }
 
 export function chooseFrontendEquipmentSource(seed: number) {
-  if (SOURCE_OPTIONS.length === 0) return "装备";
+  const sourceOptions = frontendEquipmentSourceOptions();
+  if (sourceOptions.length === 0) return "装备";
   const rng = seedRandom(seed);
   const buckets = frontendEquipmentSourceDropBuckets().filter((bucket) => bucket.length > 0);
-  if (buckets.length === 0) return SOURCE_OPTIONS[Math.floor(rng.nextFloat() * SOURCE_OPTIONS.length) % SOURCE_OPTIONS.length];
+  if (buckets.length === 0) return sourceOptions[Math.floor(rng.nextFloat() * sourceOptions.length) % sourceOptions.length];
   const bucket = buckets[Math.floor(rng.nextFloat() * buckets.length) % buckets.length];
   return bucket[Math.floor(rng.nextFloat() * bucket.length) % bucket.length];
 }
 
 export function frontendEquipmentSourceDropBuckets() {
-  const weaponSources = SOURCE_OPTIONS.filter(isWeaponEquipmentSource);
+  const sourceOptions = frontendEquipmentSourceOptions();
+  const weaponSources = sourceOptions.filter(isWeaponEquipmentSource);
   const otherSourceBuckets = NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS
-    .map((keywords) => SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source) && keywords.some((keyword) => source.includes(keyword))))
+    .map((keywords) => sourceOptions.filter((source) => !isWeaponEquipmentSource(source) && keywords.some((keyword) => source.includes(keyword))))
     .filter((bucket) => bucket.length > 0);
   const bucketedOtherSources = new Set(otherSourceBuckets.flat());
-  const fallbackOtherSources = SOURCE_OPTIONS.filter((source) => !isWeaponEquipmentSource(source) && !bucketedOtherSources.has(source)).map((source) => [source]);
+  const fallbackOtherSources = sourceOptions.filter((source) => !isWeaponEquipmentSource(source) && !bucketedOtherSources.has(source)).map((source) => [source]);
   return [weaponSources, ...otherSourceBuckets, ...fallbackOtherSources];
 }
 
@@ -201,7 +242,7 @@ export function createSpecifiedFrontendEquipment(source: string, level: number, 
   const selectedBaseDefinitions: FrontendEquipmentAffixDefinition[] = [];
   const ordinaryDefinitions: FrontendEquipmentAffixDefinition[] = [];
   for (const affixId of affixIds) {
-    const definition = DEFINITIONS_BY_ID.get(affixId);
+    const definition = frontendEquipmentDefinitionsById().get(affixId);
     if (!definition || !definition.enabled || definition.source !== source || definition.required_level > normalizedLevel) {
       throw new Error(`GM 装备词缀不匹配当前装备类型或等级：${affixId}`);
     }
@@ -543,7 +584,7 @@ function randomGenerationOptions(item: FrontendEquipmentItem) {
 
 function affixCandidates(source: string, level: number, library: string, gen: string, existingItem?: FrontendEquipmentItem) {
   const usedFamilies = new Set(existingItem ? [...existingItem.prefix_affixes, ...existingItem.suffix_affixes].map((affix) => affix.family_id) : []);
-  return DEFINITIONS.filter((definition) =>
+  return frontendEquipmentDefinitions().filter((definition) =>
     definition.source === source
     && definition.library === library
     && definition.gen === gen
@@ -554,7 +595,7 @@ function affixCandidates(source: string, level: number, library: string, gen: st
 }
 
 function baseCandidates(source: string) {
-  const candidates = DEFINITIONS.filter((definition) => definition.source === source && definition.library === "base" && definition.enabled);
+  const candidates = frontendEquipmentDefinitions().filter((definition) => definition.source === source && definition.library === "base" && definition.enabled);
   if (candidates.length === 0) throw new Error(`装备基础词缀池不存在：${source}`);
   return candidates;
 }

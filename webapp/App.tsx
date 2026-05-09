@@ -72,6 +72,7 @@ import {
   frontendEquipmentSources,
   frontendEquipmentStatModifiers,
   generateFrontendEquipment,
+  preloadFrontendEquipmentData,
   prefixSuffixCapacity,
 } from "./frontendEquipmentRuntime";
 import type { FrontendEquipmentAffixRoll, FrontendEquipmentItem, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
@@ -2946,6 +2947,7 @@ function saveFrontendAutosave(state: AppState) {
 }
 
 async function requestGmOptions(): Promise<GmOptions> {
+  await preloadFrontendEquipmentData();
   const gems = frontendGemDropPool().map((item) => ({
     id: item.base_gem_id ?? item.instance_id,
     name_text: item.name_text,
@@ -2961,6 +2963,7 @@ async function requestGmOptions(): Promise<GmOptions> {
 }
 
 async function requestGmEquipmentAffixes(source: string, level: number): Promise<GmEquipmentAffixResponse> {
+  await preloadFrontendEquipmentData();
   return { source, level, capacity: prefixSuffixCapacity(level), affixes: frontendEquipmentAffixOptions(source, level) };
 }
 
@@ -3599,7 +3602,7 @@ function GameApp() {
     }
     if (killed > 0) {
       setKills((value) => value + killed);
-      spawnFrontendDrops(killedEnemies);
+      void spawnFrontendDrops(killedEnemies);
       setCombatLogs((logs) => [`点燃击杀 ${killed} 个怪物。`, ...logs].slice(0, 8));
     }
   }
@@ -3617,9 +3620,6 @@ function GameApp() {
       applyServerState(createFrontendInitialAppState(), { persist: false });
       setNotice("点击开始游戏选择存档。");
     }
-    requestGmOptions()
-      .then(setGmOptions)
-      .catch((error: Error) => console.warn("[gm] options preload failed", error));
   }, []);
 
   useEffect(() => {
@@ -5880,7 +5880,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const killed = killedTargets.length;
     if (killed > 0) {
       setKills((value) => value + killed);
-      spawnFrontendDrops(killedTargets);
+      void spawnFrontendDrops(killedTargets);
       setCombatLogs((logs) => [`${skill.name_text} 击杀 ${killed} 个怪物。`, ...logs].slice(0, 8));
     } else {
       setCombatLogs((logs) => [`${skill.name_text} 自动释放。`, ...logs].slice(0, 8));
@@ -8499,7 +8499,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     if (killed > 0) {
       const skillName = events.find((event) => typeof event.payload?.skill_name === "string")?.payload?.skill_name ?? "技能";
       setKills((value) => value + killed);
-      spawnFrontendDrops(killedEnemies);
+      void spawnFrontendDrops(killedEnemies);
       setCombatLogs((logs) => [`${skillName} 击杀 ${killed} 个怪物。`, ...logs].slice(0, 8));
     }
     if (onKillEvents.length > 0) consumeSkillEventBatch(onKillEvents);
@@ -9007,8 +9007,9 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice("Boss defeated. Exit portal opened.");
   }
 
-  function spawnFrontendDrops(killedEnemies: Enemy[]) {
+  async function spawnFrontendDrops(killedEnemies: Enemy[]) {
     if (killedEnemies.length === 0) return;
+    await preloadFrontendEquipmentData();
     spawnBossPortalForKilledEnemies(killedEnemies);
     const stage = selectedFrontendMapStage();
     if (!stage) return;
@@ -9364,7 +9365,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     resetPlayableMinimapForRun(mapForMinimap, spawnPoint);
   }
 
-  function startGame(stageIdOverride?: string) {
+  async function startGame(stageIdOverride?: string) {
     if (!selectedMapId) {
       setNotice("请先选择地图。");
       return;
@@ -9397,6 +9398,16 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setRestAreaInteractionTarget(null);
     setBagOpen(false);
     if (!skillEditorMode) {
+      if (!gmOptions) {
+        try {
+          setGmOptions(await requestGmOptions());
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          setPlaying(false);
+          setNotice(message);
+          return;
+        }
+      }
       const selectedStage = selectedFrontendMapStage(stageIdOverride);
       if (!selectedStage?.enterable) {
         setPlaying(false);
@@ -9563,6 +9574,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   async function submitGmRequest(action: string, body: unknown, successText: string) {
     const payload = body && typeof body === "object" ? body as Record<string, unknown> : {};
+    await preloadFrontendEquipmentData();
     applyFrontendState((current) => {
       if (action === "gm-add-gem") {
         const baseGemId = String(payload.base_gem_id ?? gmOptions?.gems[0]?.id ?? "");

@@ -23,6 +23,8 @@ const bakedMapAssets = readFileSync(join(root, "webapp", "bakedMapAssets.ts"), "
 const bakedMapLoader = readFileSync(join(root, "webapp", "bakedMapLoader.ts"), "utf8");
 const html = readFileSync(join(root, "index.html"), "utf8");
 const frontendGameData = readFileSync(join(root, "webapp", "frontendGameData.ts"), "utf8");
+const frontendEquipmentRuntime = readFileSync(join(root, "webapp", "frontendEquipmentRuntime.ts"), "utf8");
+const frontendEquipmentData = readFileSync(join(root, "webapp", "data", "equipment", "frontendEquipmentData.json"), "utf8");
 const frontendPlayableSkillRuntime = readFileSync(join(root, "webapp", "frontendPlayableSkillRuntime.ts"), "utf8");
 const localization = readFileSync(join(root, "configs", "localization", "zh_cn.toml"), "utf8");
 const skillEditorRunnerPath = join(root, "skillEditor_run.bat");
@@ -671,6 +673,19 @@ for (const forbiddenBackendGameplay of [
   if (app.includes(forbiddenBackendGameplay)) {
     throw new Error(`Playable WebApp must be client-only for normal play: ${forbiddenBackendGameplay}`);
   }
+}
+
+if (app.includes("frontendEquipmentData.json")) {
+  throw new Error("App startup path must not directly import the large frontend equipment data catalog.");
+}
+if (!frontendEquipmentRuntime.includes('import("./data/equipment/frontendEquipmentData.json")')) {
+  throw new Error("Equipment data catalog must be loaded through the cached dynamic equipment data loader.");
+}
+if (!frontendEquipmentRuntime.includes("preloadFrontendEquipmentData")) {
+  throw new Error("Equipment runtime must expose a cached preload boundary for optional equipment data.");
+}
+if (!frontendEquipmentData.includes('"definitions":') || (frontendEquipmentData.match(/"affix_id"/g) ?? []).length < 7800) {
+  throw new Error("Moved equipment data catalog is missing expected affix definitions.");
 }
 
 const stepGameBody = functionBody(app, "stepGame");

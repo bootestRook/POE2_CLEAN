@@ -122,7 +122,7 @@ def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
 def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
     source = _read(WEBAPP / "App.tsx")
     runtime = _read(WEBAPP / "frontendEquipmentRuntime.ts")
-    data = _read(WEBAPP / "frontendEquipmentData.json")
+    data = _read(WEBAPP / "data" / "equipment" / "frontendEquipmentData.json")
 
     assert "requestGmEquipmentAffixes" in source
     assert "frontendEquipmentAffixOptions" in source

@@ -270,7 +270,8 @@ def test_frontend_equipment_source_rolls_category_then_internal_source() -> None
     assert "buckets.length" in choose_body
     assert "bucket.length" in choose_body
     assert "export function frontendEquipmentSourceDropBuckets()" in source
-    assert "const weaponSources = SOURCE_OPTIONS.filter(isWeaponEquipmentSource)" in source
+    assert "const sourceOptions = frontendEquipmentSourceOptions()" in source
+    assert "const weaponSources = sourceOptions.filter(isWeaponEquipmentSource)" in source
     assert "NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS" in source
     assert "const otherSourceBuckets = NON_WEAPON_EQUIPMENT_SOURCE_SLOT_KEYWORDS" in source
     assert "return [weaponSources, ...otherSourceBuckets, ...fallbackOtherSources]" in source

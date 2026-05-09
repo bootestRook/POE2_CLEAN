@@ -82,7 +82,7 @@ The WebApp SHALL continue `webapp/App.tsx` extraction through low-risk display a
 - **THEN** the moved code SHALL render supplied runtime visual state and SHALL NOT own projectile lifecycle, collision, follow-up suppression, target anchoring, damage application, floating text generation, or runtime event consumption
 
 ### Requirement: Next-pass extraction isolates shared types and pure helpers
-The WebApp SHALL introduce shared type and utility modules only when they are needed to preserve one-directional imports for extracted components.
+The WebApp SHALL introduce shared type, utility, and data-access modules only when they are needed to preserve one-directional imports for extracted components and to keep large generated data outside startup-critical App paths.
 
 #### Scenario: Shared WebApp types are introduced
 - **WHEN** extracted modules need `Gem`, tooltip, floating item, equipment display, battle guide, or VFX view types
@@ -91,6 +91,10 @@ The WebApp SHALL introduce shared type and utility modules only when they are ne
 #### Scenario: Pure display helpers are introduced
 - **WHEN** extracted modules need deterministic formatting, CSS token, rich-text, sprite-frame, or display geometry helpers
 - **THEN** those helpers SHALL be pure and SHALL NOT read or mutate React state, refs, local storage, save data, runtime event queues, enemy/player state, backend services, or global browser state beyond explicit inputs
+
+#### Scenario: Large generated data is accessed through focused modules
+- **WHEN** extracted or existing WebApp modules need large generated data that is not required for the current first visible flow
+- **THEN** the WebApp SHALL place that data behind focused client-side loader or accessor modules and SHALL NOT import the large data directly from `webapp/App.tsx` or other startup-critical presentation modules
 
 #### Scenario: Existing dirty worktree changes are preserved
 - **WHEN** implementation begins with unrelated dirty files or overlapping user edits
@@ -207,3 +211,4 @@ The WebApp SHALL verify each planned extraction batch before committing it and b
 #### Scenario: Batch boundaries remain reviewable
 - **WHEN** a batch is ready to commit
 - **THEN** the final diff for that batch SHALL be reviewed to confirm it does not include unrelated refactors, CSS redesign, copy changes, dependency changes, save-schema changes, gameplay behavior changes, backend calls, or skill-editor acceptance changes
+
