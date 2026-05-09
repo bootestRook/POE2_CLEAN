@@ -2,7 +2,7 @@
 
 - [x] 1.1 Inspect branch, `git status --short --branch`, and current `webapp/App.tsx` line count; identify unrelated dirty files before editing.
 - [x] 1.2 Review `docs/webapp-module-boundaries.md`, this OpenSpec change, and current extracted folders to confirm target module ownership.
-- [ ] 1.3 Run or confirm the current `npm run build` and `npm test` baseline before the first extraction batch.
+- [x] 1.3 Run or confirm the current `npm run build` and `npm test` baseline before the first extraction batch.
 - [ ] 1.4 Confirm verification will use the actual WebApp `run.bat` flow and will not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, or `dist-skill-editor`.
 
 ## 2. Frontend Loot And Drop State Extraction
