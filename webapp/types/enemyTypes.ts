@@ -1,4 +1,4 @@
-import type { MonsterSkillRange } from "../monsterSkillRuntime";
+import type { MonsterSkillModule, MonsterSkillRange } from "../monsterSkillRuntime";
 import type { MonsterSkillShape, MonsterType, ProceduralSpawnRarity, ProceduralZoneType } from "../mapSpawnRuntime";
 
 export type MonsterHitKind = "attack" | "spell";
@@ -82,7 +82,12 @@ export type Enemy = {
   monsterSkillId?: string;
   bossPatternId?: string;
   monsterSkillForm?: string;
+  monsterSkillModule?: MonsterSkillModule;
   monsterSkillRange?: MonsterSkillRange;
+  monsterSkillCooldownMs?: number;
+  monsterBossPatternSkillCount?: number;
+  monsterBossMajorInitialCooldownMs?: number;
+  monsterSkillParams?: Record<string, unknown>;
   monsterSkillDamageMultiplierBonus?: number;
   monsterSkillBuffUntilMs?: number;
   monsterGuardDamageReductionPercent?: number;
@@ -128,4 +133,3 @@ export type RuntimeBoundaryScanSummary = {
   failed: number;
   failures: string[];
 };
-

@@ -15,12 +15,13 @@ import {
   createMonsterSkillTimer,
   markMonsterSkillReleased,
   monsterSkillAssignmentFor,
+  monsterBossPatternFor,
   monsterSkillDefinitionFor,
   monsterSkillHitAllowed,
   nextMonsterSkillCandidate,
   validateMonsterSkillConfig
 } from "./monsterSkillRuntime";
-import type { MonsterBossPatternSkill, MonsterDamageForm, MonsterDamageType, MonsterSkillConfig, MonsterSkillDefinition, MonsterSkillRange, MonsterSkillRuntimeTimer } from "./monsterSkillRuntime";
+import type { MonsterBossPattern, MonsterBossPatternSkill, MonsterDamageForm, MonsterDamageType, MonsterSkillConfig, MonsterSkillDefinition, MonsterSkillRange, MonsterSkillRuntimeTimer } from "./monsterSkillRuntime";
 import {
   buildSupremeBossSkillEvents,
   normalizeSupremeBossSkillConfig,
@@ -2619,12 +2620,11 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const delayMs = warningMs > 0 ? warningMs : windupMs;
     const playerNow = playerStateRef.current;
     const centers = monsterSkillZoneCenters(enemy, playerNow, skill, repeatIndex);
-    const primaryCenter = centers[0] ?? monsterSkillZoneCenter(enemy, playerNow, skill);
-    const directionTarget = skill.module === "monster_melee_arc" ? playerNow : primaryCenter;
-    const direction = guideDirection(enemy, directionTarget);
     const zoneId = `monster_${enemy.id}_${skill.id}_${sequence}_${repeatIndex}_${Math.round(nowMs)}`;
     const events: SkillEvent[] = [];
     centers.forEach((center, zoneIndex) => {
+      const directionTarget = skill.module === "monster_melee_arc" ? playerNow : center;
+      const direction = guideDirection(enemy, directionTarget);
       const indexedZoneId = centers.length > 1 ? `${zoneId}_${zoneIndex + 1}` : zoneId;
       const basePayload = {
         skill_name: skill.chinese_form,
@@ -2691,10 +2691,11 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         }
       });
     });
+    const center = centers[0] ?? monsterSkillZoneCenter(enemy, playerNow, skill);
     pendingBossDamageZoneHits.current.push({
       id: zoneId,
       boss: enemy,
-      zones: centers.map((center) => ({ ...center, radius })),
+      zones: centers.length === 1 ? [{ ...center, radius }] : centers.map((center) => ({ ...center, radius })),
       remainingMs: delayMs,
       damageMultiplier: Math.max(0, Number(skill.damage_multiplier ?? 1)),
       hitKind: skill.hit_kind ?? "attack",
@@ -2732,17 +2733,17 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
   }
 
   function monsterSkillZoneCenters(enemy: Enemy, target: { x: number; y: number }, skill: MonsterSkillDefinition | MonsterBossPatternSkill, repeatIndex: number) {
-    const primary = monsterSkillZoneCenter(enemy, target, skill);
+    const center = monsterSkillZoneCenter(enemy, target, skill);
     const pattern = skill.zone_pattern ?? "single";
     const count = Math.max(1, Math.round(Number(skill.zone_count ?? 1)));
-    if (pattern === "single" || count <= 1 || skill.module === "monster_melee_arc") return [primary];
+    if (pattern === "single" || count <= 1 || skill.module === "monster_melee_arc") return [center];
     const spacing = Math.max(1, Number(skill.zone_spacing ?? Math.max(72, Number(skill.radius ?? skill.range.effect_range) * 1.35)));
     const direction = normalizedWorldDirection({ x: target.x - enemy.x, y: target.y - enemy.y });
     const perpendicular = { x: -direction.y, y: direction.x };
     if (pattern === "ring" || pattern === "around_player") {
       return Array.from({ length: count }, (_, index) => {
         const angle = (Math.PI * 2 * index) / count + repeatIndex * 0.38;
-        return { x: primary.x + Math.cos(angle) * spacing, y: primary.y + Math.sin(angle) * spacing };
+        return { x: center.x + Math.cos(angle) * spacing, y: center.y + Math.sin(angle) * spacing };
       });
     }
     if (pattern === "cross") {
@@ -2757,15 +2758,15 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         { x: spacing * 0.72, y: -spacing * 0.72 },
         { x: -spacing * 0.72, y: spacing * 0.72 }
       ];
-      return offsets.slice(0, count).map((offset) => ({ x: primary.x + offset.x, y: primary.y + offset.y }));
+      return offsets.slice(0, count).map((offset) => ({ x: center.x + offset.x, y: center.y + offset.y }));
     }
     if (pattern === "line") {
       return Array.from({ length: count }, (_, index) => {
         const offset = (index - (count - 1) / 2) * spacing;
-        return { x: primary.x + perpendicular.x * offset, y: primary.y + perpendicular.y * offset };
+        return { x: center.x + perpendicular.x * offset, y: center.y + perpendicular.y * offset };
       });
     }
-    return [primary];
+    return [center];
   }
 
   function monsterSkillZoneCenter(enemy: Enemy, target: { x: number; y: number }, skill: MonsterSkillDefinition | MonsterBossPatternSkill) {
@@ -8285,6 +8286,37 @@ const SUPREME_BOSS_SKILL_CONFIG = normalizeSupremeBossSkillConfig(supremeBossSki
 const SUPREME_BOSS_SKILL_IDS = new Set(supremeBossSkillIds(SUPREME_BOSS_SKILL_CONFIG));
 const SUPREME_BOSS_SKILL_CONFIG_ERRORS = validateSupremeBossSkillConfig(SUPREME_BOSS_SKILL_CONFIG);
 
+function monsterSkillMaterializedParams(skill: MonsterSkillDefinition | null, bossPattern?: MonsterBossPattern | null): Record<string, unknown> | undefined {
+  if (skill) {
+    return {
+      module: skill.module,
+      cooldown_ms: skill.cooldown_ms,
+      windup_ms: skill.windup_ms,
+      range: skill.range,
+      damage_multiplier: skill.damage_multiplier,
+      projectile_speed: skill.projectile_speed,
+      projectile_count: skill.projectile_count,
+      radius: skill.radius,
+      warning_ms: skill.warning_ms,
+      buff_radius: skill.buff_radius,
+      guard_duration_ms: skill.guard_duration_ms
+    };
+  }
+  if (!bossPattern) return undefined;
+  return {
+    boss_pattern_id: bossPattern.id,
+    skill_count: bossPattern.skills.length,
+    skills: bossPattern.skills.map((patternSkill) => ({
+      id: patternSkill.id,
+      role: patternSkill.role,
+      module: patternSkill.module,
+      cooldown_ms: patternSkill.cooldown_ms,
+      initial_cooldown_ms: patternSkill.initial_cooldown_ms,
+      range: patternSkill.range
+    }))
+  };
+}
+
 function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: number, selectedMapId: string | null, stage?: MapProgressionStageView | null, instanceSeed?: string) {
   const spawnMap = isEditorRuntimeBattleMap(map) ? {
     ...map,
@@ -8315,6 +8347,8 @@ function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: numb
     const attackStats = monsterAttackStats(monster.monster_type, monster.spawn_rarity, normalAccuracy, monster.damage_type);
     const skillAssignment = monsterSkillAssignmentFor(MONSTER_SKILL_CONFIG, monster.monster_id);
     const baseSkill = monsterSkillDefinitionFor(MONSTER_SKILL_CONFIG, skillAssignment?.skill_id);
+    const bossPattern = monsterBossPatternFor(MONSTER_SKILL_CONFIG, skillAssignment?.boss_pattern_id);
+    const bossMajorSkill = bossPattern?.skills.find((skill) => skill.role === "major");
     return {
       id: monster.runtime_id,
       x: monster.x,
@@ -8345,7 +8379,12 @@ function createProceduralSpawnPlanEnemies(map: BakedBattleMapData, startId: numb
       monsterSkillId: skillAssignment?.skill_id,
       bossPatternId: skillAssignment?.boss_pattern_id,
       monsterSkillForm: skillAssignment?.chinese_form ?? baseSkill?.chinese_form,
+      monsterSkillModule: baseSkill?.module,
       monsterSkillRange: baseSkill?.range,
+      monsterSkillCooldownMs: baseSkill?.cooldown_ms,
+      monsterBossPatternSkillCount: bossPattern?.skills.length,
+      monsterBossMajorInitialCooldownMs: bossMajorSkill?.initial_cooldown_ms,
+      monsterSkillParams: monsterSkillMaterializedParams(baseSkill, bossPattern),
       runtimeTier: monster.nemesis ? "active" : "dormant",
       nextThinkAt: 0
     };
@@ -9618,6 +9657,8 @@ function createMonsterTestEnemy(
   const defense = monsterDefenseStats(monsterType, rarity, monsterNormalArmorForLevel(MONSTER_TEST_LEVEL), monsterNormalEnergyShieldForLevel(MONSTER_TEST_LEVEL));
   const skillAssignment = monsterSkillAssignmentFor(MONSTER_SKILL_CONFIG, monsterId);
   const baseSkill = monsterSkillDefinitionFor(MONSTER_SKILL_CONFIG, skillAssignment?.skill_id);
+  const bossPattern = monsterBossPatternFor(MONSTER_SKILL_CONFIG, skillAssignment?.boss_pattern_id);
+  const bossMajorSkill = bossPattern?.skills.find((skill) => skill.role === "major");
   const offset = MONSTER_TEST_SPAWN_OFFSETS[spawnIndex % MONSTER_TEST_SPAWN_OFFSETS.length] ?? MONSTER_TEST_SPAWN_OFFSETS[0];
   const spawn = nearestRuntimeWalkablePoint(map, {
     x: player.x + offset.x,
@@ -9650,7 +9691,12 @@ function createMonsterTestEnemy(
     monsterSkillId: skillAssignment?.skill_id,
     bossPatternId: skillAssignment?.boss_pattern_id,
     monsterSkillForm: skillAssignment?.chinese_form ?? baseSkill?.chinese_form,
+    monsterSkillModule: baseSkill?.module,
     monsterSkillRange: baseSkill?.range,
+    monsterSkillCooldownMs: baseSkill?.cooldown_ms,
+    monsterBossPatternSkillCount: bossPattern?.skills.length,
+    monsterBossMajorInitialCooldownMs: bossMajorSkill?.initial_cooldown_ms,
+    monsterSkillParams: monsterSkillMaterializedParams(baseSkill, bossPattern),
     aggroLocked: true,
     runtimeTier: "active",
     nextThinkAt: 0

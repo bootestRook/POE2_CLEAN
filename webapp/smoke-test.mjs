@@ -1520,7 +1520,18 @@ const monsterSkillStaticChecks = [
   [app, "player_leash_range", "Monster skill projectiles must carry finite leash range."],
   [app, "activeMonsterSkillUntilMs", "Runtime enemies must expose active monster skill lock timing."],
   [app, "bossPatternId", "Boss enemies must carry data-driven boss pattern identity."],
+  [app, "monsterSkillModule", "Runtime enemies must carry materialized monster skill module identity."],
+  [app, "monsterSkillCooldownMs", "Runtime enemies must carry materialized monster skill cooldown data."],
+  [app, "monsterSkillParams", "Runtime enemies must carry materialized monster skill module params."],
+  [app, "monsterBossMajorInitialCooldownMs", "Boss enemies must carry materialized major-skill initial cooldown data."],
   [app, "monsterSkillDamageMultiplierBonus", "Monster support/guard skills must reuse outgoing damage multiplier state."],
+  [app, "const travel = Math.max(1, Number(skill.range.effect_range))", "Monster projectile travel must derive from effect_range."],
+  [app, "const placementDistance = Math.min(distance(enemy, target), Math.max(1, Number(skill.range.effect_range)))", "Monster damage-zone placement must clamp to effect_range."],
+  [app, "const radius = Math.max(1, Number(skill.buff_radius ?? skill.range.effect_range))", "Monster support radius must derive from finite effect_range."],
+  [app, "applyBossSkillHitToPlayer", "Monster skill hits must reuse the boss/player hit adapter."],
+  [app, "resolveFrontendPlayerBlock(hitEnemy, options.hitKind)", "Monster skill hits must pass through player block resolution."],
+  [app, "resolveMonsterHitAgainstPlayer(hitEnemy, playerAfterBlock, state?.player_stats, blocked, nowMs)", "Monster skill hits must pass through player mitigation."],
+  [app, "currentEnergyShield: clamp(player.currentEnergyShield - shieldDamage, 0, player.maxEnergyShield)", "Monster skill hits must consume player energy shield before life."],
   [monsterSkillRuntime, "MonsterDamageType", "Monster skill runtime must type player damage types separately."],
   [monsterSkillRuntime, "MonsterDamageForm", "Monster skill runtime must type hit/dot/secondary/reflection damage forms separately."],
   [monsterSkillRuntime, "monster skill missing damage_type", "Monster skill validation must require explicit damage_type."],
@@ -1656,6 +1667,49 @@ function runMonsterSkillRuntimeSmoke() {
   if (monsterSkillConfig.boss_patterns.some((pattern) => !pattern.skills.some((skill) => skill.role === "major" && skill.initial_cooldown_ms > 0))) {
     throw new Error("every boss pattern must have a major skill with initial cooldown.");
   }
+
+  const requiredChineseForms = [
+    "尘环刮击",
+    "毒织地雾",
+    "三连星标",
+    "终局三相裁决"
+  ];
+  const serializedForms = JSON.stringify(monsterSkillConfig);
+  for (const text of requiredChineseForms) {
+    if (!serializedForms.includes(text)) throw new Error(`monster skill config missing readable Chinese form: ${text}`);
+  }
+
+  const projectile = monsterSkillConfig.skills.find((skill) => skill.id === "mon_skill_twilight_sentry_bolt");
+  if (!projectile) throw new Error("missing twilight sentry projectile skill.");
+  if (runtime.monsterSkillDistanceAllowed(projectile, projectile.range.cast_range + 1)) throw new Error("monster skill release ignored cast_range.");
+  if (runtime.monsterSkillDistanceAllowed(projectile, Math.max(0, projectile.range.min_cast_range - 1))) throw new Error("monster skill release ignored min_cast_range.");
+  if (!runtime.monsterSkillDistanceAllowed(projectile, projectile.range.min_cast_range)) throw new Error("monster skill release rejected valid min_cast_range boundary.");
+  if (runtime.monsterSkillHitAllowed(projectile, projectile.range.leash_range + 1)) throw new Error("monster skill hit ignored leash_range.");
+
+  const timer = runtime.createMonsterSkillTimer();
+  const projectileAssignment = monsterSkillConfig.assignments.find((assignment) => assignment.skill_id === projectile.id);
+  if (runtime.nextMonsterSkillCandidate(monsterSkillConfig, projectileAssignment, timer, 1000, projectile.range.min_cast_range, false) !== null) {
+    throw new Error("monster skill released before aggro lock.");
+  }
+  const firstCandidate = runtime.nextMonsterSkillCandidate(monsterSkillConfig, projectileAssignment, timer, 1000, projectile.range.min_cast_range, true);
+  if (!firstCandidate || firstCandidate.skill.id !== projectile.id) throw new Error("monster skill did not release when range, aggro, and cooldown allow it.");
+  runtime.markMonsterSkillReleased(timer, firstCandidate.skill, 1000);
+  if (runtime.nextMonsterSkillCandidate(monsterSkillConfig, projectileAssignment, timer, 1000 + projectile.cooldown_ms - 1, projectile.range.min_cast_range, true) !== null) {
+    throw new Error("monster skill released while cooldown was still active.");
+  }
+
+  const starMotherAssignment = monsterSkillConfig.assignments.find((assignment) => assignment.boss_pattern_id === "boss_pattern_star_mother");
+  const bossTimer = runtime.createMonsterSkillTimer();
+  const starMother = monsterSkillConfig.boss_patterns.find((pattern) => pattern.id === "boss_pattern_star_mother");
+  const majorSkill = starMother.skills.find((skill) => skill.role === "major");
+  bossTimer.aggroStartedAtMs = 5000;
+  const beforeMajor = runtime.nextMonsterSkillCandidate(monsterSkillConfig, starMotherAssignment, bossTimer, 5000 + majorSkill.initial_cooldown_ms - 1, majorSkill.range.min_cast_range, true);
+  if (beforeMajor?.skill?.role === "major") throw new Error("boss major skill released before aggro-start initial cooldown.");
+  const atMajor = runtime.nextMonsterSkillCandidate(monsterSkillConfig, starMotherAssignment, bossTimer, 5000 + majorSkill.initial_cooldown_ms, majorSkill.range.min_cast_range, true);
+  if (!atMajor || atMajor.skill.role !== "major") throw new Error("boss major skill did not release at aggro-start initial cooldown.");
+  runtime.markMonsterSkillReleased(bossTimer, atMajor.skill, 5000 + majorSkill.initial_cooldown_ms);
+  const afterNormalCooldown = runtime.nextMonsterSkillCandidate(monsterSkillConfig, starMotherAssignment, bossTimer, 5000 + majorSkill.initial_cooldown_ms + majorSkill.cooldown_ms, majorSkill.range.min_cast_range, true);
+  if (!afterNormalCooldown || afterNormalCooldown.skill.id !== majorSkill.id) throw new Error("boss major skill did not reuse normal cooldown after first release.");
 }
 
 function runProceduralSpawnRuntimeSmoke() {

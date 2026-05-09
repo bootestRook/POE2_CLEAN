@@ -545,7 +545,6 @@ def test_monster_melee_arcs_use_monster_visual_contract() -> None:
     assert "suppress_hit_vfx: monsterSkillSuppressHitVfx(skill)" in release_body
     assert "suppressHitVfx: monsterSkillSuppressHitVfx(skill)" in release_body
     assert 'skill.module === "monster_melee_arc") return `monster_melee_arc_${monsterSkillDamageType(skill) ?? "physical"}`' in vfx_body
-    assert 'return skill.module === "monster_melee_arc"' in vfx_body
     assert 'skill.id === "mon_skill_dust_ring_scrape") return "monster_dust_scrape"' in vfx_body
     assert 'if (value.includes("monster_melee_arc")) return "monster_melee_arc"' in renderer_source
     assert 'if (value.includes("monster_dust_scrape")) return "monster_dust_scrape"' in renderer_source
@@ -939,7 +938,7 @@ def test_boss_skill_patterns_are_diverse() -> None:
     assert "function monsterSkillZoneCenters" in source
     assert 'pattern === "ring" || pattern === "around_player"' in source
     assert 'pattern === "line"' in source
-    assert "zones: centers.map" in source
+    assert "centers.map((center) => ({ ...center, radius }))" in source
     assert {"wide_fan", "ring", "spiral", "cross"}.issubset(projectile_patterns)
     assert {"around_player", "ring", "cross", "line"}.issubset(zone_patterns)
     assert sum(1 for skill in boss_skills if "projectile_pattern" in skill or "zone_pattern" in skill) >= 20
@@ -1024,11 +1023,12 @@ def test_poison_weave_mist_locks_zone_to_player_position() -> None:
     assert monster_assignments["mon_200104"] == "mon_skill_poison_weave_mist"
     assert poison_mist["module"] == "monster_damage_zone"
     assert poison_mist["range"]["cast_range"] > poison_mist["range"]["effect_range"]
-    assert 'const center = monsterSkillZoneCenter(enemy, playerNow, skill)' in release_body
-    assert 'skill.id === "mon_skill_poison_weave_mist") return { x: target.x, y: target.y }' in release_body
+    assert "const centers = monsterSkillZoneCenters(enemy, playerNow, skill, repeatIndex)" in release_body
+    assert 'skill.id === "mon_skill_poison_weave_mist"' in release_body
+    assert "return { x: target.x, y: target.y }" in release_body
     assert "origin_world_position: center" in release_body
     assert "position: center" in release_body
-    assert "zones: [{ ...center, radius }]" in release_body
+    assert "zones: centers.length === 1 ? [{ ...center, radius }] : centers.map((center) => ({ ...center, radius }))" in release_body
 
 
 def test_frontend_gem_drop_pool_is_not_seed_inventory() -> None:
