@@ -99,6 +99,7 @@ import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
+import { GAME_RESOLUTION_STORAGE_KEY, useGameViewport, type GameResolutionMode, type GameResolutionPreset, type GameViewport } from "./hooks/useGameViewport";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
 import { clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, frontendStateCandidateFromSave, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
@@ -660,23 +661,6 @@ type SkillEditorCameraSettings = {
   zoom: number;
 };
 
-type GameResolutionMode = "original" | "fullscreen" | "4k" | "2k" | "1080p";
-
-type GameResolutionPreset = {
-  mode: GameResolutionMode;
-  label: string;
-  width: number | null;
-  height: number | null;
-};
-
-type GameViewport = {
-  width: number;
-  height: number;
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-};
-
 const DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS: SkillEditorDebugOptions = {
   showLaunchPoints: true,
   showTargetPoint: true,
@@ -686,7 +670,6 @@ const DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS: SkillEditorDebugOptions = {
 };
 
 const SKILL_EDITOR_CAMERA_STORAGE_KEY = "poe.skillEditor.camera";
-const GAME_RESOLUTION_STORAGE_KEY = "poe2.v1.game.resolution";
 const SKILL_EDITOR_CAMERA_MIN_ZOOM = 0.18;
 const SKILL_EDITOR_CAMERA_MAX_ZOOM = 0.6;
 const DEFAULT_SKILL_EDITOR_CAMERA_SETTINGS: SkillEditorCameraSettings = {
@@ -763,41 +746,6 @@ function loadGameResolutionMode(): GameResolutionMode {
 function saveGameResolutionMode(mode: GameResolutionMode) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(GAME_RESOLUTION_STORAGE_KEY, mode);
-}
-
-function useGameViewport(mode: GameResolutionMode): GameViewport {
-  const [windowSize, setWindowSize] = useState(() => ({
-    width: typeof window === "undefined" ? 1920 : window.innerWidth,
-    height: typeof window === "undefined" ? 1080 : window.innerHeight
-  }));
-
-  useEffect(() => {
-    function resize() {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    }
-    resize();
-    window.addEventListener("resize", resize);
-    window.addEventListener("fullscreenchange", resize);
-    return () => {
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("fullscreenchange", resize);
-    };
-  }, []);
-
-  return useMemo(() => {
-    const preset = GAME_RESOLUTION_PRESET_BY_MODE.get(mode) ?? GAME_RESOLUTION_PRESET_BY_MODE.get(DEFAULT_GAME_RESOLUTION_MODE)!;
-    const width = preset.width ?? Math.max(1, windowSize.width);
-    const height = preset.height ?? Math.max(1, windowSize.height);
-    const scale = Math.min(windowSize.width / width, windowSize.height / height);
-    const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
-    return {
-      width,
-      height,
-      scale: safeScale,
-      offsetX: Math.max(0, (windowSize.width - width * safeScale) / 2),
-      offsetY: Math.max(0, (windowSize.height - height * safeScale) / 2)
-    };
-  }, [mode, windowSize.height, windowSize.width]);
 }
 
 type SkillEvent = {
