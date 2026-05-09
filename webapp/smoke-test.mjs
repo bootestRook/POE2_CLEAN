@@ -17,6 +17,7 @@ const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
 const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
+const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
 const mapSpawnConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "map_spawn_v1.json"), "utf8"));
 const monsterSkillConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "monster_skills.json"), "utf8"));
 const monsterDefsToml = readFileSync(join(root, "configs", "monsters", "monster_defs.toml"), "utf8");
@@ -1526,7 +1527,7 @@ const monsterSkillStaticChecks = [
   [app, "monsterSkillParams", "Runtime enemies must carry materialized monster skill module params."],
   [app, "monsterBossMajorInitialCooldownMs", "Boss enemies must carry materialized major-skill initial cooldown data."],
   [app, "monsterSkillDamageMultiplierBonus", "Monster support/guard skills must reuse outgoing damage multiplier state."],
-  [app, "const travel = Math.max(1, Number(skill.range.effect_range))", "Monster projectile travel must derive from effect_range."],
+  [monsterSkillEventBuilder, "const travel = Math.max(1, Number(skill.range.effect_range))", "Monster projectile travel must derive from effect_range."],
   [monsterSkillPresentation, "const placementDistance = Math.min(distance(enemy, target), Math.max(1, Number(skill.range.effect_range)))", "Monster damage-zone placement must clamp to effect_range."],
   [app, "const radius = Math.max(1, Number(skill.buff_radius ?? skill.range.effect_range))", "Monster support radius must derive from finite effect_range."],
   [app, "applyBossSkillHitToPlayer", "Monster skill hits must reuse the boss/player hit adapter."],
