@@ -39,7 +39,7 @@
 
 - [x] 6.1 Add focused automated tests for stash defaults, save migration, save reload, and duplicate ownership sanitization.
 - [x] 6.2 Add focused automated tests for rest-area entry and `王阳` stage-selection routing where the current frontend test setup supports it.
-- [ ] 6.3 Run the existing relevant test suite and WebApp build.
+- [x] 6.3 Run the existing relevant test suite and WebApp build.
 - [x] 6.4 Start/open the playable WebApp locally and verify the rest-area scene in the browser.
 - [x] 6.5 Capture screenshots under `artifacts/screenshots/` showing the rest area with `王阳`, `王阳` opening stage selection, and the stash panel with a 10x10 page and 5 page tabs.
 - [x] 6.6 Confirm no screenshot, log, server output, or generated verification artifact was written to the repository root.
