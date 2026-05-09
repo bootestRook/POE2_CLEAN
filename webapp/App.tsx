@@ -1,5 +1,4 @@
 import { CSSProperties, DragEvent, MouseEvent, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { compareDimetricDepth, dimetricDepth } from "./isoDepth";
 import React from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { APP_TITLE, RELEASE_DEBUG_TOOLS_ENABLED } from "./appMetadata";
@@ -50,7 +49,7 @@ import {
   rotatedGridSize
 } from "./mapInstanceRuntime";
 import type { MapInstanceMetadata, MapInstanceRotation } from "./mapInstanceRuntime";
-import { resolveUnitAnimation, UnitAnimationContext, UnitAnimationFrame } from "./unitAnimation";
+import { resolveUnitAnimation, UnitAnimationFrame } from "./unitAnimation";
 import { fallbackUnitVisualForMonster, MONSTER_GEOMETRY_VISUALS, MONSTER_RARITY_VISUALS, resolveMonsterGeometryVisual } from "./monsterGeometryVisuals";
 import {
   selectEnemyUnitType,
@@ -150,8 +149,9 @@ import { playableMinimapCellKeyForPoint, playableMinimapRevealCells, playableMin
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
 import { clamp, distance, guideDirection } from "./utils/math2d";
 import { cssToken, visualTone } from "./utils/vfxTone";
-import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection, unitMovementState } from "./utils/runtimeMotion";
+import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection } from "./utils/runtimeMotion";
 import { BattlePauseOverlay, GameFailureOverlay, PortalConfirmOverlay } from "./components/battle/BattleOverlays";
+import { createBattleAnimationContexts, createBattleRenderItems, enemyHitFlashAmount, isBattleRenderEntity, shouldRenderLegacyBattleItem as shouldRenderLegacyBattleItemState, type BattleAnimationContexts, type BattleRenderEntity, type BattleRenderItem } from "./components/battle/battleRenderState";
 import { HitVfxView } from "./components/battle/HitAndBuffViews";
 import { FireBoltView } from "./components/battle/ProjectileBodyViews";
 import {
@@ -902,20 +902,6 @@ type UnitVisualRuntime = {
 type EnemyVisualRuntime = UnitVisualRuntime & {
   lastX: number;
   lastY: number;
-};
-
-type BattleRenderEntity =
-  | { kind: "enemy"; id: number; x: number; y: number; hp: number; maxHp: number; lastDamagedAt?: number; monsterId?: string; spawnRarity?: ProceduralSpawnRarity; runtimeTier?: EnemyRuntimeTier; playerDistance: number; renderScale: number }
-  | { kind: "player"; id: "player"; x: number; y: number; hp: number; maxHp: number; renderScale: number; guardActive: boolean };
-
-type BattleRenderItem =
-  | BattleRenderEntity
-  | { kind: "fire-bolt"; id: number; x: number; y: number; bolt: FireBolt }
-  | { kind: "hit-vfx"; id: number; x: number; y: number; vfx: HitVfx };
-
-type BattleAnimationContexts = {
-  player: UnitAnimationContext;
-  enemies: Map<number, UnitAnimationContext>;
 };
 
 const DEFAULT_BAKED_BATTLE_MAP = BAKED_BATTLE_MAPS[0];
@@ -7864,7 +7850,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     visibleEnemies,
     player,
     animationNowMs,
-    statNumber(state.player_stats?.move_speed, PLAYER_SPEED) * playerMovementSpeedMultiplier(activePlayerBuffs)
+    statNumber(state.player_stats?.move_speed, PLAYER_SPEED) * playerMovementSpeedMultiplier(activePlayerBuffs),
+    PLAYER_SPEED
   );
   const runtimeDebugCornerSummary = runtimeDebugMonsterCornerTestEnabled()
     ? runtimeDebugMonsterCornerSummary(enemies, player)
@@ -9579,119 +9566,6 @@ function battleTerrainTransform(camera: Camera2D) {
   return `translate(${BATTLE_CAMERA_ANCHOR_X}, ${BATTLE_CAMERA_ANCHOR_Y}) scale(${camera.zoom}) translate(${-camera.screenX}px, ${-camera.screenY}px)`;
 }
 
-function createBattleRenderEntities(player: { x: number; y: number; hp: number; maxHp: number }, enemies: Enemy[], renderScale = UNIT_RENDER_SCALE): BattleRenderEntity[] {
-  return [
-    ...enemies.map((enemy) => ({
-      kind: "enemy" as const,
-      ...enemy,
-      playerDistance: distance(enemy, player),
-      renderScale
-    })),
-    { kind: "player" as const, id: "player" as const, x: player.x, y: player.y, hp: player.hp, maxHp: player.maxHp, renderScale, guardActive: false }
-  ].sort(compareBattleRenderEntities);
-}
-
-function createBattleRenderItems(
-  player: { x: number; y: number; hp: number; maxHp: number },
-  enemies: Enemy[],
-  bolts: FireBolt[],
-  hitVfxs: HitVfx[],
-  renderScale = UNIT_RENDER_SCALE,
-  guardActive = false
-): BattleRenderItem[] {
-  return [
-    ...createBattleRenderEntities(player, enemies, renderScale).map((entity) => entity.kind === "player" ? { ...entity, guardActive } : entity),
-    ...bolts
-      .filter((bolt) => !usesCanvasProjectileVfx(bolt))
-      .map((bolt) => {
-        const point = fireBoltWorldPoint(bolt);
-        return { kind: "fire-bolt" as const, id: bolt.id, x: point.x, y: point.y, bolt };
-      }),
-    ...hitVfxs
-      .filter((vfx) => !usesCanvasHitVfx(vfx))
-      .map((vfx) => ({ kind: "hit-vfx" as const, id: vfx.id, x: vfx.x, y: vfx.y, vfx }))
-  ].sort(compareBattleRenderItems);
-}
-
-function compareBattleRenderItems(left: BattleRenderItem, right: BattleRenderItem) {
-  if (isBattleRenderEntity(left) && isBattleRenderEntity(right)) return compareBattleRenderEntities(left, right);
-  return dimetricDepth(left.x, left.y) - dimetricDepth(right.x, right.y);
-}
-
-function compareBattleRenderEntities(left: BattleRenderEntity, right: BattleRenderEntity) {
-  const depth = compareDimetricDepth(left, right);
-  if (left.kind === "enemy" && right.kind === "enemy") {
-    const rarity = enemyBattleRenderRarityRank(left) - enemyBattleRenderRarityRank(right);
-    if (rarity !== 0) return rarity;
-    return depth || left.id - right.id;
-  }
-  if (Math.abs(depth) > 28) return depth;
-  return battleRenderEntityRarityRank(left) - battleRenderEntityRarityRank(right);
-}
-
-function isBattleRenderEntity(item: BattleRenderItem): item is BattleRenderEntity {
-  return item.kind === "enemy" || item.kind === "player";
-}
-
-function battleRenderEntityRarityRank(entity: BattleRenderEntity) {
-  if (entity.kind === "player") return 2;
-  return enemyBattleRenderRarityRank(entity);
-}
-
-function enemyBattleRenderRarityRank(enemy: Extract<BattleRenderEntity, { kind: "enemy" }>) {
-  const visual = resolveMonsterGeometryVisual(enemy.monsterId);
-  const tier = enemy.spawnRarity ?? visual?.tier ?? (enemy.monsterId === "enemy_brute" ? "rare" : "normal");
-  if (tier === "legendary_boss" || tier === "supreme_boss") return 4;
-  if (tier === "rare") return 3;
-  if (tier === "magic") return 1;
-  return 0;
-}
-
-function createBattleAnimationContexts(
-  playerVisual: UnitVisualRuntime,
-  enemyVisuals: Map<number, EnemyVisualRuntime>,
-  enemies: Enemy[],
-  player: { x: number; y: number },
-  elapsedMs: number,
-  playerMoveSpeed: number
-): BattleAnimationContexts {
-  const currentMoveSpeed = playerMoveSpeed;
-  const playerMoving = Math.hypot(playerVisual.movementVector.x, playerVisual.movementVector.y) > 0.001;
-  const enemyContexts = new Map<number, UnitAnimationContext>();
-  enemies.forEach((enemy) => {
-    const unitId = fallbackUnitVisualForMonster(enemy.monsterId ?? selectEnemyUnitType(enemy.id));
-    const visual = enemyVisuals.get(enemy.id);
-    const attackActive = visual?.attackUntilMs !== undefined && elapsedMs < visual.attackUntilMs;
-    const movementVector = visual?.movementVector ?? { x: player.x - enemy.x, y: player.y - enemy.y };
-    const moving = Math.hypot(movementVector.x, movementVector.y) > 0.001;
-    const enemyMoveSpeed = moving ? 58 : 0;
-    enemyContexts.set(enemy.id, {
-      unitId,
-      requestedState: attackActive ? "attack" : unitMovementState(moving, 58, enemyMoveSpeed),
-      movementVector,
-      fallbackDirection: visual?.direction ?? "down",
-      elapsedMs,
-      baseMoveSpeed: 58,
-      currentMoveSpeed: enemyMoveSpeed,
-      attackStartedAtMs: visual?.attackStartedAtMs,
-      attackUntilMs: visual?.attackUntilMs
-    });
-  });
-
-  return {
-    player: {
-      unitId: "player_adventurer",
-      requestedState: unitMovementState(playerMoving, PLAYER_SPEED, currentMoveSpeed),
-      movementVector: playerVisual.movementVector,
-      fallbackDirection: playerVisual.direction,
-      elapsedMs,
-      baseMoveSpeed: PLAYER_SPEED,
-      currentMoveSpeed
-    },
-    enemies: enemyContexts
-  };
-}
-
 function renderBattleRenderItem(item: BattleRenderItem, depthIndex: number, animationContexts: BattleAnimationContexts) {
   if (item.kind === "fire-bolt") {
     return (
@@ -9722,8 +9596,7 @@ function renderBattleRenderItem(item: BattleRenderItem, depthIndex: number, anim
 }
 
 function shouldRenderLegacyBattleItem(item: BattleRenderItem) {
-  if (!CANVAS_GEOMETRY_BATTLE_OBJECTS) return true;
-  return item.kind === "hit-vfx" && !CANVAS_GEOMETRY_SKILL_EFFECTS;
+  return shouldRenderLegacyBattleItemState(item, CANVAS_GEOMETRY_BATTLE_OBJECTS, CANVAS_GEOMETRY_SKILL_EFFECTS);
 }
 
 function renderBattleEntity(entity: BattleRenderEntity, depthIndex: number, animationContexts: BattleAnimationContexts) {
@@ -9756,7 +9629,7 @@ function renderBattleEntity(entity: BattleRenderEntity, depthIndex: number, anim
   const animationFrame = resolveUnitAnimation(context);
   const healthVisible = entity.lastDamagedAt !== undefined
     && animationContexts.player.elapsedMs / 1000 - entity.lastDamagedAt <= ENEMY_HEALTH_VISIBLE_SECONDS;
-  const hitFlash = enemyHitFlashAmount(entity.lastDamagedAt, animationContexts.player.elapsedMs / 1000);
+  const hitFlash = enemyHitFlashAmount(entity.lastDamagedAt, animationContexts.player.elapsedMs / 1000, ENEMY_DAMAGE_FLASH_SECONDS, clamp);
   return (
     <div
       key={`enemy-${entity.id}`}
@@ -9775,13 +9648,6 @@ function renderBattleEntity(entity: BattleRenderEntity, depthIndex: number, anim
       <UnitAnimationSprite frame={animationFrame} hitFlash={hitFlash} />
     </div>
   );
-}
-
-function enemyHitFlashAmount(lastDamagedAt: number | undefined, elapsedSeconds: number) {
-  if (lastDamagedAt === undefined) return 0;
-  const age = elapsedSeconds - lastDamagedAt;
-  if (age < 0 || age > ENEMY_DAMAGE_FLASH_SECONDS) return 0;
-  return 1 - clamp(age / ENEMY_DAMAGE_FLASH_SECONDS, 0, 1);
 }
 
 function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationFrame, depthIndex: number, renderScale = UNIT_RENDER_SCALE): CSSProperties {

@@ -927,7 +927,7 @@ const unitAnimationCodeChecks = [
 ];
 
 for (const text of unitAnimationCodeChecks) {
-  if (!app.includes(text) && !unitAnimationRuntime.includes(text) && !unitAssets.includes(text)) {
+  if (!webappSourceText.includes(text) && !unitAnimationRuntime.includes(text) && !unitAssets.includes(text)) {
     throw new Error(`缂哄皯鍗曚綅鍔ㄧ敾杩愯鏃舵垨鎺ュ叆鐐癸細${text}`);
   }
 }
@@ -1299,7 +1299,7 @@ const abstractGeometryPhase2Checks = [
   [app, "CANVAS_GEOMETRY_BATTLE_OBJECTS = true", "Phase 2 battle objects must default to Canvas geometry rendering."],
   [app, "shouldRenderLegacyBattleItem", "Phase 2 must keep a narrow legacy fallback boundary."],
   [app, "CANVAS_GEOMETRY_SKILL_EFFECTS = true", "Phase 3 skill effects must default to Canvas geometry rendering."],
-  [app, "return item.kind === \"hit-vfx\" && !CANVAS_GEOMETRY_SKILL_EFFECTS;", "Player, enemies, projectiles and hit VFX must not be emitted as per-object DOM by default."],
+  [webappSourceText, "return item.kind === \"hit-vfx\" && !canvasGeometrySkillEffects;", "Player, enemies, projectiles and hit VFX must not be emitted as per-object DOM by default."],
   [playableBattleScene, "!canvasGeometrySkillEffects && (", "Damage numbers must stay behind the Canvas skill-effects fallback switch."],
   [playableBattleScene, "hits: anchoredHitVfxs.map", "Hit VFX must be forwarded into the Canvas geometry snapshot."],
   [playableBattleScene, "texts: texts.map", "Floating damage numbers must be forwarded into the Canvas geometry snapshot."],
