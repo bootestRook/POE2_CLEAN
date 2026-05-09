@@ -83,6 +83,7 @@ import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
 import { activeDpsToneClass, buildEquipmentRarityToneForGem, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
+import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -97,7 +98,7 @@ import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
 import { clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, frontendStateCandidateFromSave, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
-import { clientRectToGameViewportRect, clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
+import { clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
 import { cssToken, visualTone } from "./utils/vfxTone";
@@ -11010,76 +11011,19 @@ function equipmentEmptyCellClass(slotIndex: number, hoveredEquipmentSlot: number
 }
 
 function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number): Omit<Tooltip, "gem"> {
-  if (source === "board") return getBoardTooltipPosition(anchor);
-  if (source === "equipment") return getEquipmentTooltipPosition(anchor);
-  return getInventoryTooltipPosition(anchor, slotIndex ?? 0);
-}
-
-function getBoardTooltipPosition(anchor: HTMLElement): Omit<Tooltip, "gem"> {
-  const cell = anchor.closest("[data-board-row][data-board-column]") as HTMLElement | null;
-  const board = anchor.closest(".board-grid") as HTMLElement | null;
-  const cellRect = clientRectToGameViewportRect((cell ?? anchor).getBoundingClientRect());
-  const boardRect = clientRectToGameViewportRect((board ?? anchor).getBoundingClientRect());
-  const centerTop = clampTooltipTop(cellRect.top + cellRect.height / 2);
-
-  return {
-    left: clampTooltipLeft(boardRect.left - 5 - TOOLTIP_WIDTH),
-    top: centerTop,
-    transform: `translateY(max(-50%, ${boardRect.top - centerTop}px))`
-  };
-}
-
-function getInventoryTooltipPosition(anchor: HTMLElement, slotIndex: number): Omit<Tooltip, "gem"> {
-  const rect = clientRectToGameViewportRect(anchor.getBoundingClientRect());
-  const columnIndex = slotIndex % INVENTORY_COLUMNS;
-  if (columnIndex >= INVENTORY_COLUMNS - 4) {
-    return {
-      left: clampTooltipLeft(rect.left - 2 - TOOLTIP_WIDTH),
-      top: clampTooltipTop(rect.top + rect.height / 2),
-      transform: "translateY(-50%)"
-    };
-  }
-
-  return {
-    left: clampTooltipLeft(rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2),
-    top: Math.max(TOOLTIP_SCREEN_PADDING, rect.top - 2),
-    transform: "translateY(-100%)"
-  };
-}
-
-function getEquipmentTooltipPosition(anchor: HTMLElement): Omit<Tooltip, "gem"> {
-  const rect = clientRectToGameViewportRect(anchor.getBoundingClientRect());
-  return {
-    left: clampTooltipLeft(rect.right + 8),
-    top: clampTooltipTop(rect.top + rect.height / 2),
-    transform: "translateY(-50%)"
-  };
-}
-
-function clampTooltipLeft(left: number) {
-  const viewport = currentGameViewportMetrics();
-  return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(left, viewport.width - TOOLTIP_WIDTH - TOOLTIP_SCREEN_PADDING));
-}
-
-function clampTooltipTop(top: number) {
-  const viewport = currentGameViewportMetrics();
-  return Math.max(TOOLTIP_SCREEN_PADDING, Math.min(top, viewport.height - TOOLTIP_SCREEN_PADDING));
+  return resolveTooltipAnchorPosition(anchor, source, slotIndex, tooltipPositionConfig());
 }
 
 function getComparisonTooltipPosition(tooltip: Tooltip): Omit<Tooltip, "gem" | "comparisonGem"> {
-  const rightLeft = tooltip.left + TOOLTIP_WIDTH + TOOLTIP_COMPARISON_GAP;
-  const viewport = currentGameViewportMetrics();
-  if (rightLeft + TOOLTIP_WIDTH <= viewport.width - TOOLTIP_SCREEN_PADDING) {
-    return {
-      left: rightLeft,
-      top: tooltip.top,
-      transform: tooltip.transform
-    };
-  }
+  return resolveComparisonTooltipPosition(tooltip, tooltipPositionConfig());
+}
+
+function tooltipPositionConfig() {
   return {
-    left: Math.max(TOOLTIP_SCREEN_PADDING, tooltip.left - TOOLTIP_WIDTH - TOOLTIP_COMPARISON_GAP),
-    top: tooltip.top,
-    transform: tooltip.transform
+    width: TOOLTIP_WIDTH,
+    comparisonGap: TOOLTIP_COMPARISON_GAP,
+    screenPadding: TOOLTIP_SCREEN_PADDING,
+    inventoryColumns: INVENTORY_COLUMNS
   };
 }
 
