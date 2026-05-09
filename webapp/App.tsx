@@ -78,15 +78,16 @@ import type { FrontendEquipmentAffixRoll, FrontendEquipmentItem, FrontendEquipme
 import { frontendEquipmentIconSprite } from "./frontendEquipmentIconSprites";
 import { CharacterInfoPanel } from "./components/character/CharacterInfoPanel";
 import type { CharacterPanelView } from "./components/character/CharacterInfoPanel";
-import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/TooltipPrimitives";
+import type { TooltipRichLine } from "./components/tooltips/TooltipPrimitives";
+import { createNormalizeActiveTooltipView } from "./components/tooltips/activeTooltipAdapters";
 import { equipmentTooltipBonusLines, equipmentTooltipRarityTone, equipmentTooltipStatLines, normalizedEquipmentTooltipTags } from "./components/tooltips/equipmentTooltipAdapters";
 import { GemOrb } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
-import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
+import type { TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorValue } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
@@ -16218,102 +16219,17 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
   };
 }
 
-const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS = new Set(["bow", "gun", "cannon"]);
-const NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS = new Set([
-  "attack",
-  "spell",
-  "melee",
-  "ranged",
-  "projectile",
-  "area",
-  "dot",
-  "hit",
-  "damage",
-  "physical",
-  "fire",
-  "cold",
-  "lightning",
-  "chaos",
-  "elemental",
-]);
+const normalizeActiveTooltipView = createNormalizeActiveTooltipView({
+  frontendSkillPreviewsBySkillTag,
+  formatPreviewNumber,
+  isPassiveGem,
+  frontendRecord,
+  frontendGemBaseModifiers,
+  frontendDamageMapTotal,
+});
+
 const FRONTEND_BASE_KNOCKBACK_DISTANCE = 250;
 const FRONTEND_KNOCKBACK_LOCK_MS = 260;
-
-function normalizeActiveTooltipView(gem: Gem, view: TooltipView): TooltipView {
-  const tags = view.tags
-    .filter((tag) => !HIDDEN_ACTIVE_TOOLTIP_TAG_IDS.has(tag.id ?? ""))
-    .filter((tag) => shouldShowTooltipTagForGem(gem, tag))
-    .map((tag) => frontendDisplayGemKindTag(gem, tag));
-  const statLines = normalizePassiveTooltipStatLines(
-    gem,
-    ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines), frontendSkillPreviewsBySkillTag, formatPreviewNumber)
-  );
-  const sections = {
-    ...view.sections,
-    stats: {
-      ...view.sections.stats,
-      lines: statLines,
-    },
-  };
-  return {
-    ...view,
-    tags,
-    subtitle_text: normalizedTooltipSubtitle(view.subtitle_text, tags),
-    sections,
-  };
-}
-
-function shouldShowTooltipTagForGem(gem: Gem, tag: TooltipTagView) {
-  if (!isPassiveGem(gem) || passiveGemCanDealDamage(gem)) return true;
-  return !NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS.has(tag.id ?? "");
-}
-
-function passiveGemCanDealDamage(gem: Gem) {
-  const baseEffect = frontendRecord(frontendRecord(gem).base_effect);
-  if (frontendDirectDamageTotal(baseEffect) > 0) return true;
-  const hit = frontendRecord(baseEffect.hit);
-  if (frontendDirectDamageTotal(hit) > 0) return true;
-  const runtimeParams = frontendRecord(baseEffect.runtime_params);
-  return frontendDirectDamageTotal(runtimeParams) > 0;
-}
-
-function normalizePassiveTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
-  if (!isPassiveGem(gem)) return lines;
-  const nextLines = lines.filter((line) => !isPassiveTooltipEffectStatLine(line));
-  if (!passiveAffectsActiveSkills(gem)) return nextLines;
-  const targetTexts = frontendPassiveTargetTagTexts(gem);
-  if (targetTexts.length === 0) return nextLines;
-  const targetLine = {
-    label_text: "\u5f71\u54cd\u4e3b\u52a8\u6280\u80fd",
-    value_text: targetTexts.join("\u3001"),
-  };
-  const levelLineIndex = nextLines.findIndex((line) => isSkillLevelTooltipLine(line.label_text));
-  if (levelLineIndex < 0) return [targetLine, ...nextLines];
-  return [...nextLines.slice(0, levelLineIndex + 1), targetLine, ...nextLines.slice(levelLineIndex + 1)];
-}
-
-function isPassiveTooltipEffectStatLine(line: TooltipStatLine) {
-  return !isSkillLevelTooltipLine(line.label_text);
-}
-
-function passiveAffectsActiveSkills(gem: Gem) {
-  return frontendGemBaseModifiers(gem)
-    .some((modifier) => String(modifier.target_text ?? "").includes("\u5f71\u54cd\u4e3b\u52a8\u6280\u80fd"));
-}
-
-function frontendPassiveTargetTagTexts(gem: Gem) {
-  return frontendTargetTagTexts(gem, frontendRecord);
-}
-
-function frontendDirectDamageTotal(value: Record<string, unknown>) {
-  return [
-    value.base_damage,
-    value.damage,
-    value.final_damage,
-    value.amount,
-  ].reduce<number>((total, next) => total + Math.max(0, Number(next) || 0), 0)
-    + frontendDamageMapTotal(value.damage_components);
-}
 
 function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
   const conduitSections = frontendConduitTooltipSections(gem);
