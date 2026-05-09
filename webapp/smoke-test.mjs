@@ -1711,6 +1711,7 @@ for (const zoneType of ["entrance", "corridor", "main_room", "large_room", "dead
 
 runMonsterSkillRuntimeSmoke();
 runMonsterSkillEventBuilderSmoke();
+runPlayerDamageRuntimeSmoke();
 runProceduralSpawnRuntimeSmoke();
 
 if (!existsSync(join(root, "dist", "index.html"))) {
@@ -1929,6 +1930,72 @@ function runMonsterSkillEventBuilderSmoke() {
   if (supportDisplay.texts.length !== 1 || supportDisplay.texts[0].id !== 30 || supportDisplay.texts[0].text !== "+25") throw new Error("monster support display builder changed heal text payload.");
   if (!supportDisplay.areaNova || supportDisplay.areaNova.id !== 8 || supportDisplay.areaNova.vfxKey !== "monster_heal_pulse") throw new Error("monster support display builder changed heal pulse payload.");
   if (supportDisplay.nextTextId !== 31 || supportDisplay.nextAreaNovaId !== 9) throw new Error("monster support display builder changed id advancement.");
+}
+
+function runPlayerDamageRuntimeSmoke() {
+  const outDir = join(root, ".vite", "player-damage-runtime-smoke");
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  execFileSync(process.execPath, [
+    join(root, "node_modules", "typescript", "bin", "tsc"),
+    "webapp/runtime/playerDamageRuntime.ts",
+    "--target", "ES2020",
+    "--module", "CommonJS",
+    "--moduleResolution", "Node",
+    "--skipLibCheck",
+    "--esModuleInterop",
+    "--resolveJsonModule",
+    "--outDir", outDir,
+    "--noEmitOnError", "true"
+  ], { cwd: root, encoding: "utf8" });
+
+  const runtime = require(join(outDir, "playerDamageRuntime.js"));
+  const stat = (value) => ({ value });
+  const basePlayer = { hp: 1000, maxHp: 1000, currentMana: 100, maxMana: 100, currentEnergyShield: 80, maxEnergyShield: 100 };
+  const baseEnemy = { id: 31, baseDamage: 100, damageMultiplier: 1, damageType: "physical", hitKind: "attack", accuracy: 100, offenseModifiers: {}, critChancePercent: 0, doubleDamageChancePercent: 0 };
+
+  if (Math.round(runtime.monsterOutgoingDamage({ ...baseEnemy, offenseModifiers: { damage_add_percent: 50, damage_final_percent: 20 } })) !== 180) {
+    throw new Error("player damage runtime must preserve monster outgoing damage scalar formula.");
+  }
+  const evasionChance = runtime.playerEvasionChanceAgainstMonster(baseEnemy, { evasion: stat(100), evasion_add_percent: stat(100) });
+  if (Math.abs(evasionChance - (200 / 300)) > 0.001) throw new Error("player damage runtime must preserve evasion versus accuracy formula.");
+  if (runtime.playerResistanceCap({ max_elemental_resistance_percent: stat(80), max_fire_resistance_percent: stat(76) }, "fire") !== 81) {
+    throw new Error("player damage runtime must preserve elemental resistance cap stacking.");
+  }
+  const converted = runtime.convertIncomingPlayerDamageComponents({ physical: 100, chaos: 50 }, {
+    incoming_conversion_physical_to_fire_percent: stat(40),
+    incoming_conversion_chaos_to_lightning_percent: stat(50)
+  });
+  if (converted.physical !== 60 || converted.fire !== 40 || converted.chaos !== 25 || converted.lightning !== 25) {
+    throw new Error("player damage runtime must preserve incoming conversion order and amounts.");
+  }
+  const armoredPhysical = runtime.mitigateIncomingPlayerDamageComponent(100, "physical", { armor: stat(100), physical_damage_reduction_percent: stat(10) }, 0);
+  if (Math.abs(armoredPhysical - 81.82) > 0.05) throw new Error("player damage runtime must preserve armor and physical mitigation.");
+  const fireMitigated = runtime.mitigateIncomingPlayerDamageComponent(100, "fire", {
+    fire_resistance_percent: stat(80),
+    max_elemental_resistance_percent: stat(80),
+    max_fire_resistance_percent: stat(75),
+    non_physical_armor_effectiveness_percent: stat(0)
+  }, 10);
+  if (Math.abs(fireMitigated - 30) > 0.01) throw new Error("player damage runtime must preserve elemental resistance and penetration.");
+  const chaosMitigated = runtime.mitigateIncomingPlayerDamageComponent(100, "chaos", { chaos_resistance_percent: stat(60), max_chaos_resistance_percent: stat(50), non_physical_armor_effectiveness_percent: stat(0) }, 0);
+  if (Math.abs(chaosMitigated - 50) > 0.01) throw new Error("player damage runtime must preserve chaos resistance cap.");
+  const blocked = runtime.resolveMonsterHitAgainstPlayer(baseEnemy, basePlayer, { block_damage_reduction_percent: stat(50), armor: stat(0) }, true, 10);
+  if (Math.abs(blocked.totalDamage - 50) > 0.01 || blocked.shieldDamage !== 50 || blocked.lifeDamage !== 0) {
+    throw new Error("player damage runtime must preserve block reduction and energy-shield-first damage.");
+  }
+  let critHit = null;
+  for (let t = 0; t < 200 && !critHit; t += 1) {
+    const hit = runtime.resolveMonsterHitAgainstPlayer({ ...baseEnemy, critChancePercent: 100, critDamagePercent: 200 }, { ...basePlayer, currentEnergyShield: 0 }, { armor: stat(0) }, false, t);
+    if (hit.isCritical) critHit = hit;
+  }
+  if (!critHit || Math.abs(critHit.totalDamage - 200) > 0.01) throw new Error("player damage runtime must preserve critical hit scaling.");
+  const doubleHit = runtime.resolveMonsterHitAgainstPlayer({ ...baseEnemy, doubleDamageChancePercent: 100 }, { ...basePlayer, currentEnergyShield: 0 }, { armor: stat(0) }, false, 1);
+  if (!doubleHit.isDoubleDamage || Math.abs(doubleHit.totalDamage - 200) > 0.01) throw new Error("player damage runtime must preserve double-damage scaling.");
+  const resources = runtime.applyDamageToPlayerResources(basePlayer, 200, { damage_taken_from_mana_before_life_percent: stat(25) }, { useManaBeforeLife: true });
+  if (resources.nextPlayer.currentMana !== 50 || resources.shieldDamage !== 80 || resources.lifeDamage !== 70 || resources.nextPlayer.hp !== 930) {
+    throw new Error("player damage runtime must preserve mana, energy-shield, and life damage ordering.");
+  }
 }
 
 function runProceduralSpawnRuntimeSmoke() {
