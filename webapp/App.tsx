@@ -98,7 +98,6 @@ import type {
   SkillPackageData
 } from "./types/skillEditorTypes";
 import { DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS, loadSkillEditorCameraSettings, SKILL_EDITOR_CAMERA_STORAGE_KEY } from "./features/disabled-skill-editor/disabledSkillEditorSettings";
-import { SkillEditorDebugToggles } from "./features/disabled-skill-editor/SkillEditorDebugToggles";
 import { SkillEditorPanel } from "./features/disabled-skill-editor/SkillEditorPanel";
 import { PlayableBattleScene } from "./features/playable-battle/PlayableBattleScene";
 import {
@@ -155,7 +154,8 @@ import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveI
 import { createStashStateHelpers } from "./components/inventory/stashState";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { EntryTitleScreen } from "./components/layout/EntryTitleScreen";
-import { CombatFeed, HelpText, MapDebugToggle, SpawnPlanWarningPanel } from "./components/layout/AppShellPanels";
+import { AppTopHud } from "./components/layout/AppTopHud";
+import { GameShellOverlays } from "./components/layout/GameShellOverlays";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { GAME_RESOLUTION_STORAGE_KEY, useGameViewport, type GameResolutionMode, type GameResolutionPreset, type GameViewport } from "./hooks/useGameViewport";
@@ -168,7 +168,6 @@ import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDe
 import { clamp, distance, guideDirection } from "./utils/math2d";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection } from "./utils/runtimeMotion";
-import { BattlePauseOverlay, GameFailureOverlay, PortalConfirmOverlay } from "./components/battle/BattleOverlays";
 import { createBattleAnimationContexts, createBattleRenderItems, shouldRenderLegacyBattleItem as shouldRenderLegacyBattleItemState, type BattleAnimationContexts, type BattleRenderItem } from "./components/battle/battleRenderState";
 import { renderBattleRenderItem as renderBattlePresentationItem, type BattlePresentationRenderItem, type BattleRenderPresentationHelpers } from "./components/battle/BattleRenderLayer";
 import {
@@ -190,10 +189,8 @@ import {
   usesCanvasHitVfx,
   usesCanvasProjectileVfx
 } from "./components/battle/projectileVfxPresentation";
-import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { MonsterTestPanel } from "./components/battle/MonsterTestPanel";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
-import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
 import { GemGhost } from "./components/skill-board/SkillBoardPresentation";
 import type { PreviewRelationType } from "./components/skill-board/SkillBoardPresentation";
 import { canPlaceGemOnBoard, cellKey, useLegalDropCells, usePlacementInvalidReason, usePlacementPreview } from "./components/skill-board/boardPlacementState";
@@ -7429,17 +7426,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       )}
 
       {RELEASE_DEBUG_TOOLS_ENABLED && (
-        <header className="top-hud">
-          <div>
-            <h1>{APP_TITLE}</h1>
-            <span>{notice}</span>
-          </div>
-          {skillEditorMode && (
-            <button className="hud-button" type="button" onClick={openSkillEditorPanel}>
-              技能编辑器
-            </button>
-          )}
-        </header>
+        <AppTopHud
+          title={APP_TITLE}
+          notice={notice}
+          skillEditorMode={skillEditorMode}
+          onOpenSkillEditor={openSkillEditorPanel}
+        />
       )}
 
       {!monsterTestMode && !skillEditorMode && entryStep === "title" && (
@@ -7482,46 +7474,46 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         />
       )}
 
-      {RELEASE_DEBUG_TOOLS_ENABLED && (
-        <MapDebugToggle enabled={mapDebugEnabled} onChange={setMapDebugEnabled} />
-      )}
-      {RELEASE_DEBUG_TOOLS_ENABLED && <ProceduralSpawnDebugPanel debug={proceduralSpawnDebug} />}
-      {RELEASE_DEBUG_TOOLS_ENABLED && spawnPlanWarnings.length > 0 ? (
-        <SpawnPlanWarningPanel warnings={spawnPlanWarnings} />
-      ) : null}
-
-      {!monsterTestMode && gameFailureOpen && (
-        <GameFailureOverlay onClose={() => setGameFailureOpen(false)} />
-      )}
-
-      {!monsterTestMode && !skillEditorMode && (playing || restAreaMapActive) && battlePauseOpen && (
-        <BattlePauseOverlay
-          view={battlePauseView}
-          playing={playing}
-          resolutionPresets={GAME_RESOLUTION_PRESETS}
-          resolutionMode={gameResolutionMode}
-          onViewChange={setBattlePauseView}
-          onResolutionModeChange={applyGameResolutionMode}
-          onContinue={continueBattleFromPause}
-          onExitRun={exitCurrentRunToRestArea}
-          onEndGame={endGameToTitle}
-        />
-      )}
-
-      {!monsterTestMode && !skillEditorMode && playing && bossPortalConfirm && (
-        <PortalConfirmOverlay onConfirm={confirmBossPortalExit} onCancel={cancelBossPortalConfirm} />
-      )}
-
-      <HelpText />
-
-      {skillEditorMode && (
-        <SkillEditorDebugToggles
-          options={skillEditorDebugOptions}
-          cameraSettings={skillEditorCameraSettings}
-          onChange={setSkillEditorDebugOptions}
-          onCameraSettingsChange={setSkillEditorCameraSettings}
-        />
-      )}
+      <GameShellOverlays
+        releaseDebugToolsEnabled={RELEASE_DEBUG_TOOLS_ENABLED}
+        monsterTestMode={monsterTestMode}
+        skillEditorMode={skillEditorMode}
+        playing={playing}
+        restAreaMapActive={restAreaMapActive}
+        entryStep={entryStep}
+        restAreaPanel={restAreaPanel}
+        gameFailureOpen={gameFailureOpen}
+        battlePauseOpen={battlePauseOpen}
+        battlePauseView={battlePauseView}
+        bossPortalConfirm={bossPortalConfirm}
+        mapDebugEnabled={mapDebugEnabled}
+        proceduralSpawnDebug={proceduralSpawnDebug}
+        spawnPlanWarnings={spawnPlanWarnings}
+        runtimeBoundaryScanLine={runtimeBoundaryScanLine}
+        runtimeDebugCornerSummary={runtimeDebugCornerSummary}
+        combatLogs={combatLogs}
+        skillEditorDebugOptions={skillEditorDebugOptions}
+        skillEditorCameraSettings={skillEditorCameraSettings}
+        battleMapReady={Boolean(battleMap)}
+        progression={state.map_progression}
+        resolutionPresets={GAME_RESOLUTION_PRESETS}
+        resolutionMode={gameResolutionMode}
+        stageScopeText={stageScopeLabel}
+        stageBossPoolText={stageBossPackPoolLabel}
+        onMapDebugChange={setMapDebugEnabled}
+        onGameFailureClose={() => setGameFailureOpen(false)}
+        onPauseViewChange={setBattlePauseView}
+        onResolutionModeChange={applyGameResolutionMode}
+        onPauseContinue={continueBattleFromPause}
+        onExitRun={exitCurrentRunToRestArea}
+        onEndGame={endGameToTitle}
+        onPortalConfirm={confirmBossPortalExit}
+        onPortalCancel={cancelBossPortalConfirm}
+        onSkillEditorDebugOptionsChange={setSkillEditorDebugOptions}
+        onSkillEditorCameraSettingsChange={setSkillEditorCameraSettings}
+        onStartStage={startGame}
+        onCloseRestAreaPanel={closeRestAreaPanel}
+      />
 
       {skillEditorMode && skillEditorOpen && state.skill_editor && (
         <SkillEditorPanel
@@ -7541,25 +7533,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             setSkillEditorGuidePackage(null);
             setSkillEditorOpen(false);
           }}
-        />
-      )}
-
-      {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "stage" && (
-        <MapSelectionPanel
-          battleMapReady={Boolean(battleMap)}
-          progression={state.map_progression}
-          stageScopeText={stageScopeLabel}
-          stageBossPoolText={stageBossPackPoolLabel}
-          onStart={startGame}
-          onClose={closeRestAreaPanel}
-        />
-      )}
-
-      {RELEASE_DEBUG_TOOLS_ENABLED && (
-        <CombatFeed
-          runtimeBoundaryScanLine={runtimeBoundaryScanLine}
-          runtimeDebugCornerSummary={runtimeDebugCornerSummary}
-          combatLogs={combatLogs}
         />
       )}
 
