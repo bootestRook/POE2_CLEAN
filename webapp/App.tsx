@@ -172,6 +172,7 @@ import {
   usesCanvasProjectileVfx
 } from "./components/battle/projectileVfxPresentation";
 import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
+import { MonsterTestPanel } from "./components/battle/MonsterTestPanel";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
 import { BoardCell, GemGhost, previewRelationLabel, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
@@ -9212,24 +9213,15 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       />
 
       {monsterTestMode && (
-        <section className="monster-test-panel" aria-label="怪物测试控制">
-          <header>
-            <strong>怪物测试场景</strong>
-            <span>玩家生命 {formatPreviewNumber(player.maxHp)}，存活怪物 {enemies.filter((enemy) => enemy.hp > 0).length}</span>
-          </header>
-          <label>
-            <span>怪物</span>
-            <select value={selectedMonsterTestMonsterId} onChange={(event) => setSelectedMonsterTestMonsterId(event.currentTarget.value)}>
-              {monsterTestOptions.map((monster) => (
-                <option key={monster.id} value={monster.id}>{monster.label}</option>
-              ))}
-            </select>
-          </label>
-          <div className="monster-test-actions">
-            <button type="button" onClick={spawnSelectedMonsterTestEnemy}>生成</button>
-            <button type="button" onClick={destroyAllMonsterTestEnemies}>全部销毁</button>
-          </div>
-        </section>
+        <MonsterTestPanel
+          playerLifeText={formatPreviewNumber(player.maxHp)}
+          liveMonsterCount={enemies.filter((enemy) => enemy.hp > 0).length}
+          selectedMonsterId={selectedMonsterTestMonsterId}
+          monsterOptions={monsterTestOptions}
+          onSelectMonster={setSelectedMonsterTestMonsterId}
+          onSpawn={spawnSelectedMonsterTestEnemy}
+          onDestroyAll={destroyAllMonsterTestEnemies}
+        />
       )}
 
       {RELEASE_DEBUG_TOOLS_ENABLED && (
