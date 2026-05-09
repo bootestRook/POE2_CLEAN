@@ -78,3 +78,21 @@ Runtime event consumers that must keep their current ownership until explicitly 
 - `applyDamageEventBatch`.
 - Pending hit and damage-zone mutation through `pendingBossDamageZoneHits.current` and `activeDamageZones.current`.
 - Visual state writes through `setTexts`, `setBolts`, `setAreaNovas`, `setMeleeArcs`, `setChainSegments`, `setDamageZones`, and `setHitVfxs`.
+
+## App Source-Text Test Coupling To Migrate With Ownership
+
+The following checks currently read `webapp/App.tsx` directly. When protected functions move, the tests must follow the new owner module instead of forcing the implementation to stay in App.
+
+- `webapp/smoke-test.mjs` reads `webapp/App.tsx` into `app` and uses broad `app.includes(...)` checks for character panel wiring, mana/runtime code, movement handling, backend-forbidden strings, generated-data loading, UI text, and other App/source invariants.
+- `webapp/smoke-test.mjs` uses `functionBody(app, ...)` for `anchorHitVfxsToTargets`, `advanceEnemyBuffs`, `consumeSkillEventBatch`, `applyDamageEventBatch`, `applyEnemyStatusBuff`, `releaseFrontendPlayableSkill`, `buildFrontendPlayableSkillEvents`, projectile/chain/module-chain/damage-zone/melee/nova event builders, `activeDamageZoneRuntimeTickEvents`, `applyForcedMovementEvent`, `hitEnemies`, `stepGame`, `applyRuntimeMonsterAttacks`, and `syncEnemyVisuals`.
+- `tests/test_webapp_map_run_boundary.py` centralizes `_app_source()` and reads `webapp/App.tsx` for many map-run, drop, spawn, progression, portal, and runtime source invariants.
+- `tests/test_procedural_map_generation_v1.py` reads `webapp/App.tsx` to assert map generation debug/runtime request boundaries.
+- `tests/test_map_template_instance_variants.py` reads `webapp/App.tsx` for map-template instance and runtime map usage checks.
+- `tests/test_client_only_game_runtime_boundary.py` reads `webapp/App.tsx` for frontend skill runtime names, chromatic/split projectile payload invariants, client-only runtime recalculation, equipment/GM local behavior, player stat feed into combat, equipment modifier consumption, equipment modifier recovery, skill-family runtime branches, spawn/loot/progression paths, and save recovery messages.
+
+Initial migration implications:
+
+- App-owned orchestration checks should remain App-specific.
+- Pure helper and event-builder checks should move to the focused runtime module once ownership moves.
+- Broad source text checks should use deliberate combined sources only when the invariant is intentionally cross-module.
+- Backend-coupling and skill-editor-forbidden checks should continue scanning all WebApp sources.
