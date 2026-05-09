@@ -124,11 +124,11 @@
 
 ## 14. Completion Review
 
-- [ ] 14.1 Review `webapp/App.tsx` against the final target: mode routing, App-owned cross-domain state/ref initialization, callback wiring, viewport shell composition, and intentional orchestration only.
-- [ ] 14.2 Confirm large render-only inventory/equipment/stash/board UI composition no longer lives inline in App.
-- [ ] 14.3 Confirm monster skill pure helpers and event payload builders are searchable in focused runtime modules outside App.
-- [ ] 14.4 Confirm player damage and save/state/drop helper ownership changes, if performed, are covered by focused tests and have not changed formulas or storage semantics.
-- [ ] 14.5 Confirm future WebApp module placement guidance is updated and AI-visible.
-- [ ] 14.6 Confirm no backend coupling, server runtime behavior, duplicate gameplay runtime, save-schema change, storage-key change, CSS redesign, copy change, gameplay balance change, unrelated refactor, root-level artifact, or skill-editor acceptance path was introduced.
-- [ ] 14.7 Record the final App responsibility summary and any intentionally remaining App-owned runtime orchestration in the final implementation notes.
+- [x] 14.1 Review `webapp/App.tsx` against the final target: mode routing, App-owned cross-domain state/ref initialization, callback wiring, viewport shell composition, and intentional orchestration only.
+- [x] 14.2 Confirm large render-only inventory/equipment/stash/board UI composition no longer lives inline in App.
+- [x] 14.3 Confirm monster skill pure helpers and event payload builders are searchable in focused runtime modules outside App.
+- [x] 14.4 Confirm player damage and save/state/drop helper ownership changes, if performed, are covered by focused tests and have not changed formulas or storage semantics.
+- [x] 14.5 Confirm future WebApp module placement guidance is updated and AI-visible.
+- [x] 14.6 Confirm no backend coupling, server runtime behavior, duplicate gameplay runtime, save-schema change, storage-key change, CSS redesign, copy change, gameplay balance change, unrelated refactor, root-level artifact, or skill-editor acceptance path was introduced.
+- [x] 14.7 Record the final App responsibility summary and any intentionally remaining App-owned runtime orchestration in the final implementation notes.
 - [ ] 14.8 Run `openspec validate finalize-webapp-app-architecture-boundaries --strict`.
