@@ -103,6 +103,7 @@ import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualE
 import { GAME_RESOLUTION_STORAGE_KEY, useGameViewport, type GameResolutionMode, type GameResolutionPreset, type GameViewport } from "./hooks/useGameViewport";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
 import { clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, frontendStateCandidateFromSave, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
+import { DEFAULT_PLAYER_NAME, formatFrontendSaveTime, normalizePlayerName } from "./utils/frontendSaveFormatting";
 import { clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
@@ -1553,7 +1554,6 @@ const RUNTIME_DROPPED_FRAME_MS = 33;
 const RUNTIME_SLOW_LOGIC_MS = 16;
 const RUNTIME_MIN_FRAME_MS = 8;
 const TRIGGERED_SKILL_EVENT_MIN_DELAY_SECONDS = 1 / 60;
-const DEFAULT_PLAYER_NAME = "玩家";
 const MAX_RUNTIME_PROJECTILE_VISUALS = 80;
 const MAX_RUNTIME_HIT_VFX = 80;
 const MAX_RUNTIME_FLOATING_TEXT = 60;
@@ -2924,11 +2924,6 @@ function createRandomNewSaveStarterGem(slotId?: number): Gem | null {
     locked: false,
     board_position: { ...STARTER_GEM_BOARD_POSITION }
   };
-}
-
-function normalizePlayerName(value: unknown) {
-  const trimmed = String(value ?? "").trim();
-  return trimmed || DEFAULT_PLAYER_NAME;
 }
 
 function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | null {
@@ -10614,18 +10609,6 @@ function normalizePlayerRuntimeResources(player: PlayerRuntimeState): PlayerRunt
     maxEnergyShield,
     currentEnergyShield: clamp(Number.isFinite(player.currentEnergyShield) ? player.currentEnergyShield : maxEnergyShield, 0, maxEnergyShield)
   };
-}
-
-function formatFrontendSaveTime(value: string | undefined) {
-  if (!value) return "保存时间未知";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "保存时间未知";
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
 }
 
 function SkillEditorDebugToggles({
