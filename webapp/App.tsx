@@ -135,7 +135,7 @@ import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget,
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
-import { inventoryItemById, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
+import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, reconcileInventorySlots, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
 import { createStashStateHelpers } from "./components/inventory/stashState";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { CombatFeed, HelpText, MapDebugToggle, SpawnPlanWarningPanel } from "./components/layout/AppShellPanels";
@@ -1707,7 +1707,7 @@ function GameApp() {
     if (!state) return;
     const equippedIds = new Set(equipmentSlots.filter(Boolean) as string[]);
     const stashIds = stashItemIds(state.stash_pages);
-    setInventorySlots((current) => reconcileInventorySlots(current, state, floatingGemRef.current?.gem.instance_id ?? null, new Set([...equippedIds, ...stashIds])));
+    setInventorySlots((current) => reconcileInventorySlots(current, state, floatingGemRef.current?.gem.instance_id ?? null, new Set([...equippedIds, ...stashIds]), INVENTORY_SLOT_COUNT));
   }, [state, floatingGem?.gem.instance_id, equipmentSlots]);
 
   useEffect(() => {
@@ -6570,7 +6570,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
 
 async function placeFloatingItem(current: FloatingGem, target: DropTarget, event: globalThis.MouseEvent): Promise<PlacementResult> {
     if (target.kind === "invalid") return { type: "reject" };
-    if (isDropBackToOrigin(current, target, state, inventorySlots, equipmentSlots, state?.stash_pages)) return { type: "place" };
+    if (isDropBackToOrigin(current, target, state, inventorySlots, equipmentSlots, normalizeStashPages(state?.stash_pages))) return { type: "place" };
     if (target.kind === "map") {
       const prompt = {
         item: current.gem,
@@ -8559,59 +8559,6 @@ function removeInventoryItemFromState(state: AppState, instanceId: string): AppS
       )
     }
   };
-}
-
-function isDropBackToOrigin(
-  floatingGem: FloatingGem,
-  target: DropTarget,
-  state: AppState | null,
-  inventorySlots: (string | null)[],
-  equipmentSlots: (string | null)[],
-  stashPages: (string | null)[][] | undefined
-) {
-  const origin = floatingGem.origin;
-  if (origin.kind === "bag") {
-    return target.kind === "bag" && origin.slotIndex === target.slotIndex && inventorySlots[target.slotIndex] === floatingGem.gem.instance_id;
-  }
-  if (origin.kind === "equipment") {
-    return target.kind === "equipment" && origin.slotIndex === target.slotIndex && equipmentSlots[target.slotIndex] === floatingGem.gem.instance_id;
-  }
-  if (origin.kind === "stash") {
-    return target.kind === "stash"
-      && origin.pageIndex === target.pageIndex
-      && origin.slotIndex === target.slotIndex
-      && normalizeStashPages(stashPages)[target.pageIndex]?.[target.slotIndex] === floatingGem.gem.instance_id;
-  }
-  return (
-    target.kind === "board" &&
-    origin.row === target.row &&
-    origin.column === target.column &&
-    state?.board.cells[target.row]?.[target.column]?.gem?.instance_id === floatingGem.gem.instance_id
-  );
-}
-
-function reconcileInventorySlots(current: (string | null)[], state: AppState, floatingItemId: string | null, equippedIds: Set<string> = new Set()) {
-  const unmountedIds = new Set(state.inventory.filter((gem) => !gem.board_position).map((gem) => gem.instance_id));
-  const next = Array(INVENTORY_SLOT_COUNT).fill(null) as (string | null)[];
-  const used = new Set<string>();
-
-  current.slice(0, INVENTORY_SLOT_COUNT).forEach((instanceId, index) => {
-    if (instanceId && instanceId !== floatingItemId && !equippedIds.has(instanceId) && unmountedIds.has(instanceId) && !used.has(instanceId)) {
-      next[index] = instanceId;
-      used.add(instanceId);
-    }
-  });
-
-  for (const gem of state.inventory) {
-    if (gem.board_position || gem.instance_id === floatingItemId || equippedIds.has(gem.instance_id) || used.has(gem.instance_id)) continue;
-    const emptyIndex = next.findIndex((instanceId) => instanceId === null);
-    if (emptyIndex >= 0) {
-      next[emptyIndex] = gem.instance_id;
-      used.add(gem.instance_id);
-    }
-  }
-
-  return next;
 }
 
 function sanitizeEquipmentSlotsForState(state: AppState): AppState {
