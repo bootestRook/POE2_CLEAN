@@ -15,7 +15,7 @@
 ## 3. Smoke Test Source Boundary Update
 
 - [x] 3.1 Inventory smoke-test checks that currently use `functionBody(app, ...)`, `app.includes(...)`, or App-only slices for functions planned to move.
-- [ ] 3.2 Update smoke-test source reads so protected invariants for moved helpers read the owning extracted source file or an explicit combined source instead of requiring the function to remain in `webapp/App.tsx`.
+- [x] 3.2 Update smoke-test source reads so protected invariants for moved helpers read the owning extracted source file or an explicit combined source instead of requiring the function to remain in `webapp/App.tsx`.
 - [ ] 3.3 Keep App-owned runtime checks tied to the actual owner of `stepGame`, skill event consumption, mutable runtime refs, and playable battle-loop behavior.
 - [ ] 3.4 Run `npm test` after the smoke-test boundary update and confirm the checks still protect equivalent behavior.
 

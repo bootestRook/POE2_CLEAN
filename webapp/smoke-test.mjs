@@ -123,32 +123,33 @@ for (const requiredRestAreaCode of [
   }
 }
 
-const frontendSavePayloadBody = functionBody(app, "frontendSavePayloadFromState");
+const clientStateSource = webappSourceText;
+const frontendSavePayloadBody = functionBody(clientStateSource, "frontendSavePayloadFromState");
 if (
   !frontendSavePayloadBody.includes("frontendSavePayloadFromSanitizedState")
   || !webappSourceText.includes("stash_pages: state.stash_pages")
 ) {
   throw new Error("Frontend save payload must persist stash_pages.");
 }
-const createFrontendNewSaveStarterStateBody = functionBody(app, "createFrontendNewSaveStarterState");
+const createFrontendNewSaveStarterStateBody = functionBody(clientStateSource, "createFrontendNewSaveStarterState");
 if (!createFrontendNewSaveStarterStateBody.includes("state.stash_pages = createEmptyStashPages();")) {
   throw new Error("New saves must initialize empty stash pages.");
 }
-const createRandomNewSaveStarterGemBody = functionBody(app, "createRandomNewSaveStarterGem");
-if (!app.includes('const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);')) {
+const createRandomNewSaveStarterGemBody = functionBody(clientStateSource, "createRandomNewSaveStarterGem");
+if (!clientStateSource.includes('const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);')) {
   throw new Error("New save starter gem exclusions must include active_stoneskin.");
 }
 if (!createRandomNewSaveStarterGemBody.includes("!EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS.has(String(gem.base_gem_id ?? gem.instance_id))")) {
   throw new Error("New save random active starter gems must exclude stoneskin.");
 }
-const appStateFromFrontendSaveBody = functionBody(app, "appStateFromFrontendSave");
+const appStateFromFrontendSaveBody = functionBody(clientStateSource, "appStateFromFrontendSave");
 if (
   !appStateFromFrontendSaveBody.includes("frontendStateCandidateFromSave")
   || !webappSourceText.includes("normalizeStashPages(save.stash_pages")
 ) {
   throw new Error("Existing saves must migrate/sanitize stash_pages on load.");
 }
-const sanitizeFrontendStorageStateBody = functionBody(app, "sanitizeFrontendStorageState");
+const sanitizeFrontendStorageStateBody = functionBody(clientStateSource, "sanitizeFrontendStorageState");
 for (const requiredSanitizerCode of [
   "sanitizeEquipmentSlotsForState",
   "normalizeStashPages(equipmentState.stash_pages, equipmentState)"
@@ -157,7 +158,7 @@ for (const requiredSanitizerCode of [
     throw new Error(`Stash duplicate ownership sanitizer missing: ${requiredSanitizerCode}`);
   }
 }
-const normalizeStashPagesBody = functionBody(app, "normalizeStashPages");
+const normalizeStashPagesBody = functionBody(clientStateSource, "normalizeStashPages");
 for (const requiredNormalizeCode of [
   "const used = new Set<string>();",
   "!used.has(instanceId)",
@@ -169,7 +170,7 @@ for (const requiredNormalizeCode of [
     throw new Error(`Stash page normalization must reject duplicate/foreign ownership: ${requiredNormalizeCode}`);
   }
 }
-const placeItemInStashBody = functionBody(app, "placeItemInStash");
+const placeItemInStashBody = functionBody(clientStateSource, "placeItemInStash");
 for (const requiredStashTransferCode of [
   "moveItemToStashSlot",
   "removeItemsFromEquipmentSlots",
