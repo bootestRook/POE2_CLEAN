@@ -21,6 +21,13 @@ const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "m
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const frontendAppState = readFileSync(join(root, "webapp", "state", "frontendAppState.ts"), "utf8");
 const frontendDropState = readFileSync(join(root, "webapp", "state", "frontendDropState.ts"), "utf8");
+const entryTitleScreen = readFileSync(join(root, "webapp", "components", "layout", "EntryTitleScreen.tsx"), "utf8");
+const appTopHud = readFileSync(join(root, "webapp", "components", "layout", "AppTopHud.tsx"), "utf8");
+const gameShellOverlays = readFileSync(join(root, "webapp", "components", "layout", "GameShellOverlays.tsx"), "utf8");
+const inventoryOverlay = readFileSync(join(root, "webapp", "components", "inventory", "InventoryOverlay.tsx"), "utf8");
+const equipmentPanel = readFileSync(join(root, "webapp", "components", "inventory", "EquipmentPanel.tsx"), "utf8");
+const inventoryBagPanel = readFileSync(join(root, "webapp", "components", "inventory", "InventoryBagPanel.tsx"), "utf8");
+const inventorySkillBoardPanel = readFileSync(join(root, "webapp", "components", "inventory", "InventorySkillBoardPanel.tsx"), "utf8");
 const stashState = readFileSync(join(root, "webapp", "components", "inventory", "stashState.ts"), "utf8");
 const frontendSaveStorage = readFileSync(join(root, "webapp", "utils", "frontendSaveStorage.ts"), "utf8");
 const mapSpawnConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "map_spawn_v1.json"), "utf8"));
@@ -222,6 +229,30 @@ for (const requiredSaveStorageOwnerCode of [
   if (!frontendSaveStorage.includes(requiredSaveStorageOwnerCode)) {
     throw new Error(`Frontend save storage invariant must be checked in frontendSaveStorage: ${requiredSaveStorageOwnerCode}`);
   }
+}
+const moduleOwnerChecks = [
+  [entryTitleScreen, "export function EntryTitleScreen", "Entry title presentation must be checked in EntryTitleScreen."],
+  [entryTitleScreen, "onStart", "EntryTitleScreen must receive the start transition as a prop."],
+  [appTopHud, "export function AppTopHud", "Top HUD presentation must be checked in AppTopHud."],
+  [appTopHud, "onOpenSkillEditor", "AppTopHud must receive disabled editor entry callbacks as props."],
+  [gameShellOverlays, "export function GameShellOverlays", "Shell overlay composition must be checked in GameShellOverlays."],
+  [gameShellOverlays, "BattlePauseOverlay", "GameShellOverlays must own pause overlay composition."],
+  [gameShellOverlays, "PortalConfirmOverlay", "GameShellOverlays must own portal confirm overlay composition."],
+  [gameShellOverlays, "MapSelectionPanel", "GameShellOverlays must own map selection overlay composition."],
+  [inventoryOverlay, "export function InventoryOverlay", "Inventory overlay composition must be checked in InventoryOverlay."],
+  [equipmentPanel, "export function EquipmentPanel", "Equipment panel presentation must be checked in EquipmentPanel."],
+  [inventoryBagPanel, "export function InventoryBagPanel", "Inventory bag presentation must be checked in InventoryBagPanel."],
+  [inventorySkillBoardPanel, "export function InventorySkillBoardPanel", "Inventory skill-board presentation must be checked in InventorySkillBoardPanel."],
+  [stashState, "export function createStashStateHelpers", "Stash normalization must be checked in stashState."],
+  [frontendAppState, "export function createFrontendAppStateHelpers", "Frontend App state helpers must be checked in frontendAppState."],
+  [frontendDropState, "export function createFrontendDrop", "Drop behavior must be checked in frontendDropState."],
+  [frontendSaveStorage, "export function frontendSaveSlotKey", "Save storage key behavior must be checked in frontendSaveStorage."],
+  [monsterSkillPresentation, "export function monsterSkillProjectileSpreadAngles", "Monster skill presentation helpers must be checked in monsterSkillPresentation."],
+  [monsterSkillEventBuilder, "export function buildMonsterSkillProjectileEvents", "Monster event payload builders must be checked in monsterSkillEventBuilder."],
+  [playerDamageRuntime, "export function resolveMonsterHitAgainstPlayer", "Player damage formulas must be checked in playerDamageRuntime."]
+];
+for (const [source, token, message] of moduleOwnerChecks) {
+  if (!source.includes(token)) throw new Error(message);
 }
 for (const requiredRestAreaCss of [
   ".rest-area-scene",

@@ -103,7 +103,7 @@
 
 ## 12. Test And Smoke Boundary Updates
 
-- [ ] 12.1 Update WebApp smoke/source-boundary tests so moved functions and invariants are checked in the source module that now owns them.
+- [x] 12.1 Update WebApp smoke/source-boundary tests so moved functions and invariants are checked in the source module that now owns them.
 - [ ] 12.2 Keep App-specific tests specific to App-owned orchestration, runtime refs, battle loop entrypoints, disabled tooling gates, backend-coupling prevention, and playable WebApp acceptance boundaries.
 - [ ] 12.3 Add or update tests that prevent extracted modules from importing from `webapp/App.tsx`.
 - [ ] 12.4 Add or update tests that prevent new backend gameplay API calls, server runtimes, duplicate frontend gameplay runtimes, and skill-editor acceptance paths.
