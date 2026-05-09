@@ -99,7 +99,7 @@
 - [x] 11.3 Confirm no extracted module imports from `webapp/App.tsx`.
 - [x] 11.4 Confirm App imports focused modules instead of redefining their responsibilities locally.
 - [x] 11.5 Confirm no new module duplicates gameplay runtime, target selection, hit timing, damage application, projectile trajectory decisions, or event consumption.
-- [ ] 11.6 Update comments only where they clarify ownership boundaries; avoid broad explanatory comments that repeat code.
+- [x] 11.6 Update comments only where they clarify ownership boundaries; avoid broad explanatory comments that repeat code.
 
 ## 12. Test And Smoke Boundary Updates
 
