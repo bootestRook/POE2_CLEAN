@@ -70,7 +70,7 @@
 - [x] 8.1 Identify player damage and resource helper functions in `App.tsx` that are deterministic over explicit player, enemy, stat, damage, and timestamp inputs.
 - [x] 8.2 Create `webapp/runtime/playerDamageRuntime.ts` only for pure mitigation/resource helpers that can move without changing state ownership.
 - [x] 8.3 Move player resistance cap, incoming conversion, armor/resistance mitigation, evasion/block chance helpers, monster outgoing damage scalar helpers, and damage-to-resource result helpers only when their formulas can be preserved exactly.
-- [ ] 8.4 Leave React state mutation, defeat handling, combat log generation, floating text creation, recovery cooldown refs, and runtime queue consumption in App unless a separate batch explicitly scopes them.
+- [x] 8.4 Leave React state mutation, defeat handling, combat log generation, floating text creation, recovery cooldown refs, and runtime queue consumption in App unless a separate batch explicitly scopes them.
 - [ ] 8.5 Add focused tests for physical, elemental, chaos, armor, resistance cap, incoming conversion, block, evasion, critical, double-damage, energy-shield, and life-damage representative cases.
 - [ ] 8.6 Update smoke/source-boundary checks so combat invariants read the player damage runtime module where ownership moved.
 - [ ] 8.7 Run build/test checks and actual playable battle verification.

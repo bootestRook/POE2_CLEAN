@@ -1626,6 +1626,11 @@ for (const forbidden of ["setTexts", "setAreaNovas", "pendingBossDamageZoneHits"
     throw new Error(`Monster event builder must not own App side effects or runtime refs: ${forbidden}`);
   }
 }
+for (const forbidden of ["useState", "setRuntimePlayer", "setTexts", "setCombatLogs", "gameFailureOpen", "blockLifeRecoveryReadyMs", "blockShieldRecoveryReadyMs", "lifeReturnReadyMs", "shieldReturnReadyMs", "energyShieldRechargeReadyMs", "FloatingText"]) {
+  if (playerDamageRuntime.includes(forbidden)) {
+    throw new Error(`Player damage runtime must not own App side effects or cooldown refs: ${forbidden}`);
+  }
+}
 for (const forbidden of ["useState", "useRef", "localStorage", "sessionStorage", "fetch(", "playerStateRef", "enemiesStateRef", "scheduledSkillEvents", "activeDamageZones"]) {
   if (monsterSkillPresentation.includes(forbidden)) {
     throw new Error(`Monster skill presentation helper must stay pure and client-local: ${forbidden}`);
