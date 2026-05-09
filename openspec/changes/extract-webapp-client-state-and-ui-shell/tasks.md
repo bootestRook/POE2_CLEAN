@@ -9,7 +9,7 @@
 
 - [x] 2.1 Extract monster-test controls into a focused render-only component that receives existing values and callbacks through props.
 - [x] 2.2 Extract game failure, battle pause/settings, and portal confirmation overlays into focused render-only components while preserving text, class names, aria labels, DOM order, button order, and callback behavior.
-- [ ] 2.3 Extract help text, map debug toggle, spawn plan warning display, and combat feed display where they can move without changing state ownership or rendering gates.
+- [x] 2.3 Extract help text, map debug toggle, spawn plan warning display, and combat feed display where they can move without changing state ownership or rendering gates.
 - [ ] 2.4 Run focused TypeScript/build checks for the UI shell extraction and review the diff for copy, CSS, DOM-order, backend, storage, save, runtime, or dependency changes.
 
 ## 3. Smoke Test Source Boundary Update

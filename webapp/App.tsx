@@ -138,6 +138,7 @@ import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellCl
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
+import { CombatFeed, HelpText, MapDebugToggle, SpawnPlanWarningPanel } from "./components/layout/AppShellPanels";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { GAME_RESOLUTION_STORAGE_KEY, useGameViewport, type GameResolutionMode, type GameResolutionPreset, type GameViewport } from "./hooks/useGameViewport";
@@ -9288,16 +9289,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       )}
 
       {RELEASE_DEBUG_TOOLS_ENABLED && (
-        <label className="map-debug-toggle">
-          <input type="checkbox" checked={mapDebugEnabled} onChange={(event) => setMapDebugEnabled(event.target.checked)} />
-          <span>地图调试：{mapDebugEnabled ? "开" : "关"}</span>
-        </label>
+        <MapDebugToggle enabled={mapDebugEnabled} onChange={setMapDebugEnabled} />
       )}
       {RELEASE_DEBUG_TOOLS_ENABLED && <ProceduralSpawnDebugPanel debug={proceduralSpawnDebug} />}
       {RELEASE_DEBUG_TOOLS_ENABLED && spawnPlanWarnings.length > 0 ? (
-        <aside className="spawnPlan-warning-panel" aria-label="遭遇点警告">
-          {spawnPlanWarnings.slice(0, 3).map((warning) => <span key={warning}>{warning}</span>)}
-        </aside>
+        <SpawnPlanWarningPanel warnings={spawnPlanWarnings} />
       ) : null}
 
       {!monsterTestMode && gameFailureOpen && (
@@ -9322,14 +9318,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         <PortalConfirmOverlay onConfirm={confirmBossPortalExit} onCancel={cancelBossPortalConfirm} />
       )}
 
-      <div className="help-text">
-        <p>Esc：返回/暂停菜单</p>
-        <p>C：打开/关闭背包</p>
-        <p>M：打开/关闭小地图</p>
-        <p>WASD：移动</p>
-        <p>拖拽：放置宝石</p>
-        <p>左键/F：拾取/交互</p>
-      </div>
+      <HelpText />
 
       {skillEditorMode && (
         <SkillEditorDebugToggles
@@ -9373,11 +9362,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       )}
 
       {RELEASE_DEBUG_TOOLS_ENABLED && (
-        <section className="combat-feed" aria-label="战斗日志">
-          {runtimeBoundaryScanLine && <p>{runtimeBoundaryScanLine}</p>}
-          {runtimeDebugCornerSummary && <p>{runtimeDebugCornerSummary}</p>}
-          {combatLogs.map((log, index) => <p key={index}>{log}</p>)}
-        </section>
+        <CombatFeed
+          runtimeBoundaryScanLine={runtimeBoundaryScanLine}
+          runtimeDebugCornerSummary={runtimeDebugCornerSummary}
+          combatLogs={combatLogs}
+        />
       )}
 
       {bagOpen && (
