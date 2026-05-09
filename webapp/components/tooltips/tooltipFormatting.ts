@@ -350,6 +350,7 @@ export function ensureGemLevelStatLine(gem: { level?: number }, lines: TooltipSt
   const nextLines = lines.map((line) => {
     if (!isSkillLevelTooltipLine(line.label_text)) return line;
     found = true;
+    if (isEffectiveSkillLevelValue(line.value_text)) return line;
     return { ...line, value_text: levelText };
   });
   if (found) return nextLines;
@@ -357,6 +358,10 @@ export function ensureGemLevelStatLine(gem: { level?: number }, lines: TooltipSt
 }
 
 const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
+
+function isEffectiveSkillLevelValue(valueText: string) {
+  return /\(\d+\+\d+\)/.test(valueText);
+}
 
 export function ensureReleaseIntervalStatLine(
   gem: {

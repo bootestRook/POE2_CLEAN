@@ -347,14 +347,18 @@ def test_frontend_skill_preview_recalculates_template_damage_for_gem_level() -> 
 
 def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
     source = _app_source()
-    support_tooltip_body = source.split("function SupportGemTooltip", 1)[1].split("function RichText", 1)[0]
+    tooltip_source = (ROOT / "webapp" / "components" / "tooltips" / "GemTooltipOverlay.tsx").read_text(encoding="utf-8")
+    tooltip_formatting_source = (ROOT / "webapp" / "components" / "tooltips" / "tooltipFormatting.ts").read_text(encoding="utf-8")
+    support_tooltip_body = tooltip_source.split("function SupportGemTooltip", 1)[1].split("function supportDescriptionRichLines", 1)[0]
     active_normalizer_body = source.split("function normalizeActiveTooltipView", 1)[1].split("function normalizedTooltipSubtitle", 1)[0]
-    level_line_body = source.split("function ensureGemLevelStatLine", 1)[1].split("function ensureReleaseIntervalStatLine", 1)[0]
+    level_line_body = tooltip_formatting_source.split("function ensureGemLevelStatLine", 1)[1].split("const RELEASE_INTERVAL_LABELS", 1)[0]
 
     assert "const levelText = frontendGemLevelText(gem)" in support_tooltip_body
-    assert '`\\u7b49\\u7ea7 ${levelText}`' in support_tooltip_body
-    assert "sections.description" not in support_tooltip_body
+    assert "`等级 ${levelText}`" in support_tooltip_body
+    assert "const descriptionLines = supportDescriptionRichLines(sections.description)" in support_tooltip_body
+    assert "descriptionLines.map((line, index) => <RichText key={index} line={line} />)" in support_tooltip_body
     assert "ensureGemLevelStatLine(gem, view.sections.stats.lines)" in active_normalizer_body
+    assert "if (isEffectiveSkillLevelValue(line.value_text)) return line" in level_line_body
     assert "return { ...line, value_text: levelText }" in level_line_body
     assert 'return [{ label_text: "\\u7b49\\u7ea7", value_text: levelText }, ...nextLines]' in level_line_body
 

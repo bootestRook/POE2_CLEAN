@@ -1962,7 +1962,7 @@ function frontendSupportSkillModifiersForTarget(
       if (!stat) continue;
       const baseValue = Number(modifier.value ?? 0);
       const tableKey = String(modifier.table_key ?? stat);
-      const value = frontendSkillLevelTableValueById(String(sourceGem.base_gem_id ?? sourceGem.instance_id), sourceLevel, tableKey) ?? baseValue;
+      const value = frontendSkillLevelTableValueById(frontendSupportLevelTableId(sourceGem), sourceLevel, tableKey) ?? baseValue;
       if (!Number.isFinite(value) || value === 0) continue;
       const appliedValue = value * frontendRelationCoefficient(relation);
       modifiers.push({

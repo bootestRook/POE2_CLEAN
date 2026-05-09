@@ -20,7 +20,7 @@ export type GemTooltipViewModel = {
   tags: readonly TooltipTagView[];
   summary_lines?: TooltipRichLine[];
   sections: {
-    description: { title_text: string; lines: string[] };
+    description: { title_text?: string; lines?: string[]; rich_lines?: TooltipRichLine[] };
     stats: { title_text: string; lines: TooltipStatLineView[] };
     recent_dps?: { title_text: string; lines: TooltipStatLineView[] };
     bonuses?: { title_text: string; lines: string[] };
@@ -205,6 +205,7 @@ function SupportGemTooltip<TGem>({
 }) {
   const sections = view.sections;
   const levelText = frontendGemLevelText(gem);
+  const descriptionLines = supportDescriptionRichLines(sections.description);
   return (
     <div className="gem-tooltip support-tooltip" style={{ left, top, transform }}>
       <div className="tooltip-header">
@@ -215,6 +216,11 @@ function SupportGemTooltip<TGem>({
           {(view.summary_lines ?? []).map((line, index) => <RichText key={index} line={line} className="support-tooltip-summary" />)}
         </div>
       </div>
+      {descriptionLines.length > 0 && (
+        <TooltipSection title="">
+          {descriptionLines.map((line, index) => <RichText key={index} line={line} />)}
+        </TooltipSection>
+      )}
       {sections.conditions && sections.conditions.rich_lines.length > 0 && (
         <TooltipSection title="">
           {sections.conditions.rich_lines.map((line, index) => <RichText key={index} line={line} />)}
@@ -232,4 +238,10 @@ function SupportGemTooltip<TGem>({
       )}
     </div>
   );
+}
+
+function supportDescriptionRichLines(section: GemTooltipViewModel["sections"]["description"] | undefined): TooltipRichLine[] {
+  if (!section) return [];
+  if (section.rich_lines && section.rich_lines.length > 0) return section.rich_lines;
+  return (section.lines ?? []).map((line) => [{ text: line, tone: "body" }]);
 }

@@ -293,6 +293,7 @@ def test_frontend_equipment_runtime_consumes_recent_affix_effects() -> None:
     assert '"active_split_firebolt"' in level_tables_source
     assert '"support_added_fire_damage"' in level_tables_source
     assert '"40"' in level_tables_source
+    assert "frontendSkillLevelTableValueById(frontendSupportLevelTableId(sourceGem), sourceLevel, tableKey)" in source
     for conduit_id in ["support_row_conduit", "support_column_conduit", "support_box_conduit"]:
         conduit_table = level_tables_source.split(f'"{conduit_id}"', 1)[1].split("\n  },", 1)[0]
         assert '"5"' in conduit_table
