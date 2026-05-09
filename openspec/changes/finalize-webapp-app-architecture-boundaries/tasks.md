@@ -82,7 +82,7 @@
 - [x] 9.3 Preserve frontend save version, storage keys, active-slot behavior, autosave behavior, migration/sanitization order, player-name normalization, starter gem exclusions, stash page/slot counts, duplicate ownership rules, and item identity.
 - [x] 9.4 Keep App-owned orchestration in App: when saves are loaded, when state is applied, when drops are spawned, when pickup animation starts/finishes, when boss portal confirmation mutates state, and when map-run progression changes.
 - [x] 9.5 Update tests for save/stash/drop behavior to read the owning state/helper modules.
-- [ ] 9.6 Run focused persistence/drop tests, build checks, and playable WebApp verification for save/load/rest-area/stash flow.
+- [x] 9.6 Run focused persistence/drop tests, build checks, and playable WebApp verification for save/load/rest-area/stash flow.
 
 ## 10. UI Shell And Entry Flow Extraction
 
