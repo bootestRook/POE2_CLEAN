@@ -72,7 +72,7 @@
 - [x] 8.3 Move player resistance cap, incoming conversion, armor/resistance mitigation, evasion/block chance helpers, monster outgoing damage scalar helpers, and damage-to-resource result helpers only when their formulas can be preserved exactly.
 - [x] 8.4 Leave React state mutation, defeat handling, combat log generation, floating text creation, recovery cooldown refs, and runtime queue consumption in App unless a separate batch explicitly scopes them.
 - [x] 8.5 Add focused tests for physical, elemental, chaos, armor, resistance cap, incoming conversion, block, evasion, critical, double-damage, energy-shield, and life-damage representative cases.
-- [ ] 8.6 Update smoke/source-boundary checks so combat invariants read the player damage runtime module where ownership moved.
+- [x] 8.6 Update smoke/source-boundary checks so combat invariants read the player damage runtime module where ownership moved.
 - [ ] 8.7 Run build/test checks and actual playable battle verification.
 
 ## 9. Save, State, Drop, And Stash Helper Boundaries
