@@ -14,6 +14,10 @@ If the change seems to require editing `webapp/App.tsx`, first ask whether the c
 
 If no existing owner fits the work, update this module-boundary plan or create a focused module plan before implementing the feature. Do not add new WebApp feature code directly to `webapp/App.tsx` as the fallback destination.
 
+## Missing Boundaries
+
+When a WebApp feature does not fit the owner map below, the first task is architecture planning. Add or update a focused owner module/folder in this document and, when behavior requirements change, add or update the relevant OpenSpec requirement before implementation. The implementation must wait until the new boundary names the state, callbacks, runtime data, and verification surface that remain unchanged.
+
 ## App.tsx Allowed Edits
 
 `webapp/App.tsx` is the orchestration root, not a feature module. After the final architecture pass, App edits are allowed only for:
