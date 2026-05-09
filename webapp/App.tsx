@@ -93,7 +93,7 @@ import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
-import { isFloatingOrigin, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
+import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
@@ -10925,31 +10925,6 @@ function tooltipPositionConfig() {
     screenPadding: TOOLTIP_SCREEN_PADDING,
     inventoryColumns: INVENTORY_COLUMNS
   };
-}
-
-function isInventoryDropBlockedByInterface(element: Element | null) {
-  return Boolean(element?.closest([
-    "[data-board-row][data-board-column]",
-    "[data-bag-slot-index]",
-    "[data-stash-slot-index]",
-    "[data-equipment-slot-index]",
-    ".right-workbench",
-    ".character-info-panel",
-    ".bottom-hud",
-    ".top-hud",
-    ".combat-feed",
-    ".gm-tool-anchor",
-    ".gm-tool-panel",
-    ".gem-tooltip",
-    ".placement-prompt",
-    ".item-discard-overlay",
-    ".game-failure-overlay",
-    ".ground-drop",
-    "button",
-    "input",
-    "select",
-    "textarea"
-  ].join(",")));
 }
 
 function isPlayableBattleTypingTarget(target: EventTarget | null) {

@@ -63,3 +63,28 @@ export function resolveDropTarget(element: Element | null): DropTarget {
   }
   return { kind: "invalid" };
 }
+
+export function isInventoryDropBlockedByInterface(element: Element | null) {
+  return Boolean(element?.closest([
+    "[data-board-row][data-board-column]",
+    "[data-bag-slot-index]",
+    "[data-stash-slot-index]",
+    "[data-equipment-slot-index]",
+    ".right-workbench",
+    ".character-info-panel",
+    ".bottom-hud",
+    ".top-hud",
+    ".combat-feed",
+    ".gm-tool-anchor",
+    ".gm-tool-panel",
+    ".gem-tooltip",
+    ".placement-prompt",
+    ".item-discard-overlay",
+    ".game-failure-overlay",
+    ".ground-drop",
+    "button",
+    "input",
+    "select",
+    "textarea"
+  ].join(",")));
+}
