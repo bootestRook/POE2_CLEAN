@@ -46,7 +46,7 @@
 
 ## 6. Monster Skill Pure Helper Extraction
 
-- [ ] 6.1 Create `webapp/runtime/monsterSkillPresentation.ts` or an equivalent focused pure helper module.
+- [x] 6.1 Create `webapp/runtime/monsterSkillPresentation.ts` or an equivalent focused pure helper module.
 - [ ] 6.2 Move pure monster skill helpers from `App.tsx`, including projectile spread angles, zone center selection, clamped zone placement, damage type/form passthrough, VFX key selection, suppress-hit-VFX rules, and projectile aim policy.
 - [ ] 6.3 Preserve every existing numeric formula, special skill-id case, VFX key string, pattern name, default value, and return shape.
 - [ ] 6.4 Ensure the helper module depends only on explicit inputs and pure utilities, and does not read React state, refs, local storage, browser globals, runtime queues, player/enemy mutable state beyond supplied arguments, or backend services.
