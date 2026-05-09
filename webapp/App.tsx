@@ -137,6 +137,7 @@ import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget,
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, frontendEquipmentSourceSlotIdFromText, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
+import { createStashStateHelpers } from "./components/inventory/stashState";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { CombatFeed, HelpText, MapDebugToggle, SpawnPlanWarningPanel } from "./components/layout/AppShellPanels";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
@@ -1098,52 +1099,17 @@ function saveItemDiscardSkipConfirmPreference(enabled: boolean) {
   }
 }
 
-function createEmptyStashPages() {
-  return Array.from({ length: STASH_PAGE_COUNT }, () => Array.from({ length: STASH_PAGE_SLOT_COUNT }, () => null as string | null));
-}
-
-function normalizeStashPages(value: unknown, state?: Pick<AppState, "inventory" | "equipment_slots" | "board">) {
-  const sourcePages = Array.isArray(value) ? value : [];
-  const next = createEmptyStashPages();
-  const used = new Set<string>();
-  const inventoryIds = state ? new Set(state.inventory.map((item) => item.instance_id)) : null;
-  const equippedIds = state ? new Set(normalizeEquipmentSlots(state.equipment_slots ?? []).filter(Boolean) as string[]) : new Set<string>();
-  const boardedIds = state ? new Set(state.board.cells.flat().map((cell) => cell.gem?.instance_id).filter(Boolean) as string[]) : new Set<string>();
-  for (let pageIndex = 0; pageIndex < STASH_PAGE_COUNT; pageIndex += 1) {
-    const sourceSlots = Array.isArray(sourcePages[pageIndex]) ? sourcePages[pageIndex] : [];
-    for (let slotIndex = 0; slotIndex < STASH_PAGE_SLOT_COUNT; slotIndex += 1) {
-      const instanceId = typeof sourceSlots[slotIndex] === "string" ? sourceSlots[slotIndex] : "";
-      if (
-        instanceId
-        && !used.has(instanceId)
-        && (!inventoryIds || inventoryIds.has(instanceId))
-        && !equippedIds.has(instanceId)
-        && !boardedIds.has(instanceId)
-      ) {
-        next[pageIndex][slotIndex] = instanceId;
-        used.add(instanceId);
-      }
-    }
-  }
-  return next;
-}
-
-function stashItemIds(stashPages: (string | null)[][] | undefined) {
-  return new Set(normalizeStashPages(stashPages).flat().filter(Boolean) as string[]);
-}
-
-function removeItemsFromStashPages(stashPages: (string | null)[][] | undefined, instanceIds: string[]) {
-  const idSet = new Set(instanceIds.filter(Boolean));
-  return normalizeStashPages(stashPages).map((page) => page.map((instanceId) => (instanceId && idSet.has(instanceId) ? null : instanceId)));
-}
-
-function moveItemToStashSlot(stashPages: (string | null)[][] | undefined, instanceId: string, pageIndex: number, slotIndex: number) {
-  const next = removeItemsFromStashPages(stashPages, [instanceId]);
-  const safePageIndex = clamp(Math.floor(pageIndex), 0, STASH_PAGE_COUNT - 1);
-  const safeSlotIndex = clamp(Math.floor(slotIndex), 0, STASH_PAGE_SLOT_COUNT - 1);
-  next[safePageIndex][safeSlotIndex] = instanceId;
-  return next;
-}
+const {
+  createEmptyStashPages,
+  normalizeStashPages,
+  stashItemIds,
+  removeItemsFromStashPages,
+  moveItemToStashSlot
+} = createStashStateHelpers<Gem>({
+  pageCount: STASH_PAGE_COUNT,
+  pageSlotCount: STASH_PAGE_SLOT_COUNT,
+  normalizeEquipmentSlots
+});
 
 function sanitizeFrontendStorageState(state: AppState): AppState {
   const equipmentState = sanitizeEquipmentSlotsForState(state);
