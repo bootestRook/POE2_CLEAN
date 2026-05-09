@@ -118,6 +118,29 @@ export function frontendDamageTypeLabel(damageType: string) {
   return `${damageType}\u4f24\u5bb3`;
 }
 
+export function formatPreviewNumber(value: number) {
+  if (!Number.isFinite(value)) return "0";
+  if (Math.abs(value) >= 100) return Math.round(value).toString();
+  if (Math.abs(value) >= 10) return value.toFixed(1).replace(/\.0$/, "");
+  return value.toFixed(2).replace(/\.00$/, "").replace(/0$/, "");
+}
+
+export function formatModifierValue(stat: string, value: number) {
+  if (stat === "conduit_multiplier") return `?${formatPreviewNumber(value)}`;
+  if (stat.endsWith("_percent")) return `${value >= 0 ? "+" : ""}${formatPreviewNumber(value)}%`;
+  return `${value >= 0 ? "+" : ""}${formatPreviewNumber(value)}`;
+}
+
+export function damageTypeText(damageType: string) {
+  const text: Record<string, string> = {
+    fire: "\u706b\u7130",
+    cold: "\u51b0\u971c",
+    lightning: "\u95ea\u7535",
+    physical: "\u7269\u7406"
+  };
+  return text[damageType] ?? "\u6280\u80fd";
+}
+
 export function frontendGuardTooltipLines(
   skill: { runtime_params?: Record<string, unknown> },
   formatPreviewNumber: (value: number) => string

@@ -116,7 +116,7 @@ import { createNormalizeActiveTooltipView } from "./components/tooltips/activeTo
 import { equipmentTooltipBonusLines, equipmentTooltipRarityTone, equipmentTooltipStatLines, normalizedEquipmentTooltipTags } from "./components/tooltips/equipmentTooltipAdapters";
 import { GemOrb } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, damageTypeText, formatModifierValue, formatPreviewNumber, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
@@ -8226,19 +8226,6 @@ function viewportToBattleWorld(clientX: number, clientY: number, camera: Camera2
   return { x: terrainScreenX, y: terrainScreenY };
 }
 
-function formatPreviewNumber(value: number) {
-  if (!Number.isFinite(value)) return "0";
-  if (Math.abs(value) >= 100) return Math.round(value).toString();
-  if (Math.abs(value) >= 10) return value.toFixed(1).replace(/\.0$/, "");
-  return value.toFixed(2).replace(/\.00$/, "").replace(/0$/, "");
-}
-
-function formatModifierValue(stat: string, value: number) {
-  if (stat === "conduit_multiplier") return `?${formatPreviewNumber(value)}`;
-  if (stat.endsWith("_percent")) return `${value >= 0 ? "+" : ""}${formatPreviewNumber(value)}%`;
-  return `${value >= 0 ? "+" : ""}${formatPreviewNumber(value)}`;
-}
-
 const LEGENDARY_BOSS_PACK_IDS = [
   "geo_boss_king",
   "geo_boss_void",
@@ -9365,16 +9352,6 @@ function skillPreviewVfxScale(skill: SkillPreview) {
 
 function packageVfxScale(packageData: SkillPackageData) {
   return normalizedVfxScale(packageData.presentation.vfx_scale);
-}
-
-function damageTypeText(damageType: string) {
-  const text: Record<string, string> = {
-    fire: "火焰",
-    cold: "冰霜",
-    lightning: "闪电",
-    physical: "物理"
-  };
-  return text[damageType] ?? "技能";
 }
 
 function forcedElementDamageType(skill: SkillPreview, timestampMs: number) {
