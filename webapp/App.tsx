@@ -154,6 +154,7 @@ import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, reconcileInventorySlots, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
 import { createStashStateHelpers } from "./components/inventory/stashState";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
+import { EntryTitleScreen } from "./components/layout/EntryTitleScreen";
 import { CombatFeed, HelpText, MapDebugToggle, SpawnPlanWarningPanel } from "./components/layout/AppShellPanels";
 import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
@@ -7442,22 +7443,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       )}
 
       {!monsterTestMode && !skillEditorMode && entryStep === "title" && (
-        <section className="entry-title-screen" aria-label="开始游戏">
-          <div className="entry-title-copy">
-            <h2>{APP_TITLE}</h2>
-          </div>
-          <button
-            className="entry-primary-button"
-            type="button"
-            onClick={() => {
-              refreshFrontendSaveSlots();
-              setEntryStep("save");
-              setNotice("请选择新建游戏、继续游戏或存档槽位。");
-            }}
-          >
-            开始游戏
-          </button>
-        </section>
+        <EntryTitleScreen
+          title={APP_TITLE}
+          onStart={() => {
+            refreshFrontendSaveSlots();
+            setEntryStep("save");
+            setNotice("请选择新建游戏、继续游戏或存档槽位。");
+          }}
+        />
       )}
 
       {!monsterTestMode && !skillEditorMode && entryStep === "save" && (

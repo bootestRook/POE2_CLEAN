@@ -195,3 +195,4 @@ Existing focused owners reviewed for this batch:
 ## UI Shell And Entry Flow Review
 
 - 10.1 created focused layout presentation modules for the title entry screen and non-gameplay top HUD: `webapp/components/layout/EntryTitleScreen.tsx` and `webapp/components/layout/AppTopHud.tsx`. They accept explicit props and do not own mode state, save state, pause state, runtime logs, storage writes, or gameplay refs.
+- 10.2 rewired the title screen display to `EntryTitleScreen`. The component preserves `entry-title-screen`, `entry-title-copy`, `entry-primary-button`, the title rendering, button label, and the original title-screen aria label; `App.tsx` still owns the click transition by refreshing save slots, setting `entryStep` to `save`, and updating `notice`.

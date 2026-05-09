@@ -6,7 +6,7 @@ export function EntryTitleScreen({
   onStart: () => void;
 }) {
   return (
-    <section className="entry-title-screen" aria-label="寮€濮嬫父鎴?>
+    <section className="entry-title-screen" aria-label="开始游戏">
       <div className="entry-title-copy">
         <h2>{title}</h2>
       </div>
@@ -15,7 +15,8 @@ export function EntryTitleScreen({
         type="button"
         onClick={onStart}
       >
-        寮€濮嬫父鎴?      </button>
+        开始游戏
+      </button>
     </section>
   );
 }
