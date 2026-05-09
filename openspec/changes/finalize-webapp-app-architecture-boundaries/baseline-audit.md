@@ -130,3 +130,4 @@ Type boundary decision for the first extraction batch:
 - The inventory overlay can use local generic props for item, floating item, slot, tooltip, panel, and preview shapes.
 - Shared type modules should be created later only when a concrete extracted runtime or presentation module needs a stable shape that cannot be expressed locally without importing from App.
 - Because no type definitions are moved in the initial type-boundary preparation, no field names, literal values, optionality, or semantic shapes are changed at this point.
+- Existing `webapp/types/` modules at audit time are `skillEditorTypes.ts` and `enemyTypes.ts`; source checks found no imports or references to `webapp/App.tsx`, generated data, local storage, browser globals, React state hooks, backend calls, or request helpers.

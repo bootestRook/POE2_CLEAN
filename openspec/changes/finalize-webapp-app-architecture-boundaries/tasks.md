@@ -21,7 +21,7 @@
 - [x] 3.1 Identify App-local types needed by extracted modules, including item/gem, App state/save payload, tooltip, floating item, battle VFX, player runtime, drop, map progression, and skill-board shapes.
 - [x] 3.2 Create or extend thin type-only modules under `webapp/types/` only for shapes that are required by the extraction batches.
 - [x] 3.3 Move type definitions without changing field names, literal values, optionality, or semantic shape.
-- [ ] 3.4 Ensure type-only modules do not import `webapp/App.tsx`, generated data, browser APIs, local storage helpers, runtime formulas, or gameplay mutation code.
+- [x] 3.4 Ensure type-only modules do not import `webapp/App.tsx`, generated data, browser APIs, local storage helpers, runtime formulas, or gameplay mutation code.
 - [ ] 3.5 Rewire extracted module imports to use type-only modules or local generic props instead of importing from App.
 - [ ] 3.6 Run focused TypeScript/build checks after type boundary changes and fix circular imports before continuing.
 
