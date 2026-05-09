@@ -82,11 +82,12 @@ import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/Tool
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
 import { activeDpsToneClass, buildEquipmentRarityToneForGem, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
+import { gemIconSprite } from "./components/tooltips/gemIconSprites";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
-import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
+import { gemColorKey, gemColorValue, romanGemLevel } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
@@ -16378,22 +16379,6 @@ function equipmentTooltipStatLines(gem: Gem, lines: TooltipStatLine[]) {
 
 function equipmentTooltipBonusLines(gem: Gem, lines: string[]) {
   return buildEquipmentTooltipBonusLines(gem, lines);
-}
-
-const sudokuGemIconSprites: Record<number, string> = {
-  1: new URL("./assets/gems/sudoku-gem-1.png", import.meta.url).href,
-  2: new URL("./assets/gems/sudoku-gem-2.png", import.meta.url).href,
-  3: new URL("./assets/gems/sudoku-gem-3.png", import.meta.url).href,
-  4: new URL("./assets/gems/sudoku-gem-4.png", import.meta.url).href,
-  5: new URL("./assets/gems/sudoku-gem-5.png", import.meta.url).href,
-  6: new URL("./assets/gems/sudoku-gem-6.png", import.meta.url).href,
-  7: new URL("./assets/gems/sudoku-gem-7.png", import.meta.url).href,
-  8: new URL("./assets/gems/sudoku-gem-8.png", import.meta.url).href,
-  9: new URL("./assets/gems/sudoku-gem-9.png", import.meta.url).href,
-};
-
-function gemIconSprite(gem: Gem) {
-  return sudokuGemIconSprites[gemSudokuDigit(gem)] ?? "";
 }
 
 function GemOrb({ gem }: { gem: Gem }) {
