@@ -82,6 +82,7 @@ import type { TooltipRichLine, TooltipTagView } from "./components/tooltips/Tool
 import { GemOrbView } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
 import { activeDpsToneClass, buildEquipmentRarityToneForGem, buildEquipmentTooltipBonusLines, buildEquipmentTooltipRarityTone, buildEquipmentTooltipStatLines, buildGemTooltipViewModelWithNormalizers, buildNormalizedEquipmentTooltipTags, ensureGemLevelStatLine, ensureReleaseIntervalStatLine, equipmentRarityTone, equipmentTooltipAffixLine, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, isSkillLevelTooltipLine, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines, normalizedTooltipSubtitle } from "./components/tooltips/tooltipFormatting";
+import { frontendDisplayGemKindTag, frontendGemKindTagText, isGemTypeTagText, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipStatLine, TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
 import { gemColorKey, gemColorValue, gemSudokuDigit, romanGemLevel } from "./utils/gemDisplay";
@@ -16381,46 +16382,6 @@ function normalizeSupportTooltipView(gem: Gem, view: TooltipView): TooltipView {
   };
 }
 
-function frontendGemKindTagText(gem: Gem) {
-  if (isActiveGem(gem)) return "\u4e3b\u52a8\u6280\u80fd";
-  if (isPassiveGem(gem)) return "\u88ab\u52a8\u6280\u80fd";
-  if (isSupportGem(gem)) return "\u8f85\u52a9\u6280\u80fd";
-  return "\u5b9d\u77f3";
-}
-
-const FRONTEND_GEM_COLOR_TEXT_BY_KEY: Record<string, string> = {
-  red: "\u7ea2\u8272",
-  blue: "\u84dd\u8272",
-  green: "\u7eff\u8272",
-  pink: "\u7c89\u8272",
-  yellow: "\u9ec4\u8272",
-  white: "\u767d\u8272",
-  black: "\u9ed1\u8272",
-  cyan: "\u9752\u8272",
-  orange: "\u6a59\u8272",
-};
-
-function frontendGemColorTag(gem: Gem) {
-  const key = gem.tooltip_view?.icon_color_key ?? gemColorKey(gem);
-  return {
-    text: FRONTEND_GEM_COLOR_TEXT_BY_KEY[key] ?? gem.gem_type?.display_text ?? "\u5b9d\u77f3",
-    tone: `color-${key}`,
-  };
-}
-
-function isGemTypeTagText(gem: Gem, text: string) {
-  const digit = gemSudokuDigit(gem);
-  return text === gem.gem_type?.display_text || text === `${digit}\u53f7\u5b9d\u77f3`;
-}
-
-function frontendDisplayGemKindTag(gem: Gem, tag: TooltipTagView): TooltipTagView {
-  if ((tag.id ?? "").startsWith("gem_type_") || isGemTypeTagText(gem, tag.text)) {
-    return { ...tag, ...frontendGemColorTag(gem) };
-  }
-  if ((tag.id ?? "") !== "gem" && tag.text !== "\u5b9d\u77f3") return tag;
-  return { ...tag, text: frontendGemKindTagText(gem) };
-}
-
 function replaceGemTagRichLineSection(gem: Gem, section: { rich_lines: TooltipRichLine[] } | undefined) {
   if (!section) return section;
   return {
@@ -16488,14 +16449,6 @@ function isNonTargetSupportTag(tag: { id: string; text: string }, gem: Gem) {
     || tag.text === "\u5b9d\u77f3"
     || tag.text === frontendGemKindTagText(gem)
     || isGemTypeTagText(gem, tag.text);
-}
-
-function replaceGemTagRichLines(gem: Gem, lines: TooltipRichLine[] | undefined) {
-  return lines?.map((line) => line.map((segment) => (
-    isGemTypeTagText(gem, segment.text)
-      ? { ...segment, ...frontendGemColorTag(gem) }
-      : segment.text === "\u5b9d\u77f3" ? { ...segment, text: frontendGemKindTagText(gem) } : segment
-  )));
 }
 
 function equipmentTooltipRarityTone(gem: Gem, view?: TooltipView) {
