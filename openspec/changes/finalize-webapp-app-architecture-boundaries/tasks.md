@@ -77,7 +77,7 @@
 
 ## 9. Save, State, Drop, And Stash Helper Boundaries
 
-- [ ] 9.1 Review existing `webapp/state/frontendAppState.ts`, `webapp/state/frontendDropState.ts`, `webapp/components/inventory/stashState.ts`, and `webapp/utils/frontendSaveStorage.ts` for helpers already extracted.
+- [x] 9.1 Review existing `webapp/state/frontendAppState.ts`, `webapp/state/frontendDropState.ts`, `webapp/components/inventory/stashState.ts`, and `webapp/utils/frontendSaveStorage.ts` for helpers already extracted.
 - [ ] 9.2 Move only deterministic save payload conversion, starter-state creation, stash normalization, stash item id collection, stash removal, or drop calculation helpers that still live in App and clearly belong in existing state/helper modules.
 - [ ] 9.3 Preserve frontend save version, storage keys, active-slot behavior, autosave behavior, migration/sanitization order, player-name normalization, starter gem exclusions, stash page/slot counts, duplicate ownership rules, and item identity.
 - [ ] 9.4 Keep App-owned orchestration in App: when saves are loaded, when state is applied, when drops are spawned, when pickup animation starts/finishes, when boss portal confirmation mutates state, and when map-run progression changes.

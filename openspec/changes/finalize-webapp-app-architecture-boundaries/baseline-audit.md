@@ -177,3 +177,12 @@ Must remain App-owned in this batch:
 - `webapp/smoke-test.mjs` now compiles and executes `playerDamageRuntime.ts` directly, covering monster outgoing damage scaling, evasion, elemental/chaos resistance caps, incoming conversion, armor and physical mitigation, block reduction, critical scaling, double-damage scaling, and mana/energy-shield/life damage ordering.
 - Smoke/source-boundary checks now read moved player damage invariants from `webapp/runtime/playerDamageRuntime.ts`, while App-specific checks remain limited to hit adapter usage, block roll orchestration, state mutation, combat logs, and visual side effects.
 - Player damage runtime verification passed `cmd /c npm run build`, `node webapp/smoke-test.mjs`, and OpenSpec strict validation. Actual WebApp verification used `run.bat` on `http://127.0.0.1:8766/` with the battle surface opened via `?mode=monster-test`; screenshot `artifacts/screenshots/8-7-player-damage-runtime.png` shows live monsters around the player, overhead resource bars, and combat feed entries for monster melee skills dealing physical damage. Run logs are `artifacts/logs/runbat-webapp-8-7-out.log` and `artifacts/logs/runbat-webapp-8-7-err.log`.
+
+## Save State Drop And Stash Boundary Review
+
+Existing focused owners reviewed for this batch:
+
+- `webapp/state/frontendAppState.ts` owns initial state creation, monster-test state, new-save starter state, starter gem selection, save-to-state restoration, save payload conversion, and autosave payload handoff.
+- `webapp/utils/frontendSaveStorage.ts` owns save version/key constants, active slot persistence, slot id normalization, autosave/slot loading, legacy autosave migration, slot summaries, slot clearing, payload serialization shape, and save candidate restoration.
+- `webapp/components/inventory/stashState.ts` owns empty stash pages, stash page normalization, stash item id collection, stash removal, and moving an item to a stash slot.
+- `webapp/state/frontendDropState.ts` owns selected map stage selection, deterministic frontend drop rolls, monster drop chance/attempts, map-entry target selection, equipment rarity selection, gem weighting/choice, drop prompt creation, and inventory item creation from drops.
