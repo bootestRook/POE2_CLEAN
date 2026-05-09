@@ -106,6 +106,7 @@ import { clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSa
 import { DEFAULT_PLAYER_NAME, formatFrontendSaveTime, normalizePlayerName } from "./utils/frontendSaveFormatting";
 import { clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { clampNumber } from "./utils/number";
+import { playableMinimapCellKeyForPoint, playableMinimapRevealCells, playableMinimapUsesClientOnlyState } from "./utils/playableMinimapState";
 import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDebugMonsterBoundaryTestEnabled, runtimeDebugMonsterCornerTestEnabled } from "./utils/runtimeDebugFlags";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection, unitMovementState } from "./utils/runtimeMotion";
@@ -1548,7 +1549,6 @@ const BATTLE_CAMERA_FOLLOW_OFFSET_Y = 0;
 const BATTLE_ENTITY_Z_INDEX_BASE = 10;
 const CANVAS_GEOMETRY_BATTLE_OBJECTS = true;
 const CANVAS_GEOMETRY_SKILL_EFFECTS = true;
-const PLAYABLE_MINIMAP_REVEAL_RADIUS_CELLS = 7;
 const RUNTIME_PERF_SYNC_INTERVAL_MS = 500;
 const RUNTIME_DROPPED_FRAME_MS = 33;
 const RUNTIME_SLOW_LOGIC_MS = 16;
@@ -10923,52 +10923,6 @@ function isBattleMapPointInBounds(map: BakedBattleMapData, position: { x: number
     && position.y >= 0
     && position.x <= map.meta.world_width
     && position.y <= map.meta.world_height;
-}
-
-function playableMinimapGridPoint(map: BakedBattleMapData, point: { x: number; y: number }) {
-  return {
-    x: clamp(Math.floor(point.x / Math.max(1, map.meta.grid_size)), 0, Math.max(0, map.gridWidth - 1)),
-    y: clamp(Math.floor(point.y / Math.max(1, map.meta.grid_size)), 0, Math.max(0, map.gridHeight - 1))
-  };
-}
-
-function playableMinimapCellKey(gridX: number, gridY: number) {
-  return `${gridX},${gridY}`;
-}
-
-function playableMinimapCellKeyForPoint(map: BakedBattleMapData, point: { x: number; y: number }) {
-  if (map.gridWidth <= 0 || map.gridHeight <= 0) return null;
-  const grid = playableMinimapGridPoint(map, point);
-  return playableMinimapCellKey(grid.x, grid.y);
-}
-
-function playableMinimapRevealCells(
-  map: BakedBattleMapData,
-  point: { x: number; y: number },
-  previous: ReadonlySet<string>,
-  radius = PLAYABLE_MINIMAP_REVEAL_RADIUS_CELLS
-) {
-  const center = playableMinimapGridPoint(map, point);
-  const cells = new Set(previous);
-  let changed = false;
-  const radiusSquared = radius * radius;
-  for (let dy = -radius; dy <= radius; dy += 1) {
-    for (let dx = -radius; dx <= radius; dx += 1) {
-      if (dx * dx + dy * dy > radiusSquared) continue;
-      const gridX = center.x + dx;
-      const gridY = center.y + dy;
-      if (gridX < 0 || gridY < 0 || gridX >= map.gridWidth || gridY >= map.gridHeight) continue;
-      const key = playableMinimapCellKey(gridX, gridY);
-      if (cells.has(key)) continue;
-      cells.add(key);
-      changed = true;
-    }
-  }
-  return { cells, changed };
-}
-
-function playableMinimapUsesClientOnlyState() {
-  return true;
 }
 
 function droppedItemDropKind(item: Gem): DropPrompt["loot_kind"] {
