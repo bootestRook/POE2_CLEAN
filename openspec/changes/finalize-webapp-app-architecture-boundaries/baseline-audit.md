@@ -108,3 +108,18 @@ No implementation task in this change requires or authorizes:
 - duplicate frontend gameplay runtimes or alternate skill event generation paths
 - skill-editor launch, skill-editor routes, skill-editor query flags, port `8765`, `dist-skill-editor`, or skill-editor preview acceptance evidence
 - root-level screenshots, logs, traces, test outputs, or generated verification artifacts
+
+## App-Local Types Needed By Extraction Batches
+
+These App-local shapes are likely to be needed by extracted modules. They should move only when an extraction requires them, and then only into type-only modules or generic component props.
+
+- Item and board types: `Gem`, `Cell`.
+- Skill and runtime event types: `SkillEvent`, `RuntimeSkillEventsResponse`, `ScheduledSkillEvent`, `ContinuousAttackRuntime`.
+- App state and save types: `AppState`, `FrontendSavePayload`, `FrontendSaveSlotSummary`, `MapProgressionStageView`, `FrontendMapRunMonster`.
+- Drop and portal types: `DropPrompt`, `BossPortal`, `PlacementResult`, `PlacementPrompt`, `ItemDiscardPrompt`.
+- GM/debug option types: `GmGemOption`, `GmEquipmentSourceOption`, `GmEquipmentRarityOption`, `GmOptions`, `GmEquipmentAffixOption`, `GmEquipmentAffixResponse`, `RuntimePerfSummary`.
+- Player and combat resource types: `PlayerStatView`, `PlayerRuntimeState`, `PlayerBuff`, `FloatingText`.
+- Battle visual runtime types: `FireBolt`, `HitVfx`, `AreaNova`, `MeleeArcVfx`, `ChainSegmentVfx`, `DamageZoneVfx`, `ActiveDamageZoneRuntime`, `ThundercloudChannelRuntime`, `Camera2D`, `UnitVisualRuntime`, `EnemyVisualRuntime`.
+- Tooltip and drag types: `Tooltip`, `FloatingGem`.
+
+Initial extraction should prefer generic props for render-only components. Shared type modules are justified only when multiple focused modules need the same shape and importing from App would create a circular or reverse dependency.
