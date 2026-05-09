@@ -24,7 +24,8 @@ import {
 import type { MonsterBossPattern, MonsterBossPatternSkill, MonsterDamageForm, MonsterSkillConfig, MonsterSkillDefinition, MonsterSkillRange, MonsterSkillRuntimeTimer } from "./monsterSkillRuntime";
 import {
   buildMonsterSkillMeleeZoneEvents,
-  buildMonsterSkillProjectileEvents
+  buildMonsterSkillProjectileEvents,
+  buildMonsterSupportDisplayEvents
 } from "./runtime/monsterSkillEventBuilder";
 import {
   buildSupremeBossSkillEvents,
@@ -2435,7 +2436,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       const buffUntilMs = nowMs + Math.max(1, Number(skill.buff_duration_ms ?? 2000));
       const multiplier = Math.max(1, Number(skill.buff_damage_multiplier ?? 1));
       const healPercent = Math.max(0, Number(skill.heal_percent_max_life ?? 0));
-      const healTexts: FloatingText[] = [];
+      const healedAllies: { x: number; y: number; amount: number }[] = [];
       let supportedTargets = 0;
       let totalHealed = 0;
       for (let allyIndex = 0; allyIndex < currentEnemies.length; allyIndex += 1) {
@@ -2453,33 +2454,25 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
           monsterSkillBuffUntilMs: multiplier > 1 ? buffUntilMs : ally.monsterSkillBuffUntilMs
         };
         if (actualHeal > 0) {
-          healTexts.push({
-            id: nextTextId.current++,
-            x: ally.x,
-            y: ally.y - 34,
-            text: `+${Math.max(1, Math.round(actualHeal))}`,
-            damageType: "heal",
-            ttl: 0.9,
-            duration: 0.9
-          });
+          healedAllies.push({ x: ally.x, y: ally.y, amount: actualHeal });
         }
       }
-      if (healPercent > 0) {
-        setAreaNovas((items) => capRuntimeVisualBudget([...items, {
-          id: nextAreaNovaId.current++,
-          x: updatedEnemy.x,
-          y: updatedEnemy.y,
-          radius,
-          ringWidth: Math.max(4, radius * 0.035),
-          ttl: 0.7,
-          duration: 0.7,
-          damageType: "heal",
-          vfxKey: "monster_heal_pulse",
-          skillId: skill.id
-        }], MAX_RUNTIME_AREA_VFX));
+      const supportDisplay = buildMonsterSupportDisplayEvents({
+        source: updatedEnemy,
+        skill,
+        radius,
+        healedAllies,
+        nextTextId: nextTextId.current,
+        nextAreaNovaId: nextAreaNovaId.current,
+        includeHealPulse: healPercent > 0
+      });
+      nextTextId.current = supportDisplay.nextTextId;
+      nextAreaNovaId.current = supportDisplay.nextAreaNovaId;
+      if (supportDisplay.areaNova) {
+        setAreaNovas((items) => capRuntimeVisualBudget([...items, supportDisplay.areaNova], MAX_RUNTIME_AREA_VFX));
       }
-      if (healTexts.length > 0) {
-        setTexts((items) => capRuntimeVisualBudget([...items, ...healTexts], MAX_RUNTIME_FLOATING_TEXT));
+      if (supportDisplay.texts.length > 0) {
+        setTexts((items) => capRuntimeVisualBudget([...items, ...supportDisplay.texts], MAX_RUNTIME_FLOATING_TEXT));
       }
       if (healPercent > 0) {
         setCombatLogs((logs) => [

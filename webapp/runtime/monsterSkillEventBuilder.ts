@@ -62,6 +62,29 @@ export type MonsterSkillPendingDamageZoneHit = {
   suppressHitVfx?: boolean;
 };
 
+export type MonsterSkillSupportDisplayText = {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+  damageType: "heal";
+  ttl: number;
+  duration: number;
+};
+
+export type MonsterSkillSupportDisplayAreaNova = {
+  id: number;
+  x: number;
+  y: number;
+  radius: number;
+  ringWidth: number;
+  ttl: number;
+  duration: number;
+  damageType: "heal";
+  vfxKey: "monster_heal_pulse";
+  skillId: string;
+};
+
 export function buildMonsterSkillProjectileEvents({
   enemy,
   target,
@@ -258,6 +281,66 @@ export function buildMonsterSkillMeleeZoneEvents({
       hitMarkerId: skill.hit_marker_id,
       suppressHitVfx: monsterSkillSuppressHitVfx(skill)
     }
+  };
+}
+
+export function buildMonsterSupportDisplayEvents({
+  source,
+  skill,
+  radius,
+  healedAllies,
+  nextTextId,
+  nextAreaNovaId,
+  includeHealPulse
+}: {
+  source: WorldPoint;
+  skill: MonsterSkillBuilderSkill;
+  radius: number;
+  healedAllies: {
+    x: number;
+    y: number;
+    amount: number;
+  }[];
+  nextTextId: number;
+  nextAreaNovaId: number;
+  includeHealPulse: boolean;
+}): {
+  texts: MonsterSkillSupportDisplayText[];
+  areaNova: MonsterSkillSupportDisplayAreaNova | null;
+  nextTextId: number;
+  nextAreaNovaId: number;
+} {
+  let textId = nextTextId;
+  const texts = healedAllies
+    .filter((ally) => ally.amount > 0)
+    .map((ally) => ({
+      id: textId++,
+      x: ally.x,
+      y: ally.y - 34,
+      text: `+${Math.max(1, Math.round(ally.amount))}`,
+      damageType: "heal" as const,
+      ttl: 0.9,
+      duration: 0.9
+    }));
+  const areaNova = includeHealPulse
+    ? {
+        id: nextAreaNovaId,
+        x: source.x,
+        y: source.y,
+        radius,
+        ringWidth: Math.max(4, radius * 0.035),
+        ttl: 0.7,
+        duration: 0.7,
+        damageType: "heal" as const,
+        vfxKey: "monster_heal_pulse" as const,
+        skillId: skill.id
+      }
+    : null;
+  return {
+    texts,
+    areaNova,
+    nextTextId: textId,
+    nextAreaNovaId: includeHealPulse ? nextAreaNovaId + 1 : nextAreaNovaId
   };
 }
 

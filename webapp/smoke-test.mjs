@@ -1604,7 +1604,13 @@ const monsterSkillEventBuilderChecks = [
   [monsterSkillEventBuilder, "arc_angle: Number(skill.arc_angle ?? 120)", "Monster melee arc events must preserve arc angle fallback."],
   [monsterSkillEventBuilder, "arc_radius: radius", "Monster melee arc events must preserve arc radius payload."],
   [monsterSkillEventBuilder, "range: radius", "Monster melee arc events must preserve range payload."],
-  [monsterSkillEventBuilder, "zones: centers.length === 1 ? [{ ...center, radius }] : centers.map((center) => ({ ...center, radius }))", "Monster pending damage-zone hits must preserve repeated zone payloads."]
+  [monsterSkillEventBuilder, "zones: centers.length === 1 ? [{ ...center, radius }] : centers.map((center) => ({ ...center, radius }))", "Monster pending damage-zone hits must preserve repeated zone payloads."],
+  [monsterSkillEventBuilder, 'vfxKey: "monster_heal_pulse"', "Monster support display builder must preserve heal pulse VFX key."],
+  [monsterSkillEventBuilder, "ringWidth: Math.max(4, radius * 0.035)", "Monster support display builder must preserve heal pulse ring width."],
+  [monsterSkillEventBuilder, "y: ally.y - 34", "Monster support display builder must preserve heal floating text offset."],
+  [app, "buildMonsterSupportDisplayEvents", "App must call the deterministic monster support display builder."],
+  [app, "setAreaNovas((items) => capRuntimeVisualBudget([...items, supportDisplay.areaNova], MAX_RUNTIME_AREA_VFX))", "App must retain support area nova state mutation."],
+  [app, "setTexts((items) => capRuntimeVisualBudget([...items, ...supportDisplay.texts], MAX_RUNTIME_FLOATING_TEXT))", "App must retain support floating text state mutation."]
 ];
 for (const [source, token, message] of monsterSkillEventBuilderChecks) {
   if (!source.includes(token)) throw new Error(message);
