@@ -16,7 +16,7 @@
 
 ## 3. Skill-Board Support Preview Hook Extraction
 
-- [ ] 3.1 Inspect `useLinkedGemIds`, `useSupportPreview`, `useSupportLines`, and `useActiveTargetLines` in `webapp/App.tsx` and identify any type-only imports needed by extracted hooks.
+- [x] 3.1 Inspect `useLinkedGemIds`, `useSupportPreview`, `useSupportLines`, and `useActiveTargetLines` in `webapp/App.tsx` and identify any type-only imports needed by extracted hooks.
 - [ ] 3.2 Create `webapp/components/skill-board/supportPreviewState.ts` and move the support preview hooks without changing relation ids, colors, hover filtering, floating item suppression, or line construction.
 - [ ] 3.3 Keep placement legality, drag/drop mutation, floating item state, tooltip state, support modifier calculation, mounted skill recalculation, storage, and save ownership unchanged.
 - [ ] 3.4 Run `npm run build`, `npm test`, and review the diff for behavior-preserving hook movement only.
