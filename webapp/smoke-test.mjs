@@ -1610,10 +1610,20 @@ const monsterSkillEventBuilderChecks = [
   [monsterSkillEventBuilder, "y: ally.y - 34", "Monster support display builder must preserve heal floating text offset."],
   [app, "buildMonsterSupportDisplayEvents", "App must call the deterministic monster support display builder."],
   [app, "setAreaNovas((items) => capRuntimeVisualBudget([...items, supportDisplay.areaNova], MAX_RUNTIME_AREA_VFX))", "App must retain support area nova state mutation."],
-  [app, "setTexts((items) => capRuntimeVisualBudget([...items, ...supportDisplay.texts], MAX_RUNTIME_FLOATING_TEXT))", "App must retain support floating text state mutation."]
+  [app, "setTexts((items) => capRuntimeVisualBudget([...items, ...supportDisplay.texts], MAX_RUNTIME_FLOATING_TEXT))", "App must retain support floating text state mutation."],
+  [app, "function consumeSkillEventTimeline", "App must retain monster skill timeline consumption ownership."],
+  [app, "pendingBossDamageZoneHits.current.push(built.pendingDamageZoneHit)", "App must retain pending monster damage-zone hit queue ownership."],
+  [app, "window.setTimeout(() => {", "App must retain repeated monster zone scheduling ownership."],
+  [app, "playerStateRef.current", "App must retain player runtime ref ownership for monster skill release adapters."],
+  [app, "enemiesStateRef.current", "App must retain enemy runtime ref ownership for repeated monster zones."]
 ];
 for (const [source, token, message] of monsterSkillEventBuilderChecks) {
   if (!source.includes(token)) throw new Error(message);
+}
+for (const forbidden of ["setTexts", "setAreaNovas", "pendingBossDamageZoneHits", "playerStateRef", "enemiesStateRef", "window.setTimeout"]) {
+  if (monsterSkillEventBuilder.includes(forbidden)) {
+    throw new Error(`Monster event builder must not own App side effects or runtime refs: ${forbidden}`);
+  }
 }
 for (const forbidden of ["useState", "useRef", "localStorage", "sessionStorage", "fetch(", "playerStateRef", "enemiesStateRef", "scheduledSkillEvents", "activeDamageZones"]) {
   if (monsterSkillPresentation.includes(forbidden)) {
