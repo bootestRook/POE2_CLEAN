@@ -23,7 +23,7 @@
 - [x] 3.3 Move type definitions without changing field names, literal values, optionality, or semantic shape.
 - [x] 3.4 Ensure type-only modules do not import `webapp/App.tsx`, generated data, browser APIs, local storage helpers, runtime formulas, or gameplay mutation code.
 - [x] 3.5 Rewire extracted module imports to use type-only modules or local generic props instead of importing from App.
-- [ ] 3.6 Run focused TypeScript/build checks after type boundary changes and fix circular imports before continuing.
+- [x] 3.6 Run focused TypeScript/build checks after type boundary changes and fix circular imports before continuing.
 
 ## 4. Inventory Overlay Presentation Extraction
 
