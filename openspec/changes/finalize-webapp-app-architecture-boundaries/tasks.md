@@ -131,4 +131,4 @@
 - [x] 14.5 Confirm future WebApp module placement guidance is updated and AI-visible.
 - [x] 14.6 Confirm no backend coupling, server runtime behavior, duplicate gameplay runtime, save-schema change, storage-key change, CSS redesign, copy change, gameplay balance change, unrelated refactor, root-level artifact, or skill-editor acceptance path was introduced.
 - [x] 14.7 Record the final App responsibility summary and any intentionally remaining App-owned runtime orchestration in the final implementation notes.
-- [ ] 14.8 Run `openspec validate finalize-webapp-app-architecture-boundaries --strict`.
+- [x] 14.8 Run `openspec validate finalize-webapp-app-architecture-boundaries --strict`.
