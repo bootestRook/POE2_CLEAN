@@ -27,7 +27,7 @@
 
 ## 4. Inventory Overlay Presentation Extraction
 
-- [ ] 4.1 Create `webapp/components/inventory/InventoryOverlay.tsx` as a render-only composition module for the existing bag overlay.
+- [x] 4.1 Create `webapp/components/inventory/InventoryOverlay.tsx` as a render-only composition module for the existing bag overlay.
 - [ ] 4.2 Move the current inventory overlay DOM structure from `App.tsx` into `InventoryOverlay` without changing class names, aria labels, button order, text, DOM order, render gates, or styling hooks.
 - [ ] 4.3 Pass existing App-owned values and callbacks into `InventoryOverlay` through props; do not move save state, storage writes, drag/drop mutation, tooltip ownership, GM request logic, equipment stat recalculation, board mutation, or runtime refs.
 - [ ] 4.4 Keep `GemOrb`, `GemTooltipOverlay`, `FloatingGemView`, `StashPanel`, `BagGrid`, `EquipmentItemCell`, `EquipmentEmptyCell`, `BoardCell`, `SupportLines`, and `SupportPreviewLines` behavior identical after extraction.
