@@ -28,17 +28,17 @@
 
 ## 5. Enemy Runtime Helper Boundary
 
-- [ ] 5.1 Move enemy spatial indexing, navigation context creation, grid helpers, wall scoring, crowd steering, melee reachability, collision separation, renderable enemy selection, and runtime debug boundary scan helpers into focused client-side runtime modules.
-- [ ] 5.2 Preserve existing constants, formulas, deterministic behavior, function inputs, function outputs, map walkability usage, runtime-tier behavior, player contact behavior, and debug scan semantics.
-- [ ] 5.3 Update the playable battle path to consume the extracted runtime helpers without creating backend coupling, alternate runtimes, skill-editor acceptance paths, duplicate target selection, or duplicate damage application.
-- [ ] 5.4 Add or update focused smoke/test coverage for moved enemy runtime helper paths to catch import leaks, formula drift, circular dependencies, missing exports, and unintended monster runtime behavior changes.
-- [ ] 5.5 Run focused TypeScript/build checks and review the diff for gameplay, backend, dependency, CSS, copy, storage, save-schema, or acceptance-surface changes.
+- [x] 5.1 Move enemy spatial indexing, navigation context creation, grid helpers, wall scoring, crowd steering, melee reachability, collision separation, renderable enemy selection, and runtime debug boundary scan helpers into focused client-side runtime modules.
+- [x] 5.2 Preserve existing constants, formulas, deterministic behavior, function inputs, function outputs, map walkability usage, runtime-tier behavior, player contact behavior, and debug scan semantics.
+- [x] 5.3 Update the playable battle path to consume the extracted runtime helpers without creating backend coupling, alternate runtimes, skill-editor acceptance paths, duplicate target selection, or duplicate damage application.
+- [x] 5.4 Add or update focused smoke/test coverage for moved enemy runtime helper paths to catch import leaks, formula drift, circular dependencies, missing exports, and unintended monster runtime behavior changes.
+- [x] 5.5 Run focused TypeScript/build checks and review the diff for gameplay, backend, dependency, CSS, copy, storage, save-schema, or acceptance-surface changes.
 
 ## 6. Verification And Artifact Hygiene
 
-- [ ] 6.1 Run `npm run build`.
-- [ ] 6.2 Run `npm test` or document any pre-existing unrelated blocker.
-- [ ] 6.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable battle view affected by the extracted boundaries.
-- [ ] 6.4 Capture frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
-- [ ] 6.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
-- [ ] 6.6 Review the final diff to confirm no unrelated refactors, gameplay behavior changes, save schema changes, storage key changes, CSS redesign, copy edits, backend calls, dependency changes, or skill-editor acceptance changes were introduced.
+- [x] 6.1 Run `npm run build`.
+- [x] 6.2 Run `npm test` or document any pre-existing unrelated blocker.
+- [x] 6.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable battle view affected by the extracted boundaries.
+- [x] 6.4 Capture frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
+- [x] 6.5 Confirm no screenshots, logs, traces, or generated verification artifacts were left in the repository root.
+- [x] 6.6 Review the final diff to confirm no unrelated refactors, gameplay behavior changes, save schema changes, storage key changes, CSS redesign, copy edits, backend calls, dependency changes, or skill-editor acceptance changes were introduced.

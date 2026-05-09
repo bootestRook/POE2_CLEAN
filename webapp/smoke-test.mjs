@@ -7,6 +7,9 @@ const root = process.cwd();
 const require = createRequire(import.meta.url);
 const app = readFileSync(join(root, "webapp", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
 const playableBattleScene = readFileSync(join(root, "webapp", "features", "playable-battle", "PlayableBattleScene.tsx"), "utf8").replace(/\r\n/g, "\n");
+const enemyRuntime = readFileSync(join(root, "webapp", "runtime", "enemyRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
+const enemyTypes = readFileSync(join(root, "webapp", "types", "enemyTypes.ts"), "utf8").replace(/\r\n/g, "\n");
+const runtimeEnemySourceText = [app, enemyRuntime, enemyTypes].join("\n");
 const webappSources = collectWebappSources(join(root, "webapp"));
 const webappSourceText = webappSources.join("\n");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
@@ -385,7 +388,7 @@ const renderBattleEntityBody = functionBody(app, "renderBattleEntity");
 if (!renderBattleEntityBody.includes("enemyHitFlashAmount(entity.lastDamagedAt")) {
   throw new Error("DOM enemy rendering must derive white hit flash from lastDamagedAt.");
 }
-if (!app.includes("const ENEMY_DAMAGE_FLASH_SECONDS = 0.22")) {
+if (!enemyRuntime.includes("const ENEMY_DAMAGE_FLASH_SECONDS = 0.22")) {
   throw new Error("Enemy damage flash duration must stay short and explicit.");
 }
 
@@ -736,7 +739,7 @@ for (const text of [
   "ENEMY_SPATIAL_INDEX_CACHE.get(enemies)",
   "ENEMY_SPATIAL_INDEX_CACHE.set(enemies, spatialIndex)"
 ]) {
-  if (!app.includes(text)) {
+  if (!enemyRuntime.includes(text)) {
     throw new Error(`Runtime hit target queries must reuse the per-enemy-array spatial index: ${text}`);
   }
 }
@@ -753,7 +756,7 @@ for (const text of [
     throw new Error(`Runtime game loop must surface stepGame failures without stopping rAF: ${text}`);
   }
 }
-if (functionBody(app, "enemyLineReachablePlayerContactTarget").includes("function damageEventAmountAgainstEnemy")) {
+if (functionBody(enemyRuntime, "enemyLineReachablePlayerContactTarget").includes("function damageEventAmountAgainstEnemy")) {
   throw new Error("Runtime damage helpers must stay module-scoped, not nested inside enemy navigation helpers.");
 }
 for (const text of [
@@ -1445,56 +1448,56 @@ for (const [source, token, message] of proceduralSpawnStaticChecks) {
 }
 
 const monsterPackCombatChecks = [
-  [app, "baseDamage?: number", "Runtime Enemy must expose monster base damage."],
-  [app, "monsterType?: MonsterType", "Runtime Enemy must expose monster type."],
-  [app, "movementSpeedMultiplier?: number", "Runtime Enemy must expose monster type movement multiplier."],
-  [app, "skillShape?: MonsterSkillShape", "Runtime Enemy must expose monster skill shape."],
-  [app, "nemesis?: boolean", "Runtime Enemy must expose nemesis classification."],
-  [app, "damageType?: string", "Runtime Enemy must expose monster damage type."],
-  [app, "hitKind?: MonsterHitKind", "Runtime Enemy must expose monster hit kind."],
-  [app, "attackRange?: number", "Runtime Enemy must expose monster attack range."],
-  [app, "attackCadenceMs?: number", "Runtime Enemy must expose monster attack cadence."],
-  [app, "attackStartedAtMs?: number", "Runtime Enemy must own monster attack start timing."],
-  [app, "attackUntilMs?: number", "Runtime Enemy must own monster active attack window."],
-  [app, "nextAttackReadyAtMs?: number", "Runtime Enemy must own monster attack cooldown readiness."],
-  [app, "offenseModifiers?: MonsterOffenseModifiers", "Runtime Enemy must expose shared stat-id offense modifiers."],
-  [app, "const survivalEnemy = { ...enemy, aggroLocked: true }", "Survival/runtime-spawned monsters must use locked direct-charge AI instead of swarm-yield movement."],
-  [app, "const aggroLocked = Boolean(enemy.aggroLocked || (enemy.spawnPlanSourceId && triggeredSourceIds.has(enemy.spawnPlanSourceId)))", "Runtime aggro must lock every monster from a triggered source."],
-  [app, "triggeredEncounterSourceIds.current = new Set()", "Battle reset must clear triggered aggro sources."],
-  [app, "if (enemy.hp <= 0) return { ...enemy, runtimeTier: \"dead\" as const }", "Dead monsters must leave active aggro behavior."],
-  [app, "resolveMonsterHitAgainstPlayer", "Monster hits must resolve through player defensive stats."],
-  [app, "function applyRuntimeMonsterAttacks", "Monster attack hits must be applied by the runtime combat update path."],
-  [app, "function canEnemyStartRuntimeAttack", "Monster attack readiness must be checked from runtime enemy state."],
-  [app, "if (enemy.attackUntilMs !== undefined && nowMs < enemy.attackUntilMs)", "Active monster attacks must lock movement from runtime enemy state."],
-  [app, "freezeAttackingEnemy(enemy", "Attack-locked monsters must remain frozen during the active attack window."],
-  [app, "attack_block_chance_percent", "Monster incoming damage must reference player attack block."],
-  [app, "spell_block_chance_percent", "Monster incoming damage must reference player spell block."],
-  [app, "damage_mitigation_final_percent", "Monster incoming damage must reference player final mitigation."],
-  [app, "currentEnergyShield", "Monster incoming damage must reduce player energy shield before life."],
-  [app, "if (enemy.aggroLocked) return player", "Aggro-locked monsters must target the player directly at close range."],
-  [app, "!directCharge && playerDistance < ENEMY_PLAYER_BODY_SOFT_RADIUS", "Aggro-locked monsters must not apply player-body repulsion."],
-  [app, "? { x: 0, y: 0, speedScale: 1, active: false }", "Aggro-locked direct charge must not apply tangential crowd steering."],
-  [app, "if (enemyHasWalkableLine(map, enemy, approachTarget)) return approachTarget", "Close-range aggro navigation may press player center only when a walkable line exists."],
-  [app, "enemyLineReachablePlayerContactTarget", "Close-range aggro navigation must use same-side contact targets near boundaries before falling back to grid navigation."],
-  [app, "const attackLocked = lockedEnemyIds.has(enemy.id)", "Near-boundary attack-locked monsters must still receive lightweight occupancy correction."],
-  [app, "const maxPush = attackLocked ? ENEMY_COLLISION_MAX_PUSH * 0.45 : ENEMY_COLLISION_MAX_PUSH", "Attack-locked occupancy correction must be weaker than normal separation."],
-  [app, "if (enemyGridWalkable(map, center.gridX, center.gridY)) return [center]", "Navigation must not treat neighboring cells as finished targets while the player's own cell is walkable."],
-  [app, "runtimeDebugMonsterBoundaryTestEnabled", "WebApp must expose an in-browser full-boundary monster AI scan mode."],
-  [app, "runRuntimeBoundaryMonsterAiScan", "Boundary monster AI scan must execute in the frontend runtime."],
-  [app, "runtimeBoundaryMonsterIds", "Boundary monster AI scan must cover every runtime monster geometry id."],
-  [app, "Object.keys(MONSTER_GEOMETRY_VISUALS)", "Boundary monster AI scan must include all abstract geometry monsters, not only fallback enemies."],
-  [app, "canEnemyReachPlayerForMelee", "Runtime monster attacks must use map-aware melee reach near walls and corners."],
-  [app, "enemyReachableMeleeOccupancyTarget", "Direct-line aggro monsters must prefer reachable melee occupancy slots around the player instead of stacking on player center."],
-  [app, "const preferredAngle = baseAngle + ((((enemy.id * 137) % 7) - 3) * ENEMY_MELEE_SLOT_ANGLE_STEP)", "Melee occupancy slots must distribute enemies by stable id."],
-  [app, "resolveEnemyPlayerBodyOccupancyFloor", "Aggro monster occupancy correction must keep enemy centers out of the player body while preserving contact damage."],
-  [app, "const approachTargetIsPlayer = distance(approachTarget, player) <= 0.001", "Corner navigation must distinguish player-center approach from side-cell approach."],
-  [app, "distance(enemy, approachTarget)", "Corner navigation must keep moving toward reachable approach cells instead of stopping outside attack range."],
-  [app, "const directProgress = currentDistance - distance(directResolved, target)", "Direct-charge movement must prefer progress toward the player over side avoidance."],
-  [app, "directCharge\n    ? resolveEnemyDirectChargeMove", "Aggro-locked monsters must bypass swarm steering and crowd-yield movement."],
-  [app, "const baseSpeed = isEnemyNemesis(enemy) ? BOSS_CHASE_SPEED : MONSTER_CHASE_SPEED", "Monster chase speed must resolve from nemesis state before type multiplier."],
-  [app, "BOSS_CHASE_SPEED = 120", "Boss monster chase speed must use the requested direct base speed."],
-  [app, "ENEMY_STEERING_MIN_SPEED_SCALE = 0.48", "Crowd steering slowdown floor must remain unchanged."],
-  [app, "nextAttackReadyAtMs: nowMs + monsterAttackCadenceMs(enemy)", "Monster damage must use attack cadence rather than per-frame proximity damage."],
+  [runtimeEnemySourceText, "baseDamage?: number", "Runtime Enemy must expose monster base damage."],
+  [runtimeEnemySourceText, "monsterType?: MonsterType", "Runtime Enemy must expose monster type."],
+  [runtimeEnemySourceText, "movementSpeedMultiplier?: number", "Runtime Enemy must expose monster type movement multiplier."],
+  [runtimeEnemySourceText, "skillShape?: MonsterSkillShape", "Runtime Enemy must expose monster skill shape."],
+  [runtimeEnemySourceText, "nemesis?: boolean", "Runtime Enemy must expose nemesis classification."],
+  [runtimeEnemySourceText, "damageType?: string", "Runtime Enemy must expose monster damage type."],
+  [runtimeEnemySourceText, "hitKind?: MonsterHitKind", "Runtime Enemy must expose monster hit kind."],
+  [runtimeEnemySourceText, "attackRange?: number", "Runtime Enemy must expose monster attack range."],
+  [runtimeEnemySourceText, "attackCadenceMs?: number", "Runtime Enemy must expose monster attack cadence."],
+  [runtimeEnemySourceText, "attackStartedAtMs?: number", "Runtime Enemy must own monster attack start timing."],
+  [runtimeEnemySourceText, "attackUntilMs?: number", "Runtime Enemy must own monster active attack window."],
+  [runtimeEnemySourceText, "nextAttackReadyAtMs?: number", "Runtime Enemy must own monster attack cooldown readiness."],
+  [runtimeEnemySourceText, "offenseModifiers?: MonsterOffenseModifiers", "Runtime Enemy must expose shared stat-id offense modifiers."],
+  [runtimeEnemySourceText, "const survivalEnemy = { ...enemy, aggroLocked: true }", "Survival/runtime-spawned monsters must use locked direct-charge AI instead of swarm-yield movement."],
+  [runtimeEnemySourceText, "const aggroLocked = Boolean(enemy.aggroLocked || (enemy.spawnPlanSourceId && triggeredSourceIds.has(enemy.spawnPlanSourceId)))", "Runtime aggro must lock every monster from a triggered source."],
+  [runtimeEnemySourceText, "triggeredEncounterSourceIds.current = new Set()", "Battle reset must clear triggered aggro sources."],
+  [runtimeEnemySourceText, "if (enemy.hp <= 0) return { ...enemy, runtimeTier: \"dead\" as const }", "Dead monsters must leave active aggro behavior."],
+  [runtimeEnemySourceText, "resolveMonsterHitAgainstPlayer", "Monster hits must resolve through player defensive stats."],
+  [runtimeEnemySourceText, "function applyRuntimeMonsterAttacks", "Monster attack hits must be applied by the runtime combat update path."],
+  [runtimeEnemySourceText, "function canEnemyStartRuntimeAttack", "Monster attack readiness must be checked from runtime enemy state."],
+  [runtimeEnemySourceText, "if (enemy.attackUntilMs !== undefined && nowMs < enemy.attackUntilMs)", "Active monster attacks must lock movement from runtime enemy state."],
+  [runtimeEnemySourceText, "freezeAttackingEnemy(enemy", "Attack-locked monsters must remain frozen during the active attack window."],
+  [runtimeEnemySourceText, "attack_block_chance_percent", "Monster incoming damage must reference player attack block."],
+  [runtimeEnemySourceText, "spell_block_chance_percent", "Monster incoming damage must reference player spell block."],
+  [runtimeEnemySourceText, "damage_mitigation_final_percent", "Monster incoming damage must reference player final mitigation."],
+  [runtimeEnemySourceText, "currentEnergyShield", "Monster incoming damage must reduce player energy shield before life."],
+  [runtimeEnemySourceText, "if (enemy.aggroLocked) return player", "Aggro-locked monsters must target the player directly at close range."],
+  [runtimeEnemySourceText, "!directCharge && playerDistance < ENEMY_PLAYER_BODY_SOFT_RADIUS", "Aggro-locked monsters must not apply player-body repulsion."],
+  [runtimeEnemySourceText, "? { x: 0, y: 0, speedScale: 1, active: false }", "Aggro-locked direct charge must not apply tangential crowd steering."],
+  [runtimeEnemySourceText, "if (enemyHasWalkableLine(map, enemy, approachTarget)) return approachTarget", "Close-range aggro navigation may press player center only when a walkable line exists."],
+  [runtimeEnemySourceText, "enemyLineReachablePlayerContactTarget", "Close-range aggro navigation must use same-side contact targets near boundaries before falling back to grid navigation."],
+  [runtimeEnemySourceText, "const attackLocked = lockedEnemyIds.has(enemy.id)", "Near-boundary attack-locked monsters must still receive lightweight occupancy correction."],
+  [runtimeEnemySourceText, "const maxPush = attackLocked ? ENEMY_COLLISION_MAX_PUSH * 0.45 : ENEMY_COLLISION_MAX_PUSH", "Attack-locked occupancy correction must be weaker than normal separation."],
+  [runtimeEnemySourceText, "if (enemyGridWalkable(map, center.gridX, center.gridY)) return [center]", "Navigation must not treat neighboring cells as finished targets while the player's own cell is walkable."],
+  [runtimeEnemySourceText, "runtimeDebugMonsterBoundaryTestEnabled", "WebApp must expose an in-browser full-boundary monster AI scan mode."],
+  [runtimeEnemySourceText, "runRuntimeBoundaryMonsterAiScan", "Boundary monster AI scan must execute in the frontend runtime."],
+  [runtimeEnemySourceText, "runtimeBoundaryMonsterIds", "Boundary monster AI scan must cover every runtime monster geometry id."],
+  [runtimeEnemySourceText, "Object.keys(MONSTER_GEOMETRY_VISUALS)", "Boundary monster AI scan must include all abstract geometry monsters, not only fallback enemies."],
+  [runtimeEnemySourceText, "canEnemyReachPlayerForMelee", "Runtime monster attacks must use map-aware melee reach near walls and corners."],
+  [runtimeEnemySourceText, "enemyReachableMeleeOccupancyTarget", "Direct-line aggro monsters must prefer reachable melee occupancy slots around the player instead of stacking on player center."],
+  [runtimeEnemySourceText, "const preferredAngle = baseAngle + ((((enemy.id * 137) % 7) - 3) * ENEMY_MELEE_SLOT_ANGLE_STEP)", "Melee occupancy slots must distribute enemies by stable id."],
+  [runtimeEnemySourceText, "resolveEnemyPlayerBodyOccupancyFloor", "Aggro monster occupancy correction must keep enemy centers out of the player body while preserving contact damage."],
+  [runtimeEnemySourceText, "const approachTargetIsPlayer = distance(approachTarget, player) <= 0.001", "Corner navigation must distinguish player-center approach from side-cell approach."],
+  [runtimeEnemySourceText, "distance(enemy, approachTarget)", "Corner navigation must keep moving toward reachable approach cells instead of stopping outside attack range."],
+  [runtimeEnemySourceText, "const directProgress = currentDistance - distance(directResolved, target)", "Direct-charge movement must prefer progress toward the player over side avoidance."],
+  [runtimeEnemySourceText, "directCharge\n    ? resolveEnemyDirectChargeMove", "Aggro-locked monsters must bypass swarm steering and crowd-yield movement."],
+  [runtimeEnemySourceText, "const baseSpeed = isEnemyNemesis(enemy) ? BOSS_CHASE_SPEED : MONSTER_CHASE_SPEED", "Monster chase speed must resolve from nemesis state before type multiplier."],
+  [runtimeEnemySourceText, "BOSS_CHASE_SPEED = 120", "Boss monster chase speed must use the requested direct base speed."],
+  [runtimeEnemySourceText, "ENEMY_STEERING_MIN_SPEED_SCALE = 0.48", "Crowd steering slowdown floor must remain unchanged."],
+  [runtimeEnemySourceText, "nextAttackReadyAtMs: nowMs + monsterAttackCadenceMs(enemy)", "Monster damage must use attack cadence rather than per-frame proximity damage."],
   [mapSpawnRuntime, "monster_offense_defaults", "Procedural spawn runtime must accept monster offense defaults."],
   [mapSpawnRuntime, "monster_type_defaults", "Procedural spawn runtime must accept monster type defaults."],
   [mapSpawnRuntime, "MonsterType", "Procedural spawn runtime must define monster type taxonomy."],
