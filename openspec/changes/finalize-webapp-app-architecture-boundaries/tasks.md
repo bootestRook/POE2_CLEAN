@@ -39,7 +39,7 @@
 ## 5. Inventory And Skill-Board Subpanel Refinement
 
 - [x] 5.1 If `InventoryOverlay` remains too broad after extraction, split only stable render-only subpanels into `EquipmentPanel.tsx`, `InventorySkillBoardPanel.tsx`, or similarly focused modules.
-- [ ] 5.2 Keep subpanel props explicit and avoid creating a new inventory state store, board state store, or drag/drop context in this change.
+- [x] 5.2 Keep subpanel props explicit and avoid creating a new inventory state store, board state store, or drag/drop context in this change.
 - [ ] 5.3 Preserve all existing slot arrays, item lookup maps, hover state, floating item state, tooltip triggers, render callbacks, and placement callbacks.
 - [ ] 5.4 Confirm `webapp/App.tsx` no longer owns large inventory/equipment/stash/board JSX after this batch.
 - [ ] 5.5 Run focused checks and visually verify inventory, stash, equipment, and board rendering in the playable WebApp.
