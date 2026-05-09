@@ -9,7 +9,7 @@
 
 - [x] 2.1 Inspect `webapp/App.tsx` loot/drop functions around map stage selection, drop rolls, drop kind selection, map-entry selection, gem weighting, drop payload creation, and inventory item creation.
 - [x] 2.2 Create `webapp/state/frontendDropState.ts` for deterministic client-side loot/drop helper functions with explicit dependencies passed as arguments.
-- [ ] 2.3 Move pure helpers such as map-stage selection, drop roll/chance/attempt calculations, random map level, equipment rarity selection, drop kind selection, map-entry target selection, gem weighting, gem option selection, frontend drop creation, guaranteed map-entry drop creation, next item id, and frontend inventory item creation.
+- [x] 2.3 Move pure helpers such as map-stage selection, drop roll/chance/attempt calculations, random map level, equipment rarity selection, drop kind selection, map-entry target selection, gem weighting, gem option selection, frontend drop creation, guaranteed map-entry drop creation, next item id, and frontend inventory item creation.
 - [ ] 2.4 Keep `spawnFrontendDrops`, `applyFrontendPickup`, `beginDropPickup`, `finishDropPickup`, boss portal confirmation/use, player proximity checks, save writes, and inventory mutation orchestration in `webapp/App.tsx`.
 - [ ] 2.5 Run `npm run build`, `npm test`, and review the diff to confirm formulas, payload fields, storage behavior, save schema, backend coupling, copy, CSS, and runtime orchestration are unchanged.
 - [ ] 2.6 Launch the WebApp through `run.bat`, exercise an actual playable map/drop or pickup-visible flow, capture a screenshot under `artifacts/screenshots/`, and commit the loot/drop extraction batch.
