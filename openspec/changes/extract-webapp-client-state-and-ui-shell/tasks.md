@@ -35,7 +35,7 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run `npm run build`.
+- [x] 6.1 Run `npm run build`.
 - [ ] 6.2 Run `npm test` and document any remaining pre-existing unrelated blocker.
 - [ ] 6.3 Launch or match the actual WebApp through the project `run.bat` flow and exercise the playable view affected by UI shell and inventory/state extraction.
 - [ ] 6.4 Capture frontend verification screenshots under `artifacts/screenshots/` and describe the visible result.
