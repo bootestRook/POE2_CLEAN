@@ -107,7 +107,7 @@
 - [x] 12.2 Keep App-specific tests specific to App-owned orchestration, runtime refs, battle loop entrypoints, disabled tooling gates, backend-coupling prevention, and playable WebApp acceptance boundaries.
 - [x] 12.3 Add or update tests that prevent extracted modules from importing from `webapp/App.tsx`.
 - [x] 12.4 Add or update tests that prevent new backend gameplay API calls, server runtimes, duplicate frontend gameplay runtimes, and skill-editor acceptance paths.
-- [ ] 12.5 Add or update tests that verify future module owner docs exist and include the final owner map.
+- [x] 12.5 Add or update tests that verify future module owner docs exist and include the final owner map.
 - [ ] 12.6 Run the relevant focused tests after each batch and the full test suite before completion.
 
 ## 13. Frontend Verification

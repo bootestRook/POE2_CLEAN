@@ -42,6 +42,8 @@ const mapTileVisuals = readFileSync(join(root, "webapp", "mapTileVisuals.ts"), "
 const bakedMapAssets = readFileSync(join(root, "webapp", "bakedMapAssets.ts"), "utf8");
 const bakedMapLoader = readFileSync(join(root, "webapp", "bakedMapLoader.ts"), "utf8");
 const html = readFileSync(join(root, "index.html"), "utf8");
+const webappModuleBoundariesDoc = readFileSync(join(root, "docs", "webapp-module-boundaries.md"), "utf8");
+const webappAppDecompositionMapDoc = readFileSync(join(root, "docs", "webapp-app-decomposition-map.md"), "utf8");
 const frontendGameData = readFileSync(join(root, "webapp", "frontendGameData.ts"), "utf8");
 const frontendEquipmentRuntime = readFileSync(join(root, "webapp", "frontendEquipmentRuntime.ts"), "utf8");
 const frontendEquipmentData = readFileSync(join(root, "webapp", "data", "equipment", "frontendEquipmentData.json"), "utf8");
@@ -366,6 +368,38 @@ for (const source of extractedPresentationAndStateSources) {
   ]) {
     if (source.includes(forbiddenRuntimeOwnerToken)) {
       throw new Error(`Extracted presentation/state modules must not duplicate App gameplay runtime ownership: ${forbiddenRuntimeOwnerToken}`);
+    }
+  }
+}
+for (const [docSource, requiredDocTokens, docName] of [
+  [webappModuleBoundariesDoc, [
+    "This project is client-only.",
+    "## Planning Rule",
+    "## Missing Boundaries",
+    "## App.tsx Allowed Edits",
+    "`webapp/App.tsx` is the orchestration root",
+    "`webapp/components/inventory/`",
+    "`webapp/components/layout/`",
+    "`webapp/runtime/`",
+    "`webapp/state/`",
+    "`webapp/types/`",
+    "Frontend-affecting module work must be verified in the actual WebApp launched through the project `run.bat` flow."
+  ], "docs/webapp-module-boundaries.md"],
+  [webappAppDecompositionMapDoc, [
+    "## Target Ownership",
+    "## Completion Definition",
+    "`webapp/App.tsx`: top-level mode routing",
+    "`webapp/components/inventory/`",
+    "`webapp/components/layout/`",
+    "`webapp/runtime/`",
+    "`webapp/state/`",
+    "Source-text and smoke tests read the module that owns each protected invariant",
+    "Build, tests, OpenSpec validation, and actual playable WebApp verification through the `run.bat` flow"
+  ], "docs/webapp-app-decomposition-map.md"]
+]) {
+  for (const token of requiredDocTokens) {
+    if (!docSource.includes(token)) {
+      throw new Error(`${docName} must include final WebApp owner guidance: ${token}`);
     }
   }
 }
