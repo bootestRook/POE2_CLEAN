@@ -1,4 +1,4 @@
-import { CSSProperties, DragEvent, MouseEvent, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DragEvent, MouseEvent, ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import React from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { APP_TITLE, RELEASE_DEBUG_TOOLS_ENABLED } from "./appMetadata";
@@ -48,10 +48,8 @@ import {
   rotatedGridSize
 } from "./mapInstanceRuntime";
 import type { MapInstanceMetadata, MapInstanceRotation } from "./mapInstanceRuntime";
-import { resolveUnitAnimation, UnitAnimationFrame } from "./unitAnimation";
-import { fallbackUnitVisualForMonster, MONSTER_GEOMETRY_VISUALS, MONSTER_RARITY_VISUALS, resolveMonsterGeometryVisual } from "./monsterGeometryVisuals";
+import { MONSTER_GEOMETRY_VISUALS, MONSTER_RARITY_VISUALS, resolveMonsterGeometryVisual } from "./monsterGeometryVisuals";
 import {
-  selectEnemyUnitType,
   UnitDirection,
 } from "./unitAssets";
 import { frontendPlayableSkillRuntimeFamilyForBehavior } from "./frontendPlayableSkillRuntime";
@@ -123,7 +121,6 @@ import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportCond
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
-import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
@@ -148,9 +145,8 @@ import { clamp, distance, guideDirection } from "./utils/math2d";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection } from "./utils/runtimeMotion";
 import { BattlePauseOverlay, GameFailureOverlay, PortalConfirmOverlay } from "./components/battle/BattleOverlays";
-import { createBattleAnimationContexts, createBattleRenderItems, enemyHitFlashAmount, isBattleRenderEntity, shouldRenderLegacyBattleItem as shouldRenderLegacyBattleItemState, type BattleAnimationContexts, type BattleRenderEntity, type BattleRenderItem } from "./components/battle/battleRenderState";
-import { HitVfxView } from "./components/battle/HitAndBuffViews";
-import { FireBoltView } from "./components/battle/ProjectileBodyViews";
+import { createBattleAnimationContexts, createBattleRenderItems, shouldRenderLegacyBattleItem as shouldRenderLegacyBattleItemState, type BattleAnimationContexts, type BattleRenderItem } from "./components/battle/battleRenderState";
+import { renderBattleRenderItem as renderBattlePresentationItem, type BattlePresentationRenderItem, type BattleRenderPresentationHelpers } from "./components/battle/BattleRenderLayer";
 import {
   FIRE_BOLT_FAKE_Z,
   FIRE_BOLT_IMPACT_DURATION_MS,
@@ -9199,103 +9195,26 @@ function battleTerrainTransform(camera: Camera2D) {
   return `translate(${BATTLE_CAMERA_ANCHOR_X}, ${BATTLE_CAMERA_ANCHOR_Y}) scale(${camera.zoom}) translate(${-camera.screenX}px, ${-camera.screenY}px)`;
 }
 
-function renderBattleRenderItem(item: BattleRenderItem, depthIndex: number, animationContexts: BattleAnimationContexts) {
-  if (item.kind === "fire-bolt") {
-    return (
-      <FireBoltView
-        key={`fire-bolt-${item.id}`}
-        bolt={item.bolt}
-        depthIndex={depthIndex}
-        projectBattleWorldToScreen={projectBattleWorldToScreen}
-        normalizedWorldDirection={normalizedWorldDirection}
-        worldDirectionToBattleScreenAngle={worldDirectionToBattleScreenAngle}
-        zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
-      />
-    );
-  }
-  if (item.kind === "hit-vfx") {
-    return (
-      <HitVfxView
-        key={`hit-vfx-${item.id}`}
-        vfx={item.vfx}
-        depthIndex={depthIndex}
-        projectBattleWorldToScreen={projectBattleWorldToScreen}
-        hasShapeEffect={hasShapeEffect}
-        zIndexBase={BATTLE_ENTITY_Z_INDEX_BASE}
-      />
-    );
-  }
-  return renderBattleEntity(item, depthIndex, animationContexts);
+function renderBattleRenderItem(item: BattlePresentationRenderItem, depthIndex: number, animationContexts: BattleAnimationContexts) {
+  return renderBattlePresentationItem(item, depthIndex, animationContexts, battleRenderPresentationHelpers());
 }
 
 function shouldRenderLegacyBattleItem(item: BattleRenderItem) {
   return shouldRenderLegacyBattleItemState(item, CANVAS_GEOMETRY_BATTLE_OBJECTS, CANVAS_GEOMETRY_SKILL_EFFECTS);
 }
 
-function renderBattleEntity(entity: BattleRenderEntity, depthIndex: number, animationContexts: BattleAnimationContexts) {
-  if (entity.kind === "player") {
-    const animationFrame = resolveUnitAnimation(animationContexts.player);
-    return (
-      <div
-        key="player"
-        className={`player unit-visual unit-visual-player${entity.guardActive ? " unit-visual-player-guarded" : ""}`}
-        style={battleUnitStyle(entity, animationFrame, depthIndex, entity.renderScale)}
-        data-animation-state={animationFrame.animation.state}
-        data-animation-direction={animationFrame.animation.direction}
-        data-animation-playback-rate={animationFrame.playbackRate}
-        aria-hidden="true"
-      >
-        <UnitAnimationSprite frame={animationFrame} />
-      </div>
-    );
-  }
-
-  const context = animationContexts.enemies.get(entity.id) ?? {
-    unitId: fallbackUnitVisualForMonster(entity.monsterId ?? selectEnemyUnitType(entity.id)),
-    requestedState: "idle" as const,
-    movementVector: { x: 0, y: 0 },
-    fallbackDirection: "down" as const,
-    elapsedMs: 0,
-    baseMoveSpeed: 58,
-    currentMoveSpeed: 0
-  };
-  const animationFrame = resolveUnitAnimation(context);
-  const healthVisible = entity.lastDamagedAt !== undefined
-    && animationContexts.player.elapsedMs / 1000 - entity.lastDamagedAt <= ENEMY_HEALTH_VISIBLE_SECONDS;
-  const hitFlash = enemyHitFlashAmount(entity.lastDamagedAt, animationContexts.player.elapsedMs / 1000, ENEMY_DAMAGE_FLASH_SECONDS, clamp);
-  return (
-    <div
-      key={`enemy-${entity.id}`}
-      className={`enemy unit-visual unit-visual-${animationFrame.animation.unitId}`}
-      style={battleUnitStyle(entity, animationFrame, depthIndex, entity.renderScale)}
-      data-enemy-id={entity.id}
-      data-animation-state={animationFrame.animation.state}
-      data-animation-direction={animationFrame.animation.direction}
-      data-animation-playback-rate={animationFrame.playbackRate}
-    >
-      {healthVisible && (
-        <div className="enemy-health" aria-hidden="true">
-          <span style={{ width: `${Math.max(0, entity.hp / entity.maxHp) * 100}%` }} />
-        </div>
-      )}
-      <UnitAnimationSprite frame={animationFrame} hitFlash={hitFlash} />
-    </div>
-  );
-}
-
-function battleUnitStyle(entity: { x: number; y: number }, frame: UnitAnimationFrame, depthIndex: number, renderScale = UNIT_RENDER_SCALE): CSSProperties {
-  const visualPoint = projectBattleWorldToScreen(entity.x, entity.y);
-  const asset = frame.animation;
+function battleRenderPresentationHelpers(): BattleRenderPresentationHelpers {
   return {
-    left: visualPoint.x,
-    top: visualPoint.y,
-    width: asset.frameWidth,
-    height: asset.frameHeight,
-    zIndex: BATTLE_ENTITY_Z_INDEX_BASE + depthIndex,
-    "--unit-anchor-x": asset.anchorX,
-    "--unit-anchor-y": asset.anchorY,
-    "--unit-render-scale": renderScale * asset.scale
-  } as CSSProperties;
+    projectBattleWorldToScreen,
+    normalizedWorldDirection,
+    worldDirectionToBattleScreenAngle,
+    hasShapeEffect,
+    clamp,
+    zIndexBase: BATTLE_ENTITY_Z_INDEX_BASE,
+    unitRenderScale: UNIT_RENDER_SCALE,
+    enemyHealthVisibleSeconds: ENEMY_HEALTH_VISIBLE_SECONDS,
+    enemyDamageFlashSeconds: ENEMY_DAMAGE_FLASH_SECONDS
+  };
 }
 
 function buildGemTooltipViewModel(gem: Gem) {

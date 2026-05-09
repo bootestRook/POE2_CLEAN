@@ -25,7 +25,7 @@
 ## 4. Remaining Battle Presentation Helpers
 
 - [x] 4.1 Inspect remaining battle render helpers in `webapp/App.tsx`, including `renderBattleRenderItem`, `shouldRenderLegacyBattleItem`, `renderBattleEntity`, `battleUnitStyle`, and adjacent render-only style helpers.
-- [ ] 4.2 Move only render-only helpers into `webapp/components/battle/` modules when they can consume existing state, projection callbacks, constants, and render callbacks through explicit arguments.
+- [x] 4.2 Move only render-only helpers into `webapp/components/battle/` modules when they can consume existing state, projection callbacks, constants, and render callbacks through explicit arguments.
 - [ ] 4.3 Keep monster behavior, player damage, projectile lifecycle, target selection, hit timing, damage-zone origins, damage results, pickup rules, runtime queues, and skill event generation/consumption unchanged in the existing playable App path.
 - [ ] 4.4 Update smoke-test source-boundary checks only when a protected invariant moves to a new owning module, preserving the invariant rather than weakening it.
 - [ ] 4.5 Run `npm run build`, `npm test`, and review the diff to confirm class names, DOM order, layer order, text, rendering gates, CSS, copy, backend coupling, and runtime behavior are unchanged.
