@@ -2,7 +2,6 @@
 
 ## Purpose
 Define canonical backend rules for TLIDB-derived equipment affix pools, generated affix tiers, random equipment generation, and equipment crafting.
-
 ## Requirements
 ### Requirement: Equipment Source Model
 The system SHALL represent equipment affix pools by canonical TLIDB source names and SHALL support the requested armor, weapon, shield, and accessory equipment families.
@@ -91,3 +90,22 @@ The generator SHALL make probability-sensitive candidate pools inspectable so ex
 #### Scenario: Level 76 strength head fire resistance T3
 - **WHEN** the level 76 `力量头部` initial suffix candidate pool is inspected
 - **THEN** it SHALL include `火焰抗性` T3 with weight 800 and SHALL include only T3-T7 tiers for all initial suffix families.
+
+### Requirement: Equipment and affix gameplay data is frontend-owned
+Playable equipment sources, affix pools, tier generation, rarity affix counts, prefix/suffix capacity, advanced/pinnacle caps, crafting rules, and runtime stat contributions SHALL be available in frontend-owned data/runtime.
+
+#### Scenario: Frontend resolves equipment effects
+- **WHEN** the playable WebApp creates equipment, displays equipment, crafts equipment, applies equipment stats, or calculates final player/skill effects
+- **THEN** it SHALL resolve equipment and affix behavior from frontend-owned data and frontend-owned runtime code without backend equipment generation or backend affix services
+
+#### Scenario: Equipment effects are preserved
+- **WHEN** the same equipment source, rarity, level, affix pools, tier rules, random seed, crafting request, and current item state are evaluated before and after migration
+- **THEN** base affix selection, ordinary affix count, prefix/suffix capacity, generated tier values, affix candidates, advanced caps, pinnacle caps, resulting affixes, and runtime stat contributions SHALL remain equivalent
+
+### Requirement: Backend equipment logic is tooling only
+Backend equipment and affix logic SHALL remain outside the playable normal-play path and SHALL be limited to import/export tooling, report generation, legacy comparison, or migration scaffolding when retained.
+
+#### Scenario: Playable path avoids backend equipment APIs
+- **WHEN** normal play needs equipment generation, crafting, affix inspection, stat calculation, or skill contribution
+- **THEN** the playable WebApp SHALL NOT call backend equipment or affix APIs for that gameplay behavior
+
