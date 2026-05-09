@@ -158,3 +158,17 @@ Type boundary decision for the first extraction batch:
 - `webapp/smoke-test.mjs` now compiles and executes `monsterSkillEventBuilder.ts` directly, checking representative projectile, damage-zone, melee-arc, support pulse, repeated multi-zone, and special-case target-centered zone payloads against the preserved field contracts.
 - Smoke/source-boundary checks now read protected monster skill event payload invariants from `webapp/runtime/monsterSkillEventBuilder.ts`, pure placement/VFX/policy invariants from `webapp/runtime/monsterSkillPresentation.ts`, and App-owned orchestration invariants from `webapp/App.tsx`. The checks no longer force moved event-builder payload code to remain in App.
 - Monster skill event-builder visual verification used the project `run.bat` flow on `http://127.0.0.1:8766/`, then opened the actual WebApp battle surface with `?mode=monster-test` to spawn monsters using projectile, damage-zone, melee-arc, and support skills without using skill-editor routes or port `8765`. Screenshot `artifacts/screenshots/7-8-monster-skill-events.png` shows the battle view with spawned monsters, a blue projectile visual, green circular zone/pulse visuals, and near-monster arc visuals; the combat feed records `暮色哨戒弹`, `毒织地雾`, `尘环刮击`, and `星标复苏` releases. Run logs are `artifacts/logs/runbat-webapp-7-8-out.log` and `artifacts/logs/runbat-webapp-7-8-err.log`.
+
+## Player Damage Runtime Candidate Review
+
+Deterministic helpers eligible for focused runtime ownership:
+
+- Monster outgoing damage scalar helpers: `monsterOffenseModifier`, `monsterOutgoingDamage`, `monsterAccuracy`, `monsterCritChancePercent`, `monsterCritDamagePercent`, `monsterDoubleDamageChancePercent`.
+- Player mitigation helpers: `playerEvasionChanceAgainstMonster`, `playerResistancePercent`, `playerResistanceCap`, `convertIncomingPlayerDamageComponents`, `mitigateIncomingPlayerDamageComponent`.
+- Damage-to-resource helpers: the energy-shield/life split inside `resolveMonsterHitAgainstPlayer` and the mana-before-life/energy-shield/life split in `applyFrontendDamageToPlayer`.
+
+Must remain App-owned in this batch:
+
+- React state mutation through `setRuntimePlayer`, `setTexts`, `setCombatLogs`, and defeat overlays.
+- Runtime refs and cooldown refs: `playerStateRef`, `blockLifeRecoveryReadyMs`, `blockShieldRecoveryReadyMs`, `lifeReturnReadyMs`, `shieldReturnReadyMs`, and `energyShieldRechargeReadyMs`.
+- Combat log generation, floating-text creation, recovery-on-block/on-hit side effects, defeat handling, runtime queue consumption, and boss/monster hit adapter orchestration.
