@@ -24,7 +24,7 @@
 - [x] 4.1 Move initial App state, new-save starter state, save payload conversion, autosave, and save migration helpers into focused client-only state/save modules.
 - [x] 4.2 Preserve existing storage keys, payload shape, player-name normalization, starter gem rules, migration behavior, active-slot behavior, and recalculation order.
 - [x] 4.3 Keep React state ownership, runtime refs, effects, battle loop mutation, gameplay event queues, and `GameApp` orchestration in `webapp/App.tsx`.
-- [ ] 4.4 Run focused TypeScript/build checks and `npm test` for the state/save extraction.
+- [x] 4.4 Run focused TypeScript/build checks and `npm test` for the state/save extraction.
 
 ## 5. Stash And Ownership Helper Extraction
 
