@@ -123,14 +123,13 @@ import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportCond
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
 import type { TooltipTargetLine, TooltipView } from "./components/tooltips/tooltipViewModel";
-import { gemColorValue } from "./utils/gemDisplay";
 import { UnitAnimationSprite } from "./components/battle/UnitAnimationSprite";
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
 import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
-import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, isActiveGem, isGemItem, isPassiveGem, isSupportGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
+import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, isGemItem, isPassiveGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, reconcileInventorySlots, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
 import { createStashStateHelpers } from "./components/inventory/stashState";
@@ -176,8 +175,9 @@ import { MonsterTestPanel } from "./components/battle/MonsterTestPanel";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
 import { BoardCell, GemGhost, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
-import type { PreviewRelationType, SupportLine, SupportPreview } from "./components/skill-board/SkillBoardPresentation";
+import type { PreviewRelationType } from "./components/skill-board/SkillBoardPresentation";
 import { canPlaceGemOnBoard, cellKey, useLegalDropCells, usePlacementInvalidReason, usePlacementPreview } from "./components/skill-board/boardPlacementState";
+import { useActiveTargetLines, useLinkedGemIds, useSupportLines, useSupportPreview } from "./components/skill-board/supportPreviewState";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
@@ -8132,92 +8132,6 @@ function normalizePlayerRuntimeResources(player: PlayerRuntimeState): PlayerRunt
   };
 }
 
-function useLinkedGemIds(state: AppState | null, hoveredGemId: string | null) {
-  return useMemo(() => {
-    const result = new Set<string>();
-    if (!state || !hoveredGemId) return result;
-    result.add(hoveredGemId);
-    for (const entries of Object.values(state.board.highlights)) {
-      for (const entry of entries) {
-        if (entry.instance_ids.includes(hoveredGemId)) {
-          for (const instanceId of entry.instance_ids) result.add(instanceId);
-        }
-      }
-    }
-    return result;
-  }, [state, hoveredGemId]);
-}
-
-function useSupportPreview(state: AppState | null, fullGemById: Map<string, Gem>, hoveredGemId: string | null, floatingGem: FloatingGem | null) {
-  return useMemo<SupportPreview | null>(() => {
-    if (!state || !hoveredGemId || floatingGem) return null;
-    const sourceGem = fullGemById.get(hoveredGemId);
-    if (!sourceGem || !sourceGem.board_position || !(isSupportGem(sourceGem) || isPassiveGem(sourceGem))) return null;
-
-    const targetIds = new Set<string>();
-    for (const skill of state.skill_preview) {
-      for (const modifier of skill.applied_modifiers) {
-        if (modifier.applied && modifier.source_instance_id === sourceGem.instance_id && modifier.target_instance_id) {
-          targetIds.add(modifier.target_instance_id);
-        }
-      }
-    }
-
-    const targets = state.board.cells.flat()
-      .map((cell) => {
-        if (!cell.gem || !targetIds.has(cell.gem.instance_id)) return null;
-        const gem = fullGemById.get(cell.gem.instance_id) ?? cell.gem;
-        if (!isAllowedRoute(sourceGem, gem)) return null;
-        return { row: cell.row, column: cell.column, instanceId: gem.instance_id };
-      })
-      .filter((target): target is { row: number; column: number; instanceId: string } => Boolean(target));
-
-    return {
-      source: {
-        row: sourceGem.board_position.row,
-        column: sourceGem.board_position.column,
-        instanceId: sourceGem.instance_id
-      },
-      targets,
-      color: gemColorValue(sourceGem)
-    };
-  }, [state, fullGemById, hoveredGemId, floatingGem]);
-}
-
-function useSupportLines(state: AppState | null, fullGemById: Map<string, Gem>) {
-  return useMemo<SupportLine[]>(() => {
-    if (!state) return [];
-    const result = new Map<string, SupportLine>();
-    for (const skill of state.skill_preview) {
-      for (const modifier of skill.applied_modifiers) {
-        if (!modifier.applied || !modifier.source_instance_id || !modifier.target_instance_id) continue;
-        const sourceGem = fullGemById.get(modifier.source_instance_id);
-        const targetGem = fullGemById.get(modifier.target_instance_id);
-        if (!sourceGem?.board_position || !targetGem?.board_position) continue;
-        if (!isAllowedRoute(sourceGem, targetGem)) continue;
-        const key = `${sourceGem.instance_id}-${targetGem.instance_id}`;
-        if (result.has(key)) continue;
-        result.set(key, {
-          id: key,
-          source: sourceGem.board_position,
-          target: targetGem.board_position,
-          color: gemColorValue(sourceGem)
-        });
-      }
-    }
-    return [...result.values()];
-  }, [state, fullGemById]);
-}
-
-function useActiveTargetLines(lines: SupportLine[], fullGemById: Map<string, Gem>, hoveredGemId: string | null, floatingGem: FloatingGem | null) {
-  return useMemo<SupportLine[] | null>(() => {
-    if (!hoveredGemId || floatingGem) return null;
-    const hoveredGem = fullGemById.get(hoveredGemId);
-    if (!hoveredGem?.board_position || !isActiveGem(hoveredGem)) return null;
-    return lines.filter((line) => line.target.row === hoveredGem.board_position?.row && line.target.column === hoveredGem.board_position.column);
-  }, [lines, fullGemById, hoveredGemId, floatingGem]);
-}
-
 function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number): Omit<Tooltip, "gem"> {
   return resolveTooltipAnchorPosition(anchor, source, slotIndex, tooltipPositionConfig());
 }
@@ -9266,12 +9180,6 @@ function rotateDirection(direction: { x: number; y: number }, angleDeg: number) 
 function randomAngleOffset(maxDegrees: number) {
   if (maxDegrees <= 0) return 0;
   return (Math.random() * 2 - 1) * maxDegrees;
-}
-
-function isAllowedRoute(source: Gem, target: Gem) {
-  if (isSupportGem(source)) return isActiveGem(target) || isPassiveGem(target);
-  if (isPassiveGem(source)) return isActiveGem(target);
-  return false;
 }
 
 function createBattleCamera(playerX: number, playerY: number, zoom = BATTLE_CAMERA_ZOOM): Camera2D {
