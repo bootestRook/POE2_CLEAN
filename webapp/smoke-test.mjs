@@ -18,6 +18,7 @@ const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"),
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
 const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
 const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
+const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const mapSpawnConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "map_spawn_v1.json"), "utf8"));
 const monsterSkillConfig = JSON.parse(readFileSync(join(root, "configs", "monsters", "monster_skills.json"), "utf8"));
 const monsterDefsToml = readFileSync(join(root, "configs", "monsters", "monster_defs.toml"), "utf8");
@@ -1533,7 +1534,7 @@ const monsterSkillStaticChecks = [
   [app, "applyBossSkillHitToPlayer", "Monster skill hits must reuse the boss/player hit adapter."],
   [app, "resolveFrontendPlayerBlock(hitEnemy, options.hitKind)", "Monster skill hits must pass through player block resolution."],
   [app, "resolveMonsterHitAgainstPlayer(hitEnemy, playerAfterBlock, state?.player_stats, blocked, nowMs)", "Monster skill hits must pass through player mitigation."],
-  [app, "currentEnergyShield: clamp(player.currentEnergyShield - shieldDamage, 0, player.maxEnergyShield)", "Monster skill hits must consume player energy shield before life."],
+  [playerDamageRuntime, "currentEnergyShield: clamp(player.currentEnergyShield - shieldDamage, 0, player.maxEnergyShield)", "Monster skill hits must consume player energy shield before life."],
   [monsterSkillRuntime, "MonsterDamageType", "Monster skill runtime must type player damage types separately."],
   [monsterSkillRuntime, "MonsterDamageForm", "Monster skill runtime must type hit/dot/secondary/reflection damage forms separately."],
   [monsterSkillRuntime, "monster skill missing damage_type", "Monster skill validation must require explicit damage_type."],
