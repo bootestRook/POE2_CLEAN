@@ -9,7 +9,7 @@
 
 ## 2. Architecture Documentation And Owner Map
 
-- [ ] 2.1 Update `docs/webapp-module-boundaries.md` with the owner-first planning rule for future WebApp work.
+- [x] 2.1 Update `docs/webapp-module-boundaries.md` with the owner-first planning rule for future WebApp work.
 - [ ] 2.2 Update `docs/webapp-module-boundaries.md` with the final owner map for inventory, skill-board, battle presentation, battle runtime, monster skills, player damage, save/state, drops, tooltips, rest-area, layout shell, utils, hooks, and types.
 - [ ] 2.3 Update `docs/webapp-module-boundaries.md` to state when `webapp/App.tsx` edits are allowed: mode routing, state/ref initialization, callback wiring, and unavoidable adapter calls only.
 - [ ] 2.4 Update `docs/webapp-app-decomposition-map.md` so it reflects the current App shape instead of stale historical line ranges.

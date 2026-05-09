@@ -4,13 +4,15 @@ This project is client-only. WebApp features must be planned into focused fronte
 
 ## Planning Rule
 
-Before implementing any non-trivial WebApp change, identify:
+Before implementing any non-trivial WebApp change, identify the owner module first. The plan must name:
 
 - The existing module that owns the change, or
 - The new focused module/folder that should be created, and
 - The state, callbacks, runtime data, and visual verification surface that must stay unchanged.
 
 If the change seems to require editing `webapp/App.tsx`, first ask whether the change can be limited to an existing component, hook, or utility. If no boundary exists, create a focused client-side module instead of adding more feature code to the App monolith.
+
+If no existing owner fits the work, update this module-boundary plan or create a focused module plan before implementing the feature. Do not add new WebApp feature code directly to `webapp/App.tsx` as the fallback destination.
 
 ## Current Target Folders
 
