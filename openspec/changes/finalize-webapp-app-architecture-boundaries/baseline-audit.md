@@ -96,3 +96,15 @@ Initial migration implications:
 - Pure helper and event-builder checks should move to the focused runtime module once ownership moves.
 - Broad source text checks should use deliberate combined sources only when the invariant is intentionally cross-module.
 - Backend-coupling and skill-editor-forbidden checks should continue scanning all WebApp sources.
+
+## Scope Exclusions Confirmed
+
+No implementation task in this change requires or authorizes:
+
+- backend APIs, backend services, server runtimes, web API layers, or server-generated gameplay behavior
+- save-schema changes, storage-key changes, or migration semantics changes
+- CSS redesign, visual theme changes, copy rewrites, or DOM order changes
+- gameplay balance changes, skill behavior changes, target selection changes, hit timing changes, projectile path changes, damage-zone origin changes, damage formula changes, monster AI changes, drop-rate changes, or map progression changes
+- duplicate frontend gameplay runtimes or alternate skill event generation paths
+- skill-editor launch, skill-editor routes, skill-editor query flags, port `8765`, `dist-skill-editor`, or skill-editor preview acceptance evidence
+- root-level screenshots, logs, traces, test outputs, or generated verification artifacts

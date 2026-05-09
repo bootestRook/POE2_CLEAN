@@ -5,7 +5,7 @@
 - [x] 1.3 Record the current `webapp/App.tsx` responsibility map by function/render block, using current line numbers only as temporary navigation notes.
 - [x] 1.4 Identify current App-owned state, refs, callbacks, storage keys, runtime queues, and event consumers that must remain unchanged during this change.
 - [x] 1.5 Identify current source-text/smoke tests that read `webapp/App.tsx` for functions or invariants that may move to focused modules.
-- [ ] 1.6 Confirm no implementation task in this change requires backend APIs, server runtime behavior, save-schema changes, CSS redesign, copy changes, gameplay balance changes, or skill-editor verification.
+- [x] 1.6 Confirm no implementation task in this change requires backend APIs, server runtime behavior, save-schema changes, CSS redesign, copy changes, gameplay balance changes, or skill-editor verification.
 
 ## 2. Architecture Documentation And Owner Map
 
