@@ -176,8 +176,9 @@ import { MapSelectionPanel } from "./components/battle/MapSelectionPanel";
 import { MonsterTestPanel } from "./components/battle/MonsterTestPanel";
 import type { PlayableMinimapMode } from "./components/battle/PlayableBattleMinimap";
 import { ProceduralSpawnDebugPanel } from "./components/battle/ProceduralSpawnDebugPanel";
-import { BoardCell, GemGhost, previewRelationLabel, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
+import { BoardCell, GemGhost, SupportLines, SupportPreviewLines } from "./components/skill-board/SkillBoardPresentation";
 import type { PreviewRelationType, SupportLine, SupportPreview } from "./components/skill-board/SkillBoardPresentation";
+import { canPlaceGemOnBoard, cellKey, useLegalDropCells, usePlacementInvalidReason, usePlacementPreview } from "./components/skill-board/boardPlacementState";
 import { GmToolPanel } from "./components/layout/GmToolPanel";
 import {
   DEFAULT_RUNTIME_MAP_ID,
@@ -882,14 +883,6 @@ type ItemDiscardPrompt = {
   item: Gem;
   origin: FloatingOrigin;
   position: { x: number; y: number };
-};
-
-type PlacementPreview = {
-  previewCell: { row: number; column: number };
-  previewAffectedCells: Map<string, { types: PreviewRelationType[] }>;
-  previewAffectedGems: Map<string, { labels: string[]; modifierCount: number }>;
-  previewRelations: { row: number; column: number; types: PreviewRelationType[]; instanceId?: string }[];
-  previewSkillSummary: string;
 };
 
 type Camera2D = {
@@ -8425,123 +8418,6 @@ function normalizePlayerRuntimeResources(player: PlayerRuntimeState): PlayerRunt
   };
 }
 
-function usePlacementInvalidReason(
-  state: AppState | null,
-  floatingGem: FloatingGem | null,
-  hoveredBoardCell: string | null,
-  legalPlacementCells: Set<string>
-) {
-  return useMemo(() => {
-    if (!state || !floatingGem || !hoveredBoardCell || legalPlacementCells.has(hoveredBoardCell)) return null;
-    if (!isGemItem(floatingGem.gem)) return "不可放置：只有宝石可以放入数独盘";
-    const cell = boardCellByKey(state, hoveredBoardCell);
-    if (!cell) return "不可放置：坐标超出数独盘";
-    const ignoredInstanceIds = new Set([floatingGem.gem.instance_id, cell.gem?.instance_id ?? ""]);
-    if (cell.gem && cell.gem.instance_id !== floatingGem.gem.instance_id && !ignoredInstanceIds.has(cell.gem.instance_id)) {
-      return "不可放置：目标格已有宝石";
-    }
-    return "不可放置：同行、同列或同宫已有相同数独数字";
-  }, [state, floatingGem, hoveredBoardCell, legalPlacementCells]);
-}
-
-function usePlacementPreview(
-  state: AppState | null,
-  fullGemById: Map<string, Gem>,
-  floatingGem: FloatingGem | null,
-  previewCell: string | null
-) {
-  return useMemo<PlacementPreview | null>(() => {
-    if (!state || !floatingGem || !previewCell) return null;
-    const targetCell = boardCellByKey(state, previewCell);
-    if (!targetCell) return null;
-
-    const previewAffectedCells = new Map<string, { types: PreviewRelationType[] }>();
-    const previewAffectedGems = new Map<string, { labels: string[]; modifierCount: number }>();
-    const previewRelations: PlacementPreview["previewRelations"] = [];
-
-    for (const row of state.board.cells) {
-      for (const cell of row) {
-        if (cell.row === targetCell.row && cell.column === targetCell.column) continue;
-        const types = previewRelationTypes(targetCell, cell);
-        if (types.length === 0) continue;
-        const key = cellKey(cell.row, cell.column);
-        previewAffectedCells.set(key, { types });
-
-        const affectedGem = cell.gem ? fullGemById.get(cell.gem.instance_id) ?? cell.gem : null;
-        const labels = types.map(previewRelationLabel);
-        previewRelations.push({ row: cell.row, column: cell.column, types, instanceId: affectedGem?.instance_id });
-        if (affectedGem && affectedGem.instance_id !== floatingGem.gem.instance_id) {
-          previewAffectedGems.set(affectedGem.instance_id, {
-            labels,
-            modifierCount: estimatePreviewModifierCount(floatingGem.gem, affectedGem, types)
-          });
-        }
-      }
-    }
-
-    const affectedGemCount = previewAffectedGems.size;
-    const previewSkillSummary = affectedGemCount > 0
-      ? `${affectedGemCount} 个已放置宝石，${previewRelations.length} 个关系格`
-      : "无可影响目标";
-
-    return {
-      previewCell: { row: targetCell.row, column: targetCell.column },
-      previewAffectedCells,
-      previewAffectedGems,
-      previewRelations,
-      previewSkillSummary
-    };
-  }, [state, fullGemById, floatingGem, previewCell]);
-}
-
-function boardCellByKey(state: AppState, key: string) {
-  const [rowText, columnText] = key.split("-");
-  const row = Number(rowText);
-  const column = Number(columnText);
-  return state.board.cells[row]?.[column] ?? null;
-}
-
-function previewRelationTypes(source: Cell, target: Cell) {
-  const types: PreviewRelationType[] = [];
-  if (target.row === source.row) types.push("row");
-  if (target.column === source.column) types.push("column");
-  if (target.box === source.box) types.push("box");
-  if (Math.abs(target.row - source.row) + Math.abs(target.column - source.column) === 1) types.push("adjacent");
-  return types;
-}
-
-function estimatePreviewModifierCount(sourceGem: Gem, targetGem: Gem, types: PreviewRelationType[]) {
-  if (isAllowedRoute(sourceGem, targetGem)) return Math.max(1, types.length);
-  return types.length;
-}
-
-function useLegalDropCells(state: AppState | null, floatingGem: Gem | null) {
-  return useMemo(() => {
-    const result = new Set<string>();
-    if (!state || !floatingGem) return result;
-
-    const floatingSudokuDigit = sudokuDigitKey(floatingGem);
-    for (const row of state.board.cells) {
-      for (const cell of row) {
-        const target = cell.gem;
-        const ignoredInstanceIds = new Set([floatingGem.instance_id, target?.instance_id ?? ""]);
-
-        const hasConflict = state.board.cells.some((otherRow) =>
-          otherRow.some((otherCell) => {
-            const otherGem = otherCell.gem;
-            if (!otherGem || ignoredInstanceIds.has(otherGem.instance_id)) return false;
-            if (sudokuDigitKey(otherGem) !== floatingSudokuDigit) return false;
-            return otherCell.row === cell.row || otherCell.column === cell.column || otherCell.box === cell.box;
-          })
-        );
-        if (!hasConflict) result.add(cellKey(cell.row, cell.column));
-      }
-    }
-
-    return result;
-  }, [state, floatingGem]);
-}
-
 function useLinkedGemIds(state: AppState | null, hoveredGemId: string | null) {
   return useMemo(() => {
     const result = new Set<string>();
@@ -9806,22 +9682,6 @@ function optimisticPlaceItemOnBoard(state: AppState, instanceId: string, row: nu
   };
 }
 
-function canPlaceGemOnBoard(state: AppState, gem: Gem, row: number, column: number, ignoredInstanceIds = new Set<string>()) {
-  const target = state.board.cells[row]?.[column];
-  if (!target) return false;
-  if (target.gem && target.gem.instance_id !== gem.instance_id && !ignoredInstanceIds.has(target.gem.instance_id)) return false;
-
-  const sudokuDigit = sudokuDigitKey(gem);
-  return !state.board.cells.some((boardRow) =>
-    boardRow.some((cell) => {
-      const otherGem = cell.gem;
-      if (!otherGem || otherGem.instance_id === gem.instance_id || ignoredInstanceIds.has(otherGem.instance_id)) return false;
-      if (sudokuDigitKey(otherGem) !== sudokuDigit) return false;
-      return cell.row === row || cell.column === column || cell.box === target.box;
-    })
-  );
-}
-
 function inventoryItemById(state: AppState, instanceId: string | null | undefined) {
   if (!instanceId) return null;
   return state.inventory.find((item) => item.instance_id === instanceId) ?? null;
@@ -9831,14 +9691,6 @@ function isAllowedRoute(source: Gem, target: Gem) {
   if (isSupportGem(source)) return isActiveGem(target) || isPassiveGem(target);
   if (isPassiveGem(source)) return isActiveGem(target);
   return false;
-}
-
-function cellKey(row: number, column: number) {
-  return `${row}-${column}`;
-}
-
-function sudokuDigitKey(gem: Gem) {
-  return gem.sudoku_digit ?? gem.gem_type.number ?? (Number(gem.gem_type.id?.split("_").pop()) || 0);
 }
 
 function createBattleCamera(playerX: number, playerY: number, zoom = BATTLE_CAMERA_ZOOM): Camera2D {
