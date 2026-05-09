@@ -125,6 +125,7 @@ import type { TooltipTargetLine, TooltipView } from "./components/tooltips/toolt
 import { StashPanel } from "./components/inventory/StashPanel";
 import { BagGrid } from "./components/inventory/BagGrid";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./components/inventory/EquipmentCells";
+import { InventoryOverlay } from "./components/inventory/InventoryOverlay";
 import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
 import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipmentSourceSlotId, equipmentTargetSlotIndices, isGemItem, isPassiveGem, isTwoHandedEquipmentSource, isTwoHandedWeapon, isWeaponItem, isWeaponSlot, removeItemsFromInventorySlots, uniqueEquipmentSlotIds } from "./components/inventory/equipmentRules";
@@ -7816,7 +7817,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       )}
 
       {bagOpen && (
-        <section className="inventory-overlay" aria-label="背包界面">
+        <InventoryOverlay>
           <div className="inventory-stage">
           {RELEASE_DEBUG_TOOLS_ENABLED && (
             <>
@@ -8069,7 +8070,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               </div>
             </section>
           )}
-        </section>
+        </InventoryOverlay>
       )}
     </main>
     </GameViewportFrame>
