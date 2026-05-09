@@ -139,7 +139,7 @@ const createRandomNewSaveStarterGemBody = functionBody(clientStateSource, "creat
 if (!clientStateSource.includes('const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);')) {
   throw new Error("New save starter gem exclusions must include active_stoneskin.");
 }
-if (!createRandomNewSaveStarterGemBody.includes("!EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS.has(String(gem.base_gem_id ?? gem.instance_id))")) {
+if (!createRandomNewSaveStarterGemBody.includes("!excludedStarterBaseGemIds.has(String(gem.base_gem_id ?? gem.instance_id))")) {
   throw new Error("New save random active starter gems must exclude stoneskin.");
 }
 const appStateFromFrontendSaveBody = functionBody(clientStateSource, "appStateFromFrontendSave");

@@ -143,7 +143,7 @@ import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { GAME_RESOLUTION_STORAGE_KEY, useGameViewport, type GameResolutionMode, type GameResolutionPreset, type GameViewport } from "./hooks/useGameViewport";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
-import { clearFrontendAutosave, clearFrontendSaveSlot, frontendSavePayloadFromSanitizedState, frontendStateCandidateFromSave, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, saveFrontendAutosavePayload, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
+import { latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { DEFAULT_PLAYER_NAME, formatFrontendSaveTime, normalizePlayerName } from "./utils/frontendSaveFormatting";
 import { clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { playableMinimapCellKeyForPoint, playableMinimapRevealCells, playableMinimapUsesClientOnlyState } from "./utils/playableMinimapState";
@@ -198,6 +198,7 @@ import type {
   MapEditorZone,
   MapEditorZoneRect,
 } from "./components/map-editor/MapEditorScene";
+import { createFrontendAppStateHelpers } from "./state/frontendAppState";
 import { SpriteTestScene } from "./components/sprite-test/SpriteTestScene";
 import { REST_AREA_INTERACTION_RADIUS, RestAreaScene, restAreaInteractablePosition } from "./components/rest-area/RestAreaScene";
 
@@ -2221,90 +2222,29 @@ function frontendExpectedCritMultiplier(skill: SkillPreview, skillStats: Record<
   return Math.max(1, (baseCritDamagePercent + statValue(skillStats, "crit_damage_add_percent") + ratingCritDamagePercent) / 100);
 }
 
-function createFrontendInitialAppState(): AppState {
-  return sanitizeFrontendStorageState(recalculateFrontendSkillPreview(cloneFrontendInitialAppStateSeed()));
-}
-
-function createMonsterTestAppState(): AppState {
-  const state = cloneFrontendInitialAppStateSeed();
-  state.player_name = "怪物测试";
-  state.inventory = [];
-  state.stash_pages = createEmptyStashPages();
-  state.drops = [];
-  state.skill_preview = [];
-  state.equipment_slots = Array(EQUIPMENT_SLOT_COUNT).fill(null);
-  state.board = {
-    ...state.board,
-    cells: state.board.cells.map((row) => row.map((cell) => ({ ...cell, gem: null })))
-  };
-  if (state.player_stats?.max_life) state.player_stats.max_life.value = MONSTER_TEST_PLAYER_LIFE;
-  return sanitizeFrontendStorageState(recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state)));
-}
-
-function createFrontendNewGameState(slotId?: number, playerName = DEFAULT_PLAYER_NAME): AppState {
-  if (slotId) clearFrontendSaveSlot(slotId);
-  else clearFrontendAutosave();
-  return createFrontendNewSaveStarterState(slotId, playerName);
-}
-
-function createFrontendNewSaveStarterState(slotId?: number, playerName = DEFAULT_PLAYER_NAME): AppState {
-  const state = cloneFrontendInitialAppStateSeed();
-  state.player_name = normalizePlayerName(playerName);
-  state.inventory = [];
-  state.stash_pages = createEmptyStashPages();
-  state.drops = [];
-  state.equipment_slots = Array(EQUIPMENT_SLOT_COUNT).fill(null);
-  state.board = {
-    ...state.board,
-    cells: state.board.cells.map((row) => row.map((cell) => ({ ...cell, gem: null })))
-  };
-  const starterGem = createRandomNewSaveStarterGem(slotId);
-  if (starterGem) {
-    state.inventory = [starterGem];
-    const cell = state.board.cells[STARTER_GEM_BOARD_POSITION.row]?.[STARTER_GEM_BOARD_POSITION.column];
-    if (cell) cell.gem = starterGem;
-  }
-  return sanitizeFrontendStorageState(recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state)));
-}
-
-function createRandomNewSaveStarterGem(slotId?: number): Gem | null {
-  const activeGems = frontendGemDropPool()
-    .filter((gem) => (
-      gem.gem_kind === "active_skill"
-      && Number(gem.level ?? 1) === 1
-      && !EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS.has(String(gem.base_gem_id ?? gem.instance_id))
-    ));
-  if (activeGems.length === 0) return null;
-  const seed = Date.now() + Math.floor(Math.random() * 1_000_000) + (slotId ?? 0) * 9973;
-  const template = activeGems[seed % activeGems.length];
-  const baseId = String(template.base_gem_id ?? template.instance_id);
-  return {
-    ...cloneFrontendData(template),
-    instance_id: `new_save_starter_${seed}_${baseId}`,
-    level: 1,
-    locked: false,
-    board_position: { ...STARTER_GEM_BOARD_POSITION }
-  };
-}
-
-function appStateFromFrontendSave(save: FrontendSavePayload | null): AppState | null {
-  const candidate = frontendStateCandidateFromSave<AppState, FrontendSavePayload>(
-    save,
-    createFrontendInitialAppState,
-    normalizePlayerName,
-    normalizeStashPages
-  );
-  return candidate ? recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(candidate))) : null;
-}
-
-function frontendSavePayloadFromState(state: AppState): FrontendSavePayload {
-  const sanitized = sanitizeFrontendStorageState(state);
-  return frontendSavePayloadFromSanitizedState<AppState, FrontendSavePayload>(sanitized, normalizePlayerName);
-}
-
-function saveFrontendAutosave(state: AppState) {
-  saveFrontendAutosavePayload(frontendSavePayloadFromState(state));
-}
+const {
+  createFrontendInitialAppState,
+  createMonsterTestAppState,
+  createFrontendNewGameState,
+  createFrontendNewSaveStarterState,
+  createRandomNewSaveStarterGem,
+  appStateFromFrontendSave,
+  frontendSavePayloadFromState,
+  saveFrontendAutosave
+} = createFrontendAppStateHelpers<AppState, FrontendSavePayload, Gem>({
+  cloneFrontendData,
+  cloneFrontendInitialAppStateSeed,
+  frontendGemDropPool,
+  createEmptyStashPages,
+  normalizeStashPages,
+  sanitizeFrontendStorageState,
+  recalculateFrontendSkillPreview,
+  recalculateFrontendEquipmentState,
+  starterGemBoardPosition: STARTER_GEM_BOARD_POSITION,
+  excludedStarterBaseGemIds: EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS,
+  monsterTestPlayerLife: MONSTER_TEST_PLAYER_LIFE,
+  equipmentSlotCount: EQUIPMENT_SLOT_COUNT
+});
 
 async function requestGmOptions(): Promise<GmOptions> {
   await preloadFrontendEquipmentData();
