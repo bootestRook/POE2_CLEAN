@@ -53,29 +53,28 @@ After the first App architecture pass, the runtime code that still intentionally
 - `webapp/types/`: shared type-only shapes needed by extracted modules.
 - `webapp/utils/` and `webapp/hooks/`: pure helpers and focused hooks after ownership is clear.
 
-## Target For This Runtime Pass
+## Target For The Final Runtime Ownership Pass
 
-This pass is complete when `webapp/App.tsx` has stopped being the place where searchable runtime formulas and event-builder families live. The final App target for this pass is:
+This pass is complete when `webapp/App.tsx` has stopped being the owner of the last broad runtime consumption boundaries while still remaining the shell that wires App-owned state, refs, and callbacks. This is the final planned App decomposition pass before new gameplay/content work resumes. The final App target for this pass is:
 
 - top-level mode routing between title, save selection, rest area, playable battle, map editor, and disabled tooling stubs;
 - cross-domain React state and ref initialization for state that is still intentionally App-owned;
 - save, rest-area, map-run, battle reset, pause/failure, boss portal, pickup, and mode-transition wiring;
 - callback adapters that connect focused modules without taking ownership of their feature behavior;
 - viewport shell composition and launch/bootstrap flags;
-- intentionally deferred runtime refs and queues whose ownership would be unsafe to move before pure helpers, builders, and source-boundary checks are stable.
+- event-consumption owner wiring for timeline scheduling, scheduled events, active damage-zone ticks, projectile follow-up suppression, VFX queues, status/forced-movement routing, and damage-event routing;
+- damage-application owner wiring for enemy HP/energy-shield mutation, kill handling, drops, player recovery, combat logs, and on-kill event recursion;
+- intentionally deferred battle-loop wiring if moving `stepGame` would require unrelated state-management, save/rest/map flow, target selection, monster AI, projectile lifecycle, or broad callback changes.
 
-The final App target is not a line-count target. Remaining App code is acceptable only when it is explicitly routing, state/ref wiring, callback adaptation, or deferred orchestration recorded in this map.
+The final App target is not a line-count target. Remaining App code is acceptable when it is explicitly shell routing, state/ref initialization, callback adaptation, owner-module wiring, or deferred orchestration recorded in this map.
 
 ## Risk-Ordered Extraction Path
 
-1. Inventory overlay render-only composition.
-2. Inventory/skill-board subpanels if the overlay remains too broad.
-3. Monster skill pure presentation/runtime helper logic.
-4. Monster skill event builder logic.
-5. Pure player damage/runtime helpers that can move without state ownership changes.
-6. Deterministic save/state/drop/stash helpers that still live in App.
-7. Title, UI shell, and non-gameplay overlay composition.
-8. Final App boundary cleanup and source-test ownership migration.
+1. Extract skill event consumption ownership: `consumeSkillEventTimeline`, scheduled queue consumption, active damage-zone tick routing, projectile follow-up suppression, VFX queue updates, status routing, forced movement routing, floating text routing, and damage-event routing.
+2. Extract damage application ownership: `applyDamageEventBatch`, damage projection, enemy HP/energy-shield mutation, kill detection, player recovery, enemy retention, combat logs, drops, and recursive on-kill event routing.
+3. Reassess `stepGame` only after the first two boundaries are stable; leave it App-owned if a narrow owner is not obvious.
+4. Migrate source/smoke checks with each moved owner so protected invariants follow the owning module instead of requiring functions to remain in App.
+5. Stop App decomposition when ownership is clear, checks pass, and remaining App code is shell/wiring/deferred orchestration.
 
 ## Completion Definition
 
@@ -84,26 +83,28 @@ The App architecture pass is complete when all of the following are true:
 - `webapp/App.tsx` keeps only mode routing, App-owned cross-domain state/ref initialization, viewport shell composition, callback wiring, and intentional orchestration adapters.
 - Large render-only inventory, equipment, stash, board, title, and non-gameplay shell UI blocks no longer live inline in App.
 - Monster skill pure helpers and monster skill event payload builders are searchable in focused runtime modules outside App.
+- Skill event consumption and damage application are searchable in focused runtime owner modules outside App.
 - Extracted modules do not import from `webapp/App.tsx`; shared shapes live in type-only modules when needed.
 - Source-text and smoke tests read the module that owns each protected invariant instead of requiring moved functions to remain in App.
 - Future WebApp module placement guidance is documented in `docs/webapp-module-boundaries.md`.
 - Build, tests, OpenSpec validation, and actual playable WebApp verification through the `run.bat` flow have passed for the final batch.
+- Further App decomposition is considered complete unless future feature work identifies a specific missing owner.
 
 ## Defer Unless Explicitly Scoped
 
-- Battle-loop ownership and runtime hook ownership.
-- Target selection, hit timing, projectile trajectory decisions, damage-zone origin decisions, damage application, monster AI behavior, and runtime event consumption.
+- Battle-loop ownership and runtime hook ownership until event consumption and damage application owners are stable.
+- Target selection, hit timing, projectile trajectory decisions, damage-zone origin decisions, monster AI behavior, save/rest/map flow, and broad state management.
 - Save-schema changes, storage-key changes, CSS redesign, copy changes, and gameplay balance changes.
 - Any extraction that would require backend coupling, duplicate gameplay runtime, or skill-editor verification.
 
 ## Runtime Defer List For This Pass
 
-These responsibilities remain App-owned unless a later task in this change explicitly proves a smaller focused owner with executable checks and playable WebApp verification:
+These responsibilities remain App-owned or explicitly wired from App unless a focused owner in this change proves a smaller boundary with executable checks and playable WebApp verification:
 
 - top-level battle loop mutation in `stepGame`, including elapsed time, movement, minimap, map-run progression, spawn progression, pickup, pause/failure, and reset effects;
 - target selection that depends on live player/enemy state, aggro, range gates, hit eligibility, monster AI timing, or map-run state;
-- hit timing and runtime queue consumption, including `consumeSkillEventTimeline`, scheduled events, active damage-zone ticks, projectile impact dispatch, and damage event batch routing;
-- damage application side effects, including enemy array mutation, projected HP bookkeeping, kill handling, drops, progression, combat log mutation, and visual queue mutation;
+- event-consumption owner wiring that still depends on App refs/setters, including scheduled events, active damage-zone ticks, projectile impact dispatch, and damage event batch routing;
+- damage-application owner wiring that still depends on App refs/setters, including enemy array mutation, projected HP bookkeeping, kill handling, drops, progression, combat log mutation, and visual queue mutation;
 - projectile trajectory decisions, live projectile state mutation, projectile impact scheduling, and active projectile visual state ownership;
 - damage-zone origin decisions, active damage-zone ref ownership, repeated monster zone scheduling, pending boss damage-zone hit queues, and dynamic tick consumption;
 - save/rest/map flow state transitions, storage writes, starter state creation, and save-slot orchestration;
