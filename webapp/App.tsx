@@ -79,6 +79,25 @@ import {
   enemyStatusDurationMultiplier
 } from "./runtime/enemyDamageRuntime";
 import {
+  anchorHitVfxsToTargets,
+  anchorProjectilesToTargets,
+  capRuntimeVisualBudget,
+  defaultFrontendExtraProjectileSpreadAngle,
+  finishCompletedProjectileBody,
+  hitVfxTargetId,
+  isProjectileTickFollowup,
+  projectileAngleStepDeg,
+  projectileFollowupKey,
+  projectileIdFromEvent,
+  projectileSpawnWorldPosition,
+  projectileSpreadAngleDeg,
+  projectileSpreadDirections,
+  projectileTargetFollowupKey,
+  rotateDirection,
+  shouldSuppressProjectileFollowup,
+  targetedEnemyForEvent
+} from "./runtime/projectileLifecycleRuntime";
+import {
   buildFrontendChainSkillEvents as buildFrontendChainSkillEventsFromRuntime,
   buildFrontendDamageZoneSkillEvents as buildFrontendDamageZoneSkillEventsFromRuntime,
   buildFrontendMeleeArcSkillEvents as buildFrontendMeleeArcSkillEventsFromRuntime,
@@ -5165,10 +5184,10 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
       setMeleeArcs((items) => capRuntimeVisualBudget([...items, ...nextMeleeArcs], MAX_RUNTIME_AREA_VFX));
     }
     if (nextBolts.length > 0 || completedProjectileHits.size > 0) {
-      const completedNextBolts = nextBolts.map((bolt) => finishCompletedProjectileBody(bolt, completedProjectileHits));
+      const completedNextBolts = nextBolts.map((bolt) => finishCompletedProjectileBody(bolt, completedProjectileHits, PROJECTILE_BODY_EXIT_FADE_DURATION));
       setBolts((items) => capRuntimeVisualBudget(
         [
-          ...items.map((bolt) => finishCompletedProjectileBody(bolt, completedProjectileHits)),
+          ...items.map((bolt) => finishCompletedProjectileBody(bolt, completedProjectileHits, PROJECTILE_BODY_EXIT_FADE_DURATION)),
           ...completedNextBolts
         ],
         MAX_RUNTIME_PROJECTILE_VISUALS
@@ -6562,7 +6581,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const battleCamera = createBattleCamera(player.x, player.y, skillEditorMode ? skillEditorCameraSettings.zoom : runtimeUsesEditorMap ? 1 : BATTLE_CAMERA_ZOOM);
   const visibleEnemies = selectRenderableEnemies(enemies, player, elapsed);
   const anchoredHitVfxs = anchorHitVfxsToTargets(hitVfxs, enemies);
-  const anchoredBolts = anchorProjectilesToTargets(bolts, enemies);
+  const anchoredBolts = anchorProjectilesToTargets(bolts, enemies, usesCanvasProjectileVfx);
   const activeBossEnemy = visibleEnemies.find((enemy) => enemy.boss && enemy.hp > 0) ?? null;
   const guardActive = activePlayerBuffs.some((buff) => buff.buffType === "guard" && buff.remaining > 0 && buff.remainingAmount > 0);
   const sortedRenderItems = createBattleRenderItems(player, visibleEnemies, anchoredBolts, anchoredHitVfxs, runtimeUsesEditorMap ? MAP_EDITOR_PLAYER_RENDER_SCALE : UNIT_RENDER_SCALE, guardActive);
@@ -7625,14 +7644,6 @@ function angleBetweenDegrees(left: { x: number; y: number }, right: { x: number;
   return Math.acos(dot) * 180 / Math.PI;
 }
 
-function projectileSpawnWorldPosition(player: { x: number; y: number }, runtimeParams: Record<string, unknown>) {
-  const offset = runtimeParams.spawn_offset as { x?: unknown; y?: unknown } | undefined;
-  return {
-    x: player.x + Number(offset?.x ?? 0),
-    y: player.y + Number(offset?.y ?? 0)
-  };
-}
-
 function normalizedWorldDirection(direction: { x: number; y: number }) {
   const length = Math.hypot(direction.x, direction.y) || 1;
   return { x: direction.x / length, y: direction.y / length };
@@ -7642,51 +7653,6 @@ function worldDirectionToBattleScreenAngle(direction: { x: number; y: number }, 
   const start = projectBattleWorldToScreen(origin.x, origin.y);
   const end = projectBattleWorldToScreen(origin.x + direction.x, origin.y + direction.y);
   return Math.atan2(end.y - start.y, end.x - start.x);
-}
-
-function projectileSpreadAngleDeg(
-  behaviorTemplate: string | undefined,
-  runtimeParams: Record<string, unknown> | SkillPackageData["behavior"]["params"]
-) {
-  return Math.max(0, Number(runtimeParams.spread_angle_deg ?? 0));
-}
-
-function projectileAngleStepDeg(
-  behaviorTemplate: string | undefined,
-  runtimeParams: Record<string, unknown> | SkillPackageData["behavior"]["params"]
-) {
-  return isProjectileSkillTemplate(behaviorTemplate) ? Math.max(0, Number(runtimeParams.angle_step ?? 0)) : 0;
-}
-
-function defaultFrontendExtraProjectileSpreadAngle(projectileCount: number) {
-  return Math.min(60, 12 * Math.max(0, Math.round(projectileCount) - 1));
-}
-
-function projectileSpreadDirections(
-  direction: { x: number; y: number },
-  projectileCount: number,
-  spreadAngleDeg: number,
-  angleStepDeg = 0
-) {
-  const count = Math.max(1, Math.min(12, Math.round(projectileCount)));
-  if (count === 1 || spreadAngleDeg <= 0) return Array.from({ length: count }, () => direction);
-  const center = (count - 1) / 2;
-  const defaultStep = spreadAngleDeg / Math.max(1, count - 1);
-  const step = angleStepDeg > 0 ? Math.min(angleStepDeg, defaultStep) : defaultStep;
-  return Array.from({ length: count }, (_, index) => {
-    const angleDeg = (index - center) * step;
-    return rotateDirection(direction, angleDeg);
-  });
-}
-
-function rotateDirection(direction: { x: number; y: number }, angleDeg: number) {
-  const radians = angleDeg * Math.PI / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
-  return {
-    x: direction.x * cos - direction.y * sin,
-    y: direction.x * sin + direction.y * cos
-  };
 }
 
 function randomAngleOffset(maxDegrees: number) {
@@ -7902,61 +7868,6 @@ function stablePercent(seed: string) {
   return stableStringHash(seed) % 10000 / 100;
 }
 
-function hitVfxTargetId(event: Pick<SkillEvent, "target_entity" | "payload">) {
-  const payloadTarget = event.payload?.target_entity ?? event.payload?.to_target;
-  const value = Number(event.target_entity || payloadTarget);
-  return Number.isFinite(value) ? value : undefined;
-}
-
-function targetedEnemyForEvent(
-  event: Pick<SkillEvent, "target_entity" | "payload">,
-  enemyById: Map<number, Pick<Enemy, "x" | "y">>
-) {
-  const targetId = hitVfxTargetId(event);
-  return targetId === undefined ? undefined : enemyById.get(targetId);
-}
-
-function projectileIdFromEvent(event: Pick<SkillEvent, "payload">) {
-  return typeof event.payload?.projectile_id === "string" ? event.payload.projectile_id : "";
-}
-
-function shouldSuppressProjectileFollowup(
-  event: Pick<SkillEvent, "target_entity" | "payload">,
-  projectedEnemyHp: Map<number, number>,
-  liveProjectileHits: Set<string>,
-  deadProjectileHits: Set<string>,
-  acceptedProjectileDamageTicks: Set<string>
-) {
-  const projectileId = projectileIdFromEvent(event);
-  if (!projectileId) return false;
-  if (isProjectileTickFollowup(event)) return !acceptedProjectileDamageTicks.has(projectileFollowupKey(event));
-  const hitTargetKey = projectileTargetFollowupKey(event);
-  if (hitTargetKey && deadProjectileHits.has(hitTargetKey)) return true;
-  if (hitTargetKey && liveProjectileHits.has(hitTargetKey)) return false;
-  const targetId = Number(event.target_entity);
-  if (Number.isFinite(targetId) && (projectedEnemyHp.get(targetId) ?? 0) <= 0) return true;
-  return false;
-}
-
-function isProjectileTickFollowup(event: Pick<SkillEvent, "payload">) {
-  return event.payload?.tick_time_ms !== undefined || event.payload?.tick_interval_ms !== undefined;
-}
-
-  function projectileFollowupKey(event: Pick<SkillEvent, "target_entity" | "payload">) {
-    return [
-      projectileIdFromEvent(event),
-      String(event.target_entity ?? event.payload?.target_entity ?? ""),
-      String(event.payload?.tick_time_ms ?? event.payload?.tick_interval_ms ?? "")
-    ].join("|");
-  }
-
-  function projectileTargetFollowupKey(event: Pick<SkillEvent, "target_entity" | "payload">) {
-    const projectileId = projectileIdFromEvent(event);
-    const targetId = Number(event.target_entity);
-    if (!projectileId || !Number.isFinite(targetId)) return "";
-    return `${projectileId}|${targetId}`;
-  }
-
   function damageDisplayKey(event: Pick<SkillEvent, "target_entity" | "skill_instance_id" | "payload">) {
     return [
       event.skill_instance_id,
@@ -7966,52 +7877,6 @@ function isProjectileTickFollowup(event: Pick<SkillEvent, "payload">) {
       String(event.payload?.tick_time_ms ?? event.payload?.hit_marker_event_id ?? event.payload?.marker_id ?? "")
     ].join("|");
   }
-
-function anchorHitVfxsToTargets(hitVfxs: HitVfx[], enemies: Enemy[]) {
-  if (hitVfxs.length === 0) return hitVfxs;
-  const enemyById = new Map(enemies.map((enemy) => [enemy.id, enemy]));
-  return hitVfxs.map((vfx) => {
-    if (vfx.targetId === undefined) return vfx;
-    const target = enemyById.get(vfx.targetId);
-    if (!target) return vfx;
-    return { ...vfx, x: target.x, y: target.y };
-  });
-}
-
-function anchorProjectilesToTargets(bolts: FireBolt[], enemies: Enemy[]) {
-  if (bolts.length === 0) return bolts;
-  const enemyById = new Map(enemies.map((enemy) => [enemy.id, enemy]));
-  return bolts.map((bolt) => {
-    const shouldAnchor = bolt.projectileVisualMode === "falling_arrow" || usesCanvasProjectileVfx(bolt);
-    if (!shouldAnchor || bolt.targetId === undefined) return bolt;
-    const target = enemyById.get(bolt.targetId);
-    if (!target || target.hp <= 0) return bolt;
-    return { ...bolt, targetX: target.x, targetY: target.y };
-  });
-}
-
-function finishCompletedProjectileBody<TBolt extends Pick<
-  FireBolt,
-  "projectileId" | "fadeDuration" | "ttl" | "x" | "y" | "targetX" | "targetY" | "velocityX" | "velocityY"
->>(
-  bolt: TBolt,
-  completedHits: Map<string, { x: number; y: number }>
-): TBolt {
-  const hit = bolt.projectileId ? completedHits.get(bolt.projectileId) : undefined;
-  if (!hit) return bolt;
-  const fadeDuration = Math.max(0, bolt.fadeDuration ?? PROJECTILE_BODY_EXIT_FADE_DURATION);
-  return {
-    ...bolt,
-    x: hit.x,
-    y: hit.y,
-    targetX: hit.x,
-    targetY: hit.y,
-    velocityX: 0,
-    velocityY: 0,
-    ttl: Math.min(bolt.ttl, fadeDuration)
-  };
-}
-
 
 function createEnemy(
   id: number,
@@ -8297,9 +8162,4 @@ function advanceRuntimeVisuals<T extends { ttl: number }>(items: T[], dt: number
     items.map((item) => ({ ...item, ttl: item.ttl - dt })).filter((item) => item.ttl > 0),
     maxCount
   );
-}
-
-function capRuntimeVisualBudget<T>(items: T[], maxCount: number) {
-  if (items.length <= maxCount) return items;
-  return items.slice(items.length - maxCount);
 }

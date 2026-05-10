@@ -94,13 +94,13 @@
 
 ## 11. Projectile Lifecycle And Visual Follow-Up Helper Extraction
 
-- [ ] 11.1 Identify deterministic projectile lifecycle helpers still in App, including projectile id extraction, target follow-up keys, projectile completion, anchoring to targets, projectile spread helpers, direction rotation, and visual budget helpers.
-- [ ] 11.2 Create or extend focused runtime modules for projectile lifecycle and visual follow-up helpers.
-- [ ] 11.3 Move only helpers that do not decide target selection, hit timing, damage, pierce, chain, or event consumption.
-- [ ] 11.4 Preserve follow-up suppression semantics, target anchoring behavior, projectile completion behavior, spread angles, rotation formulas, visual budget caps, and returned shapes.
-- [ ] 11.5 Keep projectile spawn scheduling, active projectile state mutation, hit event consumption, and damage application App-owned during this batch.
-- [ ] 11.6 Add smoke/executable checks for projectile follow-up suppression, target anchoring, projectile completion, spread direction, rotation, and visual budget behavior.
-- [ ] 11.7 Run build, `npm test`, focused lifecycle checks, OpenSpec validation, and playable battle visual verification; commit the batch.
+- [x] 11.1 Identify deterministic projectile lifecycle helpers still in App, including projectile id extraction, target follow-up keys, projectile completion, anchoring to targets, projectile spread helpers, direction rotation, and visual budget helpers.
+- [x] 11.2 Create or extend focused runtime modules for projectile lifecycle and visual follow-up helpers.
+- [x] 11.3 Move only helpers that do not decide target selection, hit timing, damage, pierce, chain, or event consumption.
+- [x] 11.4 Preserve follow-up suppression semantics, target anchoring behavior, projectile completion behavior, spread angles, rotation formulas, visual budget caps, and returned shapes.
+- [x] 11.5 Keep projectile spawn scheduling, active projectile state mutation, hit event consumption, and damage application App-owned during this batch.
+- [x] 11.6 Add smoke/executable checks for projectile follow-up suppression, target anchoring, projectile completion, spread direction, rotation, and visual budget behavior.
+- [x] 11.7 Run build, `npm test`, focused lifecycle checks, OpenSpec validation, and playable battle visual verification; commit the batch.
 
 ## 12. Damage-Zone Lifecycle And Dynamic Tick Helper Extraction
 

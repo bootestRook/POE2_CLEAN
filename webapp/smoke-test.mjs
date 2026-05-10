@@ -23,6 +23,7 @@ const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRunti
 const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
 const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
 const frontendPlayableSkillEventBuilders = readFileSync(join(root, "webapp", "runtime", "frontendPlayableSkillEventBuilders.ts"), "utf8");
+const projectileLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "projectileLifecycleRuntime.ts"), "utf8");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const bossSkillConstants = readFileSync(join(root, "webapp", "runtime", "bossSkillConstants.ts"), "utf8");
 const monsterStatConstants = readFileSync(join(root, "webapp", "runtime", "monsterStatConstants.ts"), "utf8");
@@ -527,7 +528,7 @@ const projectileImpactHandler = app.slice(
 if (!projectileImpactHandler.includes("targetId: hitVfxTargetId(event)")) {
   throw new Error("Projectile impact hit VFX must carry targetId so it anchors to the hit target center.");
 }
-const anchorHitVfxBody = functionBody(app, "anchorHitVfxsToTargets");
+const anchorHitVfxBody = functionBody(projectileLifecycleRuntime, "anchorHitVfxsToTargets");
 if (!anchorHitVfxBody.includes("return { ...vfx, x: target.x, y: target.y };")) {
   throw new Error("Hit VFX anchoring must use the current target center.");
 }
@@ -555,6 +556,58 @@ if (!consumeSkillEventBatchBody.includes("completedProjectileHits.set(")
   || !consumeSkillEventBatchBody.includes("event.payload?.projectile_continues !== true")
   || !consumeSkillEventBatchBody.includes("finishCompletedProjectileBody")) {
   throw new Error("Runtime projectile_hit events must end projectile body VFX unless the event explicitly continues.");
+}
+const shouldSuppressProjectileFollowupBody = functionBody(projectileLifecycleRuntime, "shouldSuppressProjectileFollowup");
+const anchorProjectilesToTargetsBody = functionBody(projectileLifecycleRuntime, "anchorProjectilesToTargets");
+const finishCompletedProjectileBodyBody = functionBody(projectileLifecycleRuntime, "finishCompletedProjectileBody");
+for (const token of [
+  "projectileIdFromEvent(event)",
+  "isProjectileTickFollowup(event)",
+  "acceptedProjectileDamageTicks.has(projectileFollowupKey(event))",
+  "projectileTargetFollowupKey(event)",
+  "deadProjectileHits.has(hitTargetKey)",
+  "projectedEnemyHp.get(targetId)"
+]) {
+  if (!shouldSuppressProjectileFollowupBody.includes(token)) {
+    throw new Error(`Projectile follow-up helper must preserve suppression token: ${token}`);
+  }
+}
+for (const token of [
+  "bolt.projectileVisualMode === \"falling_arrow\"",
+  "usesCanvasProjectileVfx(bolt)",
+  "target.hp",
+  "targetX: target.x",
+  "targetY: target.y"
+]) {
+  if (!anchorProjectilesToTargetsBody.includes(token)) {
+    throw new Error(`Projectile anchoring helper must preserve token: ${token}`);
+  }
+}
+for (const token of [
+  "completedHits.get(bolt.projectileId)",
+  "defaultFadeDuration",
+  "velocityX: 0",
+  "velocityY: 0",
+  "ttl: Math.min(bolt.ttl, fadeDuration)"
+]) {
+  if (!finishCompletedProjectileBodyBody.includes(token)) {
+    throw new Error(`Projectile completion helper must preserve token: ${token}`);
+  }
+}
+for (const forbiddenProjectileLifecycleToken of [
+  "from \"../App\"",
+  "from \"./App\"",
+  "setBolts",
+  "setHitVfxs",
+  "consumeSkillEventBatch",
+  "damageEventAmountAgainstEnemy",
+  "localStorage",
+  "fetch(",
+  "/" + "api/"
+]) {
+  if (projectileLifecycleRuntime.includes(forbiddenProjectileLifecycleToken)) {
+    throw new Error(`Projectile lifecycle runtime must stay deterministic and App-independent: ${forbiddenProjectileLifecycleToken}`);
+  }
 }
 const applyDamageEventBatchBody = functionBody(app, "applyDamageEventBatch");
 if (!applyDamageEventBatchBody.includes("enemiesStateRef.current = liveEnemiesAfterDamage;")) {

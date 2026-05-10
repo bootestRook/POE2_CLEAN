@@ -300,3 +300,20 @@
 - `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-player-resource-helper-extraction.out.log` and `artifacts/logs/runbat-player-resource-helper-extraction.err.log`.
 - Playable WebApp verification followed title, new save, rest area, map selection, battle entry, movement, and repeated skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/player-resource-helper-extraction-playable-battle.png`.
 - Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, automatic skill releases, multiple kill entries, and a dropped item entry.
+
+## 11.1-11.6 Projectile Lifecycle Helper Ownership
+
+- `webapp/runtime/projectileLifecycleRuntime.ts` now owns deterministic projectile lifecycle helpers for projectile spawn offsets, spread angle helpers, direction rotation, projectile id extraction, follow-up keys, follow-up suppression, hit VFX target ids, target lookup, hit VFX anchoring, projectile target anchoring, completed projectile body fade, and runtime visual budget caps.
+- `webapp/App.tsx` still owns projectile spawn scheduling, active projectile arrays, `consumeSkillEventBatch`, damage application, projected HP maps, visual queues, and React state mutation.
+- Projectile anchoring now receives `usesCanvasProjectileVfx` as an explicit dependency, and completed projectile body fade receives `PROJECTILE_BODY_EXIT_FADE_DURATION` explicitly.
+- `webapp/smoke-test.mjs` now reads projectile lifecycle invariants from `webapp/runtime/projectileLifecycleRuntime.ts` and guards that module against App imports, setters, event consumption, damage calculation, storage, and backend API calls.
+
+## 11.7 Projectile Lifecycle Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- Focused lifecycle checks confirmed follow-up suppression, projectile target anchoring, hit VFX anchoring, completed projectile body fade, spread direction, rotation, and visual budget tokens live in `webapp/runtime/projectileLifecycleRuntime.ts`.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-projectile-lifecycle-extraction.out.log` and `artifacts/logs/runbat-projectile-lifecycle-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection, battle entry, and repeated skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/projectile-lifecycle-extraction-playable-battle.png`.
+- Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, automatic skill release, and multiple kill entries.
