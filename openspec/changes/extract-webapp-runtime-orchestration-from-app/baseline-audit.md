@@ -66,3 +66,11 @@
 - Lines 1521-1528 still assert App-owned canvas geometry flags and player geometry snapshot wiring.
 - Lines 1738-1754 and 1830-1837 still assert App-owned monster skill dispatch, player hit adapters, support display mutations, timeline consumption, pending damage-zone queue ownership, repeated zone scheduling, and runtime refs.
 - Lines 1858-1873 still inspect App-owned `applyRuntimeMonsterAttacks` and `syncEnemyVisuals`.
+
+## 1.5 Scope Exclusions
+
+- No backend APIs, backend services, web API layers, server runtime behavior, or server-generated gameplay behavior are required or allowed.
+- No Python `SkillRuntime`, `CombatSession`, backend runtime reports, or backend-canonical gameplay path is required or allowed.
+- No save-schema changes, storage-key changes, save migration, dependency changes, CSS redesign, copy changes, or gameplay balance changes are required.
+- No skill-editor launch, `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, `dist-skill-editor`, or skill-editor screenshot is required or allowed as acceptance evidence.
+- The verification surface for frontend-affecting extraction remains the normal playable WebApp launched through the project `run.bat` flow, with artifacts under `artifacts/`.
