@@ -10,6 +10,8 @@ const playableBattleScene = readFileSync(join(root, "webapp", "features", "playa
 const battleRenderLayer = readFileSync(join(root, "webapp", "components", "battle", "BattleRenderLayer.tsx"), "utf8").replace(/\r\n/g, "\n");
 const enemyRuntime = readFileSync(join(root, "webapp", "runtime", "enemyRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
 const enemyTypes = readFileSync(join(root, "webapp", "types", "enemyTypes.ts"), "utf8").replace(/\r\n/g, "\n");
+const combatRuntimeTypes = readFileSync(join(root, "webapp", "types", "combatRuntimeTypes.ts"), "utf8").replace(/\r\n/g, "\n");
+const skillPreviewTypes = readFileSync(join(root, "webapp", "types", "skillPreviewTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const runtimeEnemySourceText = [app, enemyRuntime, enemyTypes].join("\n");
 const webappSourceFiles = collectWebappSourceFiles(join(root, "webapp"));
 const webappSources = webappSourceFiles.map((file) => file.source);
@@ -339,6 +341,41 @@ for (const forbiddenSkillEditorAcceptanceToken of [
 ]) {
   if (webappSourceText.includes(forbiddenSkillEditorAcceptanceToken) || html.includes(forbiddenSkillEditorAcceptanceToken)) {
     throw new Error(`Playable WebApp acceptance must not use skill-editor surfaces: ${forbiddenSkillEditorAcceptanceToken}`);
+  }
+}
+const typeOnlySources = [
+  ["webapp/types/combatRuntimeTypes.ts", combatRuntimeTypes],
+  ["webapp/types/skillPreviewTypes.ts", skillPreviewTypes]
+];
+for (const [filePath, source] of typeOnlySources) {
+  for (const forbiddenTypeToken of [
+    "from \"../App\"",
+    "from \"./App\"",
+    "from '../App'",
+    "from './App'",
+    "from \"../state/",
+    "from '../state/",
+    "from \"../frontendGameData\"",
+    "from '../frontendGameData'",
+    "from \"../frontendSkillLevelTables\"",
+    "from '../frontendSkillLevelTables'",
+    "from \"react\"",
+    "from 'react'",
+    "useState",
+    "useRef",
+    "localStorage",
+    "sessionStorage",
+    "fetch(",
+    "/" + "api/",
+    "window.",
+    "document.",
+    "function ",
+    "const ",
+    "let "
+  ]) {
+    if (source.includes(forbiddenTypeToken)) {
+      throw new Error(`Type-only module must stay behavior-free (${filePath}): ${forbiddenTypeToken}`);
+    }
   }
 }
 const extractedPresentationAndStateSources = [

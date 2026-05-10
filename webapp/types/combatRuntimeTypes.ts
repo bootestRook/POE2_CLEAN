@@ -1,7 +1,7 @@
 import type { UnitDirection } from "../unitAssets";
 import type { MonsterDamageForm } from "../monsterSkillRuntime";
 import type { MonsterHitKind, Enemy } from "./enemyTypes";
-import type { ShapeEffectPreview, SkillPreview } from "../state/frontendSkillPreviewState";
+import type { ShapeEffectPreview, SkillPreview } from "./skillPreviewTypes";
 
 export type SkillEvent = {
   event_id: string;
