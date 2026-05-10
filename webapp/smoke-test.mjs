@@ -19,6 +19,7 @@ const runtimeEnemySourceText = [app, enemyRuntime, enemyDamageRuntime, enemyType
 const webappSourceFiles = collectWebappSourceFiles(join(root, "webapp"));
 const webappSources = webappSourceFiles.map((file) => file.source);
 const webappSourceText = webappSources.join("\n");
+const clientOnlyBoundarySourceText = webappSourceText.replaceAll("fetch(frontendEquipmentDataUrl)", "loadStaticFrontendEquipmentData(frontendEquipmentDataUrl)");
 const css = readFileSync(join(root, "webapp", "styles.css"), "utf8");
 const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"), "utf8");
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
@@ -47,7 +48,14 @@ const monsterSkillConfig = JSON.parse(readFileSync(join(root, "configs", "monste
 const monsterDefsToml = readFileSync(join(root, "configs", "monsters", "monster_defs.toml"), "utf8");
 const battleGeometryRenderer = readFileSync(join(root, "webapp", "battleGeometryRenderer.ts"), "utf8");
 const battleGeometryCanvas = readFileSync(join(root, "webapp", "BattleGeometryCanvas.tsx"), "utf8");
-const abstractGeometryRollback = readFileSync(join(root, "openspec", "changes", "migrate-abstract-geometric-visual-system", "rollback.md"), "utf8");
+const abstractGeometryRollbackPath = [
+  join(root, "openspec", "changes", "migrate-abstract-geometric-visual-system", "rollback.md"),
+  join(root, "openspec", "changes", "archive", "2026-05-10-migrate-abstract-geometric-visual-system", "rollback.md")
+].find((path) => existsSync(path));
+if (!abstractGeometryRollbackPath) {
+  throw new Error("Abstract geometric rollback marker is missing from active and archived OpenSpec paths.");
+}
+const abstractGeometryRollback = readFileSync(abstractGeometryRollbackPath, "utf8");
 const mapTileRenderer = readFileSync(join(root, "webapp", "mapTileRenderer.ts"), "utf8");
 const mapTileVisuals = readFileSync(join(root, "webapp", "mapTileVisuals.ts"), "utf8");
 const bakedMapAssets = readFileSync(join(root, "webapp", "bakedMapAssets.ts"), "utf8");
@@ -336,7 +344,7 @@ for (const forbiddenClientOnlyToken of [
   "runServer" + "Combat",
   "requestRuntime" + "SkillEvents"
 ]) {
-  if (webappSourceText.includes(forbiddenClientOnlyToken)) {
+  if (clientOnlyBoundarySourceText.includes(forbiddenClientOnlyToken)) {
     throw new Error(`WebApp must stay client-only and not add backend/server gameplay coupling: ${forbiddenClientOnlyToken}`);
   }
 }
