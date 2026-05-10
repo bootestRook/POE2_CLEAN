@@ -124,13 +124,13 @@
 
 ## 14. Battle Loop Orchestration Boundary Review
 
-- [ ] 14.1 Review `stepGame`, runtime monster attacks, player movement/resource updates, map-run progression, spawn progression, minimap exploration, boss portal flow, pickup flow, and pause/failure flow after helper extraction.
-- [ ] 14.2 Decide whether a focused battle runtime service or hook can own a narrow portion of battle-loop orchestration with explicit dependencies.
-- [ ] 14.3 If safe, extract only the narrow orchestration boundary with explicit inputs, callbacks, refs, and no hidden imports from App.
-- [ ] 14.4 If not safe, record battle-loop responsibilities intentionally remaining App-owned and the next smaller extraction target.
-- [ ] 14.5 Ensure extracted orchestration does not change target selection, hit timing, damage application, projectile trajectory decisions, damage-zone origin decisions, pickup completion, drop progression, map progression, or save state.
-- [ ] 14.6 Add smoke checks for the extracted orchestration boundary or the intentionally retained App boundary.
-- [ ] 14.7 Run build, `npm test`, focused orchestration checks, OpenSpec validation, and actual playable WebApp verification; commit the batch.
+- [x] 14.1 Review `stepGame`, runtime monster attacks, player movement/resource updates, map-run progression, spawn progression, minimap exploration, boss portal flow, pickup flow, and pause/failure flow after helper extraction.
+- [x] 14.2 Decide whether a focused battle runtime service or hook can own a narrow portion of battle-loop orchestration with explicit dependencies.
+- [x] 14.3 If safe, extract only the narrow orchestration boundary with explicit inputs, callbacks, refs, and no hidden imports from App.
+- [x] 14.4 If not safe, record battle-loop responsibilities intentionally remaining App-owned and the next smaller extraction target.
+- [x] 14.5 Ensure extracted orchestration does not change target selection, hit timing, damage application, projectile trajectory decisions, damage-zone origin decisions, pickup completion, drop progression, map progression, or save state.
+- [x] 14.6 Add smoke checks for the extracted orchestration boundary or the intentionally retained App boundary.
+- [x] 14.7 Run build, `npm test`, focused orchestration checks, OpenSpec validation, and actual playable WebApp verification; commit the batch.
 
 ## 15. App Cleanup And Import Boundary Hardening
 

@@ -353,3 +353,22 @@
 - Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/event-consumer-boundary-review-playable-battle.png`.
 - Screenshot/log observation: the battle view showed two canvas elements, a dropped item (`Lv3 敏捷胸甲`), procedural spawn debug information, automatic skill releases, kill entries, and monster attack log entries in the frontend-run playable path.
 - Root artifact check found no root-level screenshots, logs, traces, or generated test output files.
+
+## 14.1-14.6 Battle Loop Orchestration Boundary Review
+
+- Reviewed `stepGame`, runtime monster attacks, player resource/movement updates, map-run progression hooks, spawn progression, minimap exploration, boss portal flow, pickup flow, skill release loops, projectile impacts, boss projectile impacts, pending boss damage-zone hits, active damage-zone ticks, scheduled event consumption, and visual advancement after helper extraction.
+- Decision: no focused battle runtime service or hook was introduced in this batch. `stepGame` remains the top-level frame orchestrator because it coordinates clock advancement, UI sync, click-to-interact state, resource regeneration, movement equipment effects, self damage, minimap reveal, monster spawning, monster AI, boss/supreme boss runtime, skill channel timers, automatic skill release, projectile queues, damage-zone queues, scheduled events, visual TTL advancement, and performance accounting.
+- Extracting this layer now would require passing most App refs/setters/callbacks into a service and would risk reordering target selection, hit timing, projectile impact handling, damage-zone origin decisions, pickup completion, boss portal flow, drop progression, map progression, or save-related state.
+- Responsibilities intentionally remaining App-owned: `stepGame`, animation-frame tick error handling, `elapsedRef`, `setElapsed`, war-intent advancement, pending drop pickup and boss portal refs, runtime player mutation, minimap reveal, spawn timer mutation, enemy array mutation, boss/supreme boss runtime calls, continuous/channel skill timers, projectile and damage-zone impact queue consumption, scheduled event queue consumption, visual state advancement, and runtime perf sync.
+- Next smaller extraction targets after this pass are pure movement/interaction calculations, channel timer advancement, or visual TTL advancement, but only after their inputs and outputs can be made explicit without owning App refs.
+- `webapp/smoke-test.mjs` now guards that App intentionally retains battle-loop orchestration tokens for movement, pickup/portal completion, map reveal, spawn progression, monster runtime, boss runtime, skill timers, projectile/damage-zone queue consumption, scheduled events, and visual advancement.
+
+## 14.7 Battle Loop Boundary Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.` The focused orchestration checks confirmed App intentionally retains battle-loop responsibilities for clock/UI sync, pickup/portal completion, movement/resource mutation, minimap reveal, spawn progression, monster and boss runtime calls, skill timers, projectile/damage-zone queue consumption, scheduled event consumption, and visual advancement.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-battle-loop-boundary-review.out.log` and `artifacts/logs/runbat-battle-loop-boundary-review.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/battle-loop-boundary-review-playable-battle.png`.
+- Screenshot/log observation: the battle view showed `map_001` running, two canvas elements, procedural spawn debug information, automatic skill releases, kill entries, and monster attack log entries in the frontend-run playable path.
+- Root artifact check found no root-level screenshots, logs, traces, or generated test output files.

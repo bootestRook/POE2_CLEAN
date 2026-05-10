@@ -898,6 +898,39 @@ for (const token of [
     throw new Error(`App damage consumer boundary must retain coupled damage/kill/drop side effect: ${token}`);
   }
 }
+const stepGameOwnershipBody = functionBody(app, "stepGame");
+for (const token of [
+  "elapsedRef.current += dt",
+  "advanceWarIntent",
+  "setElapsed",
+  "pendingDropPickup.current",
+  "pendingBossPortalUse.current",
+  "finishDropPickup",
+  "openBossPortalConfirm",
+  "setRuntimePlayer",
+  "revealPlayableMinimapAroundPlayer",
+  "spawnTimer.current",
+  "updateRuntimeEnemies",
+  "createEnemy",
+  "updateMonsterSkillRuntime",
+  "applyRuntimeMonsterAttacks",
+  "updateBossSkillRuntime",
+  "updateSupremeBossSkillRuntime",
+  "syncEnemyVisuals",
+  "processFrontendContinuousAttack",
+  "processThundercloudChannel",
+  "processChannelDamageZoneSkill",
+  "hitEnemies",
+  "processFrontendProjectileImpacts",
+  "processBossProjectilePlayerImpacts",
+  "processPendingBossDamageZoneHits",
+  "updateActiveDamageZones",
+  "consumeScheduledSkillEvents(dt)"
+]) {
+  if (!stepGameOwnershipBody.includes(token)) {
+    throw new Error(`App must intentionally retain battle-loop orchestration responsibility: ${token}`);
+  }
+}
 const buildFrontendMeleeArcSkillEventsBody = functionBody(app, "buildFrontendMeleeArcSkillEvents");
 const buildFrontendMeleeArcRuntimeEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendMeleeArcSkillEvents");
 const buildFrontendNovaSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendNovaSkillEvents");
