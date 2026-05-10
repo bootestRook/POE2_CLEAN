@@ -100,3 +100,9 @@
 - State/save/drop candidates needed by later state or orchestration boundaries: `Gem`, `AppState`, `FrontendSavePayload`, `FrontendMapRunMonster`, `DropPrompt`, `BossPortal`, `MapProgressionStageView`, `PlacementResult`, `PlacementPrompt`, `ItemDiscardPrompt`, and `FrontendSaveSlotSummary`.
 - UI/tooling shapes to avoid moving into runtime modules unless a focused UI owner needs them: `Cell`, GM option/response shapes, `Tooltip`, and `FloatingGem`.
 - `PendingBossDamageZoneHit`, `BossSkillTimers`, and `SupremeBossSkillTimer` are queue/timer orchestration shapes; they can move to type-only modules only if the related runtime owner receives all state explicitly and does not take over hidden App refs.
+
+## 3.4 Type Module Dependency Check
+
+- `webapp/types/combatRuntimeTypes.ts` imports type-only dependencies from `unitAssets`, `monsterSkillRuntime`, `types/enemyTypes`, and `state/frontendSkillPreviewState`.
+- Checked for forbidden tokens: `App.tsx`, `../App`, React runtime/state hooks, browser storage, `fetch`, `/api/`, skill editor panel, setter-like mutation names, `window`, and `document`.
+- Result: no forbidden dependency tokens found in `webapp/types/combatRuntimeTypes.ts`.
