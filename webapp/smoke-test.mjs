@@ -21,6 +21,7 @@ const mapSpawnRuntime = readFileSync(join(root, "webapp", "mapSpawnRuntime.ts"),
 const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRuntime.ts"), "utf8");
 const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
 const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
+const frontendPlayableSkillEventBuilders = readFileSync(join(root, "webapp", "runtime", "frontendPlayableSkillEventBuilders.ts"), "utf8");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const bossSkillConstants = readFileSync(join(root, "webapp", "runtime", "bossSkillConstants.ts"), "utf8");
 const monsterStatConstants = readFileSync(join(root, "webapp", "runtime", "monsterStatConstants.ts"), "utf8");
@@ -610,7 +611,7 @@ for (const token of [
 if (!releaseFrontendPlayableSkillBody.includes("consumeSkillEventTimeline(events)")) {
   throw new Error("Playable skill release must consume frontend-owned event timelines.");
 }
-const buildFrontendProjectileSkillEventsBody = functionBody(app, "buildFrontendProjectileSkillEvents");
+const buildFrontendProjectileSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendProjectileSkillEvents");
 for (const token of ["projectile_spawn", "projectile_hit", "frontendDamageEventsForTarget", "hit_vfx", "floating_text"]) {
   if (!buildFrontendProjectileSkillEventsBody.includes(token)) {
     throw new Error(`Projectile frontend runtime coverage missing ${token}.`);
