@@ -52,3 +52,9 @@ Observed extraction dependency shape:
 - Source checks confirmed `skillEventConsumerRuntime.ts` owns scheduled queue advancement, active damage-zone tick consumption, projectile follow-up suppression state, status routing, forced movement routing, VFX queue setters, and damage-event routing.
 - Source checks confirmed `App.tsx` wires the event consumer owner through `createSkillEventConsumerRuntime` with explicit refs, setters, and callbacks.
 - `npm test` passed after migrating owner checks.
+
+### Task 3.2 Event Consumer Build/Test/OpenSpec Verification
+
+- `cmd /c npm run build` passed.
+- `npm test` passed.
+- `openspec validate finalize-webapp-runtime-ownership-extraction --strict` passed.
