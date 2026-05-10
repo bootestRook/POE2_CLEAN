@@ -134,13 +134,13 @@
 
 ## 15. App Cleanup And Import Boundary Hardening
 
-- [ ] 15.1 Remove unused App imports, local types, constants, helpers, and callbacks after each extraction batch.
-- [ ] 15.2 Confirm `webapp/App.tsx` imports focused runtime/type/state modules instead of redefining moved responsibilities locally.
-- [ ] 15.3 Confirm extracted runtime modules do not import from `webapp/App.tsx`.
-- [ ] 15.4 Confirm extracted runtime modules do not call backend APIs, server runtimes, disabled skill-editor paths, storage APIs unless explicitly owned, or browser globals unless explicitly allowed.
-- [ ] 15.5 Confirm no new duplicate gameplay runtime path exists outside the playable WebApp path.
-- [ ] 15.6 Update comments only where they clarify ownership boundaries and avoid broad comments that repeat code.
-- [ ] 15.7 Run build, `npm test`, OpenSpec validation, and commit the cleanup/boundary-hardening batch.
+- [x] 15.1 Remove unused App imports, local types, constants, helpers, and callbacks after each extraction batch.
+- [x] 15.2 Confirm `webapp/App.tsx` imports focused runtime/type/state modules instead of redefining moved responsibilities locally.
+- [x] 15.3 Confirm extracted runtime modules do not import from `webapp/App.tsx`.
+- [x] 15.4 Confirm extracted runtime modules do not call backend APIs, server runtimes, disabled skill-editor paths, storage APIs unless explicitly owned, or browser globals unless explicitly allowed.
+- [x] 15.5 Confirm no new duplicate gameplay runtime path exists outside the playable WebApp path.
+- [x] 15.6 Update comments only where they clarify ownership boundaries and avoid broad comments that repeat code.
+- [x] 15.7 Run build, `npm test`, OpenSpec validation, and commit the cleanup/boundary-hardening batch.
 
 ## 16. Smoke And Focused Test Migration
 

@@ -1,51 +1,9 @@
+import type { ActiveDamageZoneRuntime } from "../types/damageZoneRuntimeTypes";
+import type { SkillEvent } from "../types/skillEventTypes";
 import { clamp, guideDirection } from "../utils/math2d";
 
 export type WorldPoint = { x: number; y: number };
 export type DamageZoneLifecycleEnemy = WorldPoint & { id: number; hp: number };
-export type DamageZoneLifecycleSkillEvent = {
-  event_id: string;
-  type: string;
-  timestamp_ms: number;
-  source_entity: string;
-  target_entity: string;
-  position: WorldPoint;
-  direction: WorldPoint;
-  delay_ms: number;
-  duration_ms: number;
-  amount: number | null;
-  damage_type: string;
-  skill_instance_id: string;
-  vfx_key: string;
-  sfx_key: string;
-  reason_key: string;
-  payload?: {
-    end_position?: WorldPoint;
-    text?: string;
-    skill_name?: string;
-    [key: string]: unknown;
-  };
-};
-export type ActiveDamageZoneRuntime = {
-  zoneId: string;
-  event: DamageZoneLifecycleSkillEvent;
-  payload: NonNullable<DamageZoneLifecycleSkillEvent["payload"]>;
-  origin: WorldPoint;
-  direction: WorldPoint;
-  shape: "circle" | "rectangle";
-  radius: number;
-  length: number;
-  width: number;
-  followPlayer: boolean;
-  remainingMs: number;
-  tickIntervalMs: number;
-  nextTickMs: number;
-  tickIndex: number;
-  maxTargets: number;
-  maxHits: number;
-  maxHitsPerTarget: number;
-  totalHits: number;
-  hitCounts: Map<number, number>;
-};
 export type UniqueTargetsByDistance = (
   enemies: DamageZoneLifecycleEnemy[],
   origin: WorldPoint,
@@ -65,7 +23,7 @@ export type ActiveDamageZoneRuntimeTickDeps = {
 };
 
 export function createActiveDamageZoneRuntime(
-  event: DamageZoneLifecycleSkillEvent,
+  event: SkillEvent,
   zoneId: string,
   origin: WorldPoint,
   direction: WorldPoint,
@@ -122,7 +80,7 @@ export function advanceActiveDamageZoneRuntime(
     remainingMs: zone.remainingMs - deltaMs,
     nextTickMs: zone.nextTickMs - deltaMs
   });
-  const events: DamageZoneLifecycleSkillEvent[] = [];
+  const events: SkillEvent[] = [];
   while (nextZone.nextTickMs <= 0 && nextZone.remainingMs >= 0 && nextZone.tickIntervalMs > 0) {
     nextZone = { ...nextZone, tickIndex: nextZone.tickIndex + 1 };
     const tick = buildTickEvents(nextZone);
@@ -141,7 +99,7 @@ export function advanceActiveDamageZoneRuntime(
 
 export type ActiveDamageZoneRuntimeTickResult = {
   zone: ActiveDamageZoneRuntime;
-  events: DamageZoneLifecycleSkillEvent[];
+  events: SkillEvent[];
 };
 
 export function buildActiveDamageZoneRuntimeTickEvents(
@@ -158,7 +116,7 @@ export function buildActiveDamageZoneRuntimeTickEvents(
   const damageAmount = Math.max(0, Number(nextZone.payload.damage_amount ?? nextZone.event.amount ?? 0));
   if (damageAmount <= 0 || targets.length === 0) return { zone: nextZone, events: [] };
   const tickTimeMs = nextZone.tickIndex * nextZone.tickIntervalMs;
-  const events: DamageZoneLifecycleSkillEvent[] = [];
+  const events: SkillEvent[] = [];
   for (const target of targets) {
     if (nextZone.totalHits >= nextZone.maxHits) break;
     const previousHits = nextZone.hitCounts.get(target.id) ?? 0;

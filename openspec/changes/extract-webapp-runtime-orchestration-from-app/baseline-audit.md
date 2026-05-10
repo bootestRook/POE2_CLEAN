@@ -372,3 +372,18 @@
 - Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/battle-loop-boundary-review-playable-battle.png`.
 - Screenshot/log observation: the battle view showed `map_001` running, two canvas elements, procedural spawn debug information, automatic skill releases, kill entries, and monster attack log entries in the frontend-run playable path.
 - Root artifact check found no root-level screenshots, logs, traces, or generated test output files.
+
+## 15.1-15.7 App Cleanup And Boundary Hardening
+
+- Removed the remaining duplicate local `SkillEvent` and `ActiveDamageZoneRuntime` type copies from `webapp/runtime/damageZoneLifecycleRuntime.ts`.
+- Added lightweight type owners `webapp/types/skillEventTypes.ts` and `webapp/types/damageZoneRuntimeTypes.ts`; `webapp/types/combatRuntimeTypes.ts` now re-exports those shapes for existing import compatibility.
+- Confirmed `webapp/App.tsx` imports focused runtime/type modules instead of redefining moved damage-zone lifecycle responsibilities locally. Source search found moved helper owners in `webapp/runtime/` and type owners in `webapp/types/`, not App-local redefinitions.
+- `webapp/smoke-test.mjs` now includes the new lightweight type modules in type-only boundary checks and continues to guard extracted modules against App imports, backend/server gameplay APIs, disabled skill-editor acceptance paths, storage/browser globals where forbidden, and duplicate gameplay runtime paths.
+- No broad explanatory comments were added; the cleanup was limited to owner modules and smoke/source-boundary checks.
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- Because frontend type/runtime imports changed, `run.bat` was also launched at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-app-cleanup-boundary-hardening.out.log` and `artifacts/logs/runbat-app-cleanup-boundary-hardening.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/app-cleanup-boundary-hardening-playable-battle.png`.
+- Screenshot/log observation: the battle view showed two canvas elements, a dropped item (`Lv3 智慧盾牌`), procedural spawn debug information, automatic skill releases, kill entries, and monster attack log entries in the frontend-run playable path.
+- Root artifact check found no root-level screenshots, logs, traces, or generated test output files.

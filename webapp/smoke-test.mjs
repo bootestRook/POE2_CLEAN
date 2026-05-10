@@ -12,6 +12,8 @@ const enemyRuntime = readFileSync(join(root, "webapp", "runtime", "enemyRuntime.
 const enemyTypes = readFileSync(join(root, "webapp", "types", "enemyTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const combatRuntimeTypes = readFileSync(join(root, "webapp", "types", "combatRuntimeTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const skillPreviewTypes = readFileSync(join(root, "webapp", "types", "skillPreviewTypes.ts"), "utf8").replace(/\r\n/g, "\n");
+const skillEventTypes = readFileSync(join(root, "webapp", "types", "skillEventTypes.ts"), "utf8").replace(/\r\n/g, "\n");
+const damageZoneRuntimeTypes = readFileSync(join(root, "webapp", "types", "damageZoneRuntimeTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const enemyDamageRuntime = readFileSync(join(root, "webapp", "runtime", "enemyDamageRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
 const runtimeEnemySourceText = [app, enemyRuntime, enemyDamageRuntime, enemyTypes].join("\n");
 const webappSourceFiles = collectWebappSourceFiles(join(root, "webapp"));
@@ -352,7 +354,9 @@ for (const forbiddenSkillEditorAcceptanceToken of [
 }
 const typeOnlySources = [
   ["webapp/types/combatRuntimeTypes.ts", combatRuntimeTypes],
-  ["webapp/types/skillPreviewTypes.ts", skillPreviewTypes]
+  ["webapp/types/skillPreviewTypes.ts", skillPreviewTypes],
+  ["webapp/types/skillEventTypes.ts", skillEventTypes],
+  ["webapp/types/damageZoneRuntimeTypes.ts", damageZoneRuntimeTypes]
 ];
 for (const [filePath, source] of typeOnlySources) {
   for (const forbiddenTypeToken of [
