@@ -113,3 +113,11 @@
 - Checked for old local type definitions in `webapp/App.tsx`: moved combat runtime type definitions are no longer defined there.
 - Checked WebApp imports from App: only `webapp/main.tsx` imports the `App` entrypoint; extracted modules do not import moved combat runtime types from `App.tsx`.
 - Existing battle/map-editor/disabled-editor files with similarly named local view/tooling types were left unchanged because they are local props/tooling shapes, not the moved App runtime owner definitions.
+
+## 3.7 Type-Only Extraction Verification
+
+- Focused source check: no forbidden App, state, generated data, React, storage, backend, browser, or runtime declaration tokens found in `webapp/types/combatRuntimeTypes.ts` or `webapp/types/skillPreviewTypes.ts`.
+- `webapp/App.tsx` after type extraction: 419,701 bytes and 8,913 lines.
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
