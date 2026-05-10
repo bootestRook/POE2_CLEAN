@@ -74,3 +74,9 @@
 - No save-schema changes, storage-key changes, save migration, dependency changes, CSS redesign, copy changes, or gameplay balance changes are required.
 - No skill-editor launch, `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, `dist-skill-editor`, or skill-editor screenshot is required or allowed as acceptance evidence.
 - The verification surface for frontend-affecting extraction remains the normal playable WebApp launched through the project `run.bat` flow, with artifacts under `artifacts/`.
+
+## 1.6 Baseline Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
