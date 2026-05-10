@@ -31,6 +31,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   onPointerDrag,
   onToggleLockMode,
   onToggleItemLock,
+  onOrganize,
   onHoverSlot,
   onHoverGem,
   onLeaveSlot,
@@ -60,6 +61,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   onPointerDrag: (event: MouseEvent, gem: TItem, origin: BagOrigin) => void;
   onToggleLockMode: () => void;
   onToggleItemLock: (instanceId: string) => void;
+  onOrganize: () => void;
   onHoverSlot: (slotIndex: number) => void;
   onHoverGem: (event: MouseEvent, gem: TItem, source: "inventory", slotIndex?: number) => void;
   onLeaveSlot: () => void;
@@ -106,7 +108,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
       <div className="bag-action-row" aria-label="物品栏操作">
         <button className={`bag-action-button${lockModeActive ? " active" : ""}`} type="button" aria-pressed={lockModeActive} onClick={onToggleLockMode}>锁定</button>
         <button className="bag-action-button" type="button">回收</button>
-        <button className="bag-action-button" type="button">整理</button>
+        <button className="bag-action-button" type="button" onClick={onOrganize}>整理</button>
       </div>
     </section>
   );

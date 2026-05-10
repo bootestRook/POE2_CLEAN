@@ -270,6 +270,7 @@ import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, reconcileInventorySlots, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
 import { createStashStateHelpers } from "./components/inventory/stashState";
 import { isInventoryItemLockedByRarity, type InventoryLockRarity } from "./components/inventory/inventoryLocking";
+import { organizeInventorySlots } from "./components/inventory/inventorySorting";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { EntryTitleScreen } from "./components/layout/EntryTitleScreen";
 import { AppTopHud } from "./components/layout/AppTopHud";
@@ -5700,6 +5701,24 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     });
   }
 
+  function organizeActiveInventoryTab() {
+    if (floatingGemRef.current) {
+      setNotice("请先放下正在拖动的物品，再整理背包。");
+      return;
+    }
+    clearDragHoverState();
+    setHoveredGemId(null);
+    setTooltip(null);
+    const nextSlots = (slots: (string | null)[]) => organizeInventorySlots(slots, fullGemById, activeInventoryBagTab, lockedItemIds);
+    if (activeInventoryBagTab === "gem") {
+      setGemInventorySlots(nextSlots);
+      setNotice("已整理宝石页签。");
+      return;
+    }
+    setEquipmentInventorySlots(nextSlots);
+    setNotice("已整理装备页签。");
+  }
+
   async function loadGmEquipmentAffixes(source: string, level: number) {
     const affixes = await requestGmEquipmentAffixes(source, level);
     setGmAffixes(affixes);
@@ -6284,6 +6303,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               onPointerDrag={beginPointerDrag}
               onToggleLockMode={toggleInventoryLockMode}
               onToggleItemLock={toggleInventoryItemLock}
+              onOrganize={organizeActiveInventoryTab}
               onHoverSlot={setHoveredBagSlot}
               onHoverGem={onGemHover}
               onLeaveSlot={() => setHoveredBagSlot(null)}
