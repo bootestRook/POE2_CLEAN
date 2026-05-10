@@ -157,3 +157,18 @@
 - `run.bat` flow launched the WebApp on `http://127.0.0.1:8766/`; logs were stored under `artifacts/logs/`.
 - Playable WebApp browser verification captured `artifacts/screenshots/runtime-constants-playable-battle-final.png`.
 - Screenshot observation: `map_001` was running in the playable battle view, procedural spawn debug information was visible, two canvas elements were present, and the combat feed reported that monsters, kills, and drops are frontend-run.
+
+## 5.1 Frontend Playable Skill Function Map
+
+- Shared event payload helpers: `frontendDamageEventsForTarget` at `webapp/App.tsx:3624`, `frontendKnockbackEventsForTarget` at `3688`, `frontendFloatingDamageComponentPayload` at `3730`, `frontendSkillHitImpactRadius` at `3740`, `frontendSecondaryHitAmount` at `3753`, and `frontendScaledSkillConfigDamageAmount` at `3758`.
+- Targeting helper: `frontendUniqueTargetsByDistance` at `3765`.
+- Timeline/release/dispatcher: `consumeSkillEventTimeline` at `3778`, `releaseFrontendPlayableSkill` at `3792`, `buildFrontendPlayableSkillEvents` at `3822`, and `hitEnemies` at `3842`.
+- Projectile family: `buildFrontendProjectileSkillEvents` at `3851`, `buildFrontendSecondaryHitEvents` at `4010`, `buildFrontendSplitProjectileEvents` at `4060`, `buildFrontendIgnitedHitExplosionEvents` at `4142`, and `processFrontendProjectileImpacts` at `4656`.
+- Chain family: `buildFrontendChainSkillEvents` at `4168`.
+- Module-chain family: `buildFrontendModuleChainSkillEvents` at `4202`.
+- Damage-zone/channel family: `buildFrontendDamageZoneSkillEvents` at `4317`, `consumeScheduledSkillEvents` at `4778`, and `activeDamageZoneRuntimeTickEvents` at `4850`.
+- Melee and nova families: `buildFrontendMeleeArcSkillEvents` at `4436` and `buildFrontendNovaSkillEvents` at `4491`.
+- Immediate/consumer family: `consumeImmediateSkillEvents` at `4774`, `consumeSkillEvent` at `5051`, `projectileSpawnPositionForEvent` at `5055`, and `consumeSkillEventBatch` at `5156`.
+- Status and forced movement: `applyPlayerStatusBuffEvent` at `5638`, `applyEnemyStatusBuff` at `5695`, and `applyForcedMovementEvent` at `5753`.
+- Damage application and kill-triggered effects: `applyDamageEventBatch` at `5818`, including direct damage, resource application, kill-triggered follow-up events, drops, progression, combat log, and visual side effects.
+- Projectile follow-up suppression and VFX anchoring helpers remain near the tail of App: `hitVfxTargetId`, `targetedEnemyForEvent`, `projectileIdFromEvent`, `shouldSuppressProjectileFollowup`, `isProjectileTickFollowup`, `anchorHitVfxsToTargets`, `anchorProjectilesToTargets`, and `finishCompletedProjectileBody`.
