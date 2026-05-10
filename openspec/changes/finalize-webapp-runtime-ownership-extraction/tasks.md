@@ -36,7 +36,7 @@
 
 ## 6. Evaluate Optional Battle Loop Wiring
 
-- [ ] 6.1 Reassess `stepGame` after event consumption and damage application are extracted; document whether a narrow battle-loop owner is now obvious and useful.
+- [x] 6.1 Reassess `stepGame` after event consumption and damage application are extracted; document whether a narrow battle-loop owner is now obvious and useful.
 - [ ] 6.2 If battle-loop extraction is still broad, leave `stepGame` in `webapp/App.tsx` and record it as intentionally App-owned shell/wiring orchestration.
 - [ ] 6.3 If battle-loop extraction is narrow, move only battle-loop wiring that can be passed explicit dependencies without moving save/rest/map flow, target selection behavior, monster AI behavior, projectile lifecycle behavior, or broad state management.
 - [ ] 6.4 If any battle-loop code moves, migrate smoke/source checks so elapsed time, pickups, portals, minimap reveal, enemy spawning, monster skills, player attacks, channel skills, projectile impacts, boss damage zones, active damage-zone ticks, and scheduled events remain covered by owner-module checks.
