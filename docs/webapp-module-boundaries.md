@@ -14,6 +14,16 @@ If the change seems to require editing `webapp/App.tsx`, first ask whether the c
 
 If no existing owner fits the work, update this module-boundary plan or create a focused module plan before implementing the feature. Do not add new WebApp feature code directly to `webapp/App.tsx` as the fallback destination.
 
+For any non-trivial WebApp change, the plan must also include this concrete section before editing:
+
+```text
+App.tsx role:
+Only wires [component/hook/state/props/callbacks/mode/ref].
+No feature UI/state/rules/text/transforms live in App.tsx.
+```
+
+Fill in the bracketed items with the actual component, hook, state value, props, callbacks, mode route, or app-shell ref being connected. A generic "minimal App changes" statement is not enough.
+
 ## Missing Boundaries
 
 When a WebApp feature does not fit the owner map below, the first task is architecture planning. Add or update a focused owner module/folder in this document and, when behavior requirements change, add or update the relevant OpenSpec requirement before implementation. The implementation must wait until the new boundary names the state, callbacks, runtime data, and verification surface that remain unchanged.
@@ -31,6 +41,31 @@ When a WebApp feature does not fit the owner map below, the first task is archit
 - unavoidable adapter calls that connect two focused modules without taking ownership of either module's behavior.
 
 If an App edit adds feature UI, runtime formulas, event payload construction, save/storage helpers, target selection, damage logic, or display formatting, the work belongs in a focused module first.
+
+In addition, App edits must not introduce feature-owned state, feature-specific event handling, new feature text branches, business rule decisions, or data transformations. Those belong in an owner module such as a component, hook, model, text module, state helper, runtime helper, utility, or type-only file.
+
+If a new feature needs files, prefer one or more of these focused shapes:
+
+- `FeaturePanel.tsx`: display structure and presentation composition.
+- `useFeatureState.ts`: local state and event handling owned by the feature.
+- `featureModel.ts`: enums, rule predicates, and pure decision helpers.
+- `featureText.ts`: display text, labels, and text selection helpers.
+- `featureTypes.ts`: shared feature types with no runtime behavior.
+
+## App.tsx Exception Rule
+
+`webapp/App.tsx` is not a banned file. It may keep app-shell responsibilities when that is the smallest coherent boundary. Any exception beyond composition wiring must be documented before editing with this format:
+
+```text
+App.tsx exception:
+Reason: [why this belongs to the app shell instead of a focused owner module]
+Expected scope: [rough line count and touched App responsibility]
+Extraction condition: [what growth or behavior would force a focused module]
+```
+
+If an `App.tsx` edit is expected to exceed roughly 15-20 lines, split the feature into a focused module first unless the plan documents that the extra lines are app-shell ownership rather than feature ownership. This threshold is a pre-edit trigger, not an after-the-fact cleanup metric.
+
+Line count is not the only rule. Even a small `App.tsx` diff is a boundary violation if it adds feature UI structure, feature-owned state, business rules, display text decisions, or data transforms.
 
 ## Current Target Folders
 

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { frontendEquipmentIconSprite } from "../../frontendEquipmentIconSprites";
+import { frontendItemIconSprite } from "../../frontendItemIconSprites";
 import { isGemItem } from "../inventory/equipmentRules";
 import { gemColorKey, romanGemLevel } from "../../utils/gemDisplay";
 import { gemIconSprite } from "./gemIconSprites";
@@ -27,6 +28,7 @@ export function GemOrb({ gem }: { gem: GemOrbSource }) {
   const sprite: string = (gem.tooltip_view?.icon_sprite
     || (isGem ? gemIconSprite(gem) : "")
     || (gem.item_kind === "equipment" ? frontendEquipmentIconSprite(gem.gem_type?.id ?? gem.gem_type?.display_text ?? gem.category_text) : "")
+    || (gem.item_kind === "ordinary" ? frontendItemIconSprite(gem.gem_type?.id ?? gem.gem_type?.identity_text ?? gem.gem_type?.display_text ?? gem.name_text) : "")
     || "");
   const className: string = !isGem
     ? `item-orb ${equipmentTone ? `item-orb-rarity-${equipmentTone}` : ""}`

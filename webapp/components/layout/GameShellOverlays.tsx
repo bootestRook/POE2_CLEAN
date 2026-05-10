@@ -1,6 +1,7 @@
 import type { GameResolutionMode, GameResolutionPreset } from "../../hooks/useGameViewport";
 import type { ProceduralSpawnDebugSummary } from "../../mapSpawnRuntime";
 import type { SkillEditorCameraSettings, SkillEditorDebugOptions } from "../../types/skillEditorTypes";
+import type { RestAreaInteractionKind } from "../rest-area/RestAreaScene";
 import { BattlePauseOverlay, GameFailureOverlay, PortalConfirmOverlay } from "../battle/BattleOverlays";
 import { MapSelectionPanel } from "../battle/MapSelectionPanel";
 import { ProceduralSpawnDebugPanel } from "../battle/ProceduralSpawnDebugPanel";
@@ -66,7 +67,7 @@ export function GameShellOverlays<TStage extends MapSelectionStage>({
   playing: boolean;
   restAreaMapActive: boolean;
   entryStep: "title" | "save" | "rest";
-  restAreaPanel: "stage" | "stash" | null;
+  restAreaPanel: RestAreaInteractionKind | null;
   gameFailureOpen: boolean;
   battlePauseOpen: boolean;
   battlePauseView: "menu" | "settings";

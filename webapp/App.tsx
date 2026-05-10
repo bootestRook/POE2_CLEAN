@@ -365,7 +365,12 @@ import {
 } from "./state/frontendSkillPreviewState";
 import type { FrontendAilmentConfig, FrontendPassiveEffect, ShapeEffectPreview, SkillAppliedModifier, SkillPreview } from "./state/frontendSkillPreviewState";
 import { SpriteTestScene } from "./components/sprite-test/SpriteTestScene";
+import { ForgePanel } from "./components/rest-area/ForgePanel";
 import { REST_AREA_INTERACTION_RADIUS, RestAreaScene, restAreaInteractablePosition } from "./components/rest-area/RestAreaScene";
+import type { RestAreaInteractionKind } from "./components/rest-area/RestAreaScene";
+import { REST_AREA_INTERACTION_KINDS, restAreaInteractionOpensInventory, restAreaInteractionUsesForge } from "./components/rest-area/restAreaInteractionModel";
+import { restAreaApproachNotice, restAreaInteractionNotice } from "./components/rest-area/restAreaInteractionText";
+import { useForgePanelState } from "./components/rest-area/useForgePanelState";
 
 type Gem = {
   instance_id: string;
@@ -907,8 +912,8 @@ function GameApp() {
   const [monsterTestMode] = useState(() => initialMonsterTestMode());
   const [skillEditorMode] = useState(() => initialSkillEditorMode());
   const [entryStep, setEntryStep] = useState<"title" | "save" | "rest">(() => skillEditorMode || monsterTestMode ? "rest" : "title");
-  const [restAreaPanel, setRestAreaPanel] = useState<"stage" | "stash" | null>(null);
-  const [restAreaInteractionTarget, setRestAreaInteractionTarget] = useState<"stage" | "stash" | null>(null);
+  const [restAreaPanel, setRestAreaPanel] = useState<RestAreaInteractionKind | null>(null);
+  const [restAreaInteractionTarget, setRestAreaInteractionTarget] = useState<RestAreaInteractionKind | null>(null);
   const [saveSlots, setSaveSlots] = useState<FrontendSaveSlotSummary[]>(() => loadFrontendSaveSlotSummaries<FrontendSavePayload>());
   const [selectedSaveSlotId, setSelectedSaveSlotId] = useState(() => loadActiveFrontendSaveSlotId() ?? latestFrontendSaveSlotId(saveSlots) ?? 1);
   const [saveStartMode, setSaveStartMode] = useState<"continue" | "new">(() => latestFrontendSaveSlotId(saveSlots) ? "continue" : "new");
@@ -1730,8 +1735,11 @@ function GameApp() {
         if (target && targetVector && targetDistance <= REST_AREA_INTERACTION_RADIUS) {
           setRestAreaInteractionTarget(null);
           setRestAreaPanel(restAreaInteractionTarget);
-          if (restAreaInteractionTarget === "stash") setBagOpen(true);
-          setNotice(restAreaInteractionTarget === "stage" ? "王阳正在整理关卡情报。" : "仓库已打开。");
+          if (restAreaInteractionUsesForge(restAreaInteractionTarget)) {
+            resetForgePanel();
+          }
+          if (restAreaInteractionOpensInventory(restAreaInteractionTarget)) setBagOpen(true);
+          setNotice(restAreaInteractionNotice(restAreaInteractionTarget));
           return current;
         }
         const moveVector = target && targetVector && targetDistance > REST_AREA_INTERACTION_RADIUS
@@ -4974,6 +4982,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     if (target.kind === "bag") return await placeItemInBag(current, target.slotIndex);
     if (target.kind === "stash") return await placeItemInStash(current, target.pageIndex, target.slotIndex);
     if (target.kind === "equipment") return await placeItemInEquipmentSlot(current, target.slotIndex, event);
+    if (target.kind === "forge") return placeItemInForge(current, event);
     return await placeItemOnBoard(current, target.row, target.column, event);
   }
 
@@ -5457,7 +5466,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const currentPlayer = playerStateRef.current;
 
     if (!monsterTestMode && !skillEditorMode && !playing && entryStep === "rest") {
-      const restTargets = (["stage", "stash"] as const)
+      const restTargets = REST_AREA_INTERACTION_KINDS
         .map((kind) => {
           const target = restAreaInteractablePosition(kind, battleMap);
           return { kind, distance: Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y) };
@@ -5726,6 +5735,18 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     for (const gem of state?.inventory ?? []) result.set(gem.instance_id, gem);
     return result;
   }, [state]);
+  const {
+    forgeItem,
+    selectedForgeAffixSlots,
+    resetForgePanel,
+    toggleForgeAffixSlot,
+    placeItemInForge
+  } = useForgePanelState({
+    itemsById: fullGemById,
+    onSelectEquipmentTab: () => setActiveInventoryBagTab("equipment"),
+    onNotice: setNotice,
+    onPlacementPrompt: showPlacementPrompt
+  });
   const lockedItemIds = useMemo(() => {
     const result = new Set<string>();
     for (const item of state?.inventory ?? []) {
@@ -5960,7 +5981,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice(`已读取存档 ${selectedSaveSlotId}，已进入休息区。`);
   }
 
-  function interactWithRestArea(kind: "stage" | "stash") {
+  function interactWithRestArea(kind: RestAreaInteractionKind) {
     const target = restAreaInteractablePosition(kind, battleMap);
     const currentPlayer = playerStateRef.current;
     const targetDistance = Math.hypot(target.x - currentPlayer.x, target.y - currentPlayer.y);
@@ -5969,12 +5990,15 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     if (targetDistance <= REST_AREA_INTERACTION_RADIUS) {
       setRestAreaInteractionTarget(null);
       setRestAreaPanel(kind);
-      if (kind === "stash") setBagOpen(true);
-      setNotice(kind === "stage" ? "王阳正在整理关卡情报。" : "仓库已打开。");
+      if (restAreaInteractionUsesForge(kind)) {
+        resetForgePanel();
+      }
+      if (restAreaInteractionOpensInventory(kind)) setBagOpen(true);
+      setNotice(restAreaInteractionNotice(kind));
       return;
     }
     setRestAreaInteractionTarget(kind);
-    setNotice(kind === "stage" ? "正在走向王阳。" : "正在走向仓库。");
+    setNotice(restAreaApproachNotice(kind));
   }
 
   function closeRestAreaPanel() {
@@ -6000,7 +6024,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setGmOpen(false);
     setTooltip(null);
     setHoveredGemId(null);
-    if (restAreaPanel === "stash") {
+    if (restAreaPanel && restAreaInteractionOpensInventory(restAreaPanel)) {
       setRestAreaPanel(null);
       setNotice("已返回休息区域。");
     }
@@ -6311,6 +6335,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             player={player}
             baseMoveSpeed={PLAYER_SPEED}
           />
+          {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "forge" && (
+            <ForgePanel
+              item={forgeItem}
+              selectedAffixSlots={selectedForgeAffixSlots}
+              renderItem={(item) => <GemOrb gem={item} />}
+              onToggleAffixSlot={toggleForgeAffixSlot}
+            />
+          )}
           {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "stash" && (
             <StashPanel
               pageIndex={stashPageIndex}

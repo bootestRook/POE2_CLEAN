@@ -8,6 +8,7 @@ export type DropTarget =
   | { kind: "board"; row: number; column: number }
   | { kind: "bag"; slotIndex: number }
   | { kind: "equipment"; slotIndex: number; slotId: string }
+  | { kind: "forge" }
   | { kind: "stash"; pageIndex: number; slotIndex: number }
   | { kind: "map"; position: { x: number; y: number } }
   | { kind: "invalid" };
@@ -44,6 +45,8 @@ export function resolveDropTarget(element: Element | null): DropTarget {
   const bagCell = element?.closest("[data-bag-slot-index]") as HTMLElement | null;
   if (bagCell) return { kind: "bag", slotIndex: Number(bagCell.dataset.bagSlotIndex) };
 
+  if (element?.closest("[data-forge-drop-target]")) return { kind: "forge" };
+
   const stashCell = element?.closest("[data-stash-slot-index][data-stash-page-index]") as HTMLElement | null;
   if (stashCell) {
     return {
@@ -68,6 +71,7 @@ export function isInventoryDropBlockedByInterface(element: Element | null) {
   return Boolean(element?.closest([
     "[data-board-row][data-board-column]",
     "[data-bag-slot-index]",
+    "[data-forge-drop-target]",
     "[data-stash-slot-index]",
     "[data-equipment-slot-index]",
     ".right-workbench",

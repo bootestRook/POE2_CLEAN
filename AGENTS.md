@@ -46,6 +46,12 @@ Before making changes, Codex must identify:
 
 For WebApp work, Codex must also identify the target frontend module before editing. Follow `docs/webapp-module-boundaries.md`; do not add new WebApp features directly into `webapp/App.tsx` unless the plan explicitly explains why no existing or new focused module can hold the change.
 
+For any non-trivial WebApp change, the plan must include an `App.tsx role` section before editing. This section must state exactly what `webapp/App.tsx` will do, such as importing a focused component or hook, mounting it, passing props, forwarding callbacks, connecting top-level mode/state, or initializing app-shell refs. It must also state that no feature UI structure, feature-owned state, business rule, display text branch, or data transformation will live in `webapp/App.tsx`.
+
+If no owner module exists for a WebApp feature, create or update the focused owner module boundary before implementing the feature. Do not use `webapp/App.tsx` as the fallback destination.
+
+If an `App.tsx` edit is expected to exceed roughly 15-20 lines, stop and split the feature into a focused module first unless the plan documents that the extra lines are app-shell ownership rather than feature ownership. If non-wiring logic must remain in `App.tsx`, the plan must document the reason, expected scope, and extraction exit condition before editing.
+
 If the requirement is ambiguous, stop and ask.
 
 If there are multiple valid interpretations, state them instead of silently choosing one.
@@ -102,6 +108,9 @@ Plan:
 1. Inspect [area/file] -> verify: understand current behavior
 2. Change [specific file/module] -> verify: minimal diff only
 3. Run [test/build/check] -> verify: pass/fail result
+App.tsx role:
+Only wires [component/hook/state/props/callbacks/mode/ref].
+No feature UI/state/rules/text/transforms live in App.tsx.
 ```
 
 ---

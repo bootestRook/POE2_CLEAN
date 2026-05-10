@@ -240,7 +240,7 @@ function groupedEquipmentAffixSections<TGem>(gem: TGem, fallbackLines: string[])
   }, { base: [], explicit: [] });
   return [
     { key: "base", title: "基础词缀", lines: grouped.base },
-    { key: "explicit", title: "前后缀", lines: grouped.explicit },
+    { key: "explicit", title: "随机词缀", lines: grouped.explicit },
   ].filter((section) => section.lines.length > 0);
 }
 

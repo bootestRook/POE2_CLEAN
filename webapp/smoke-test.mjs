@@ -168,12 +168,14 @@ for (const requiredRestAreaCode of [
   "const STASH_PAGE_COLUMNS = 10",
   "const REST_AREA_INTERACTABLES",
   "label: \"\u738b\u9633\"",
+  "label: \"\u953b\u9020\u53f0\"",
   "WANG_YANG_NPC_SPRITE",
   "function RestAreaScene",
   "function StashPanel",
   "setEntryStep(\"rest\")",
   "restAreaPanel === \"stage\"",
   "restAreaPanel === \"stash\"",
+  "restAreaPanel === \"forge\"",
   "onStart(stage.id)"
 ]) {
   if (!webappSourceText.includes(requiredRestAreaCode)) {
@@ -494,6 +496,8 @@ for (const requiredRestAreaCss of [
   ".rest-area-scene",
   ".rest-area-room",
   ".rest-area-name-label",
+  ".rest-area-map-forge",
+  ".rest-area-forge-prop",
   ".stash-overlay",
   ".stash-page-tabs",
   "--stash-slot-size:",
