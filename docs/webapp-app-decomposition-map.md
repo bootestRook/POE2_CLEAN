@@ -95,3 +95,16 @@ The App architecture pass is complete when all of the following are true:
 - Target selection, hit timing, projectile trajectory decisions, damage-zone origin decisions, damage application, monster AI behavior, and runtime event consumption.
 - Save-schema changes, storage-key changes, CSS redesign, copy changes, and gameplay balance changes.
 - Any extraction that would require backend coupling, duplicate gameplay runtime, or skill-editor verification.
+
+## Runtime Defer List For This Pass
+
+These responsibilities remain App-owned unless a later task in this change explicitly proves a smaller focused owner with executable checks and playable WebApp verification:
+
+- top-level battle loop mutation in `stepGame`, including elapsed time, movement, minimap, map-run progression, spawn progression, pickup, pause/failure, and reset effects;
+- target selection that depends on live player/enemy state, aggro, range gates, hit eligibility, monster AI timing, or map-run state;
+- hit timing and runtime queue consumption, including `consumeSkillEventTimeline`, scheduled events, active damage-zone ticks, projectile impact dispatch, and damage event batch routing;
+- damage application side effects, including enemy array mutation, projected HP bookkeeping, kill handling, drops, progression, combat log mutation, and visual queue mutation;
+- projectile trajectory decisions, live projectile state mutation, projectile impact scheduling, and active projectile visual state ownership;
+- damage-zone origin decisions, active damage-zone ref ownership, repeated monster zone scheduling, pending boss damage-zone hit queues, and dynamic tick consumption;
+- save/rest/map flow state transitions, storage writes, starter state creation, and save-slot orchestration;
+- runtime refs and React setters that cross feature domains until an extraction batch names explicit dependencies and proves the playable path consumes the extracted owner.
