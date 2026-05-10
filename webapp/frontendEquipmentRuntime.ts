@@ -1,3 +1,5 @@
+import frontendEquipmentDataUrl from "./data/equipment/frontendEquipmentData.json?url";
+
 export type FrontendEquipmentAffixDefinition = {
   affix_id: string;
   source_modifier_id: string;
@@ -69,9 +71,13 @@ let equipmentDataPromise: Promise<FrontendEquipmentDataState> | null = null;
 
 export function preloadFrontendEquipmentData(): Promise<FrontendEquipmentDataState> {
   if (equipmentDataState) return Promise.resolve(equipmentDataState);
-  equipmentDataPromise ??= import("./data/equipment/frontendEquipmentData.json")
-    .then((module) => {
-      const definitions = (module.default as { definitions: FrontendEquipmentAffixDefinition[] }).definitions;
+  equipmentDataPromise ??= fetch(frontendEquipmentDataUrl)
+    .then((response) => {
+      if (!response.ok) throw new Error(`Equipment data failed to load: ${response.status} ${response.statusText}`);
+      return response.json() as Promise<{ definitions: FrontendEquipmentAffixDefinition[] }>;
+    })
+    .then((data) => {
+      const definitions = data.definitions;
       const state = {
         definitions,
         definitionsById: new Map(definitions.map((definition) => [definition.affix_id, definition])),

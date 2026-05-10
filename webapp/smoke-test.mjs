@@ -1252,8 +1252,11 @@ for (const forbiddenBackendGameplay of [
 if (app.includes("frontendEquipmentData.json")) {
   throw new Error("App startup path must not directly import the large frontend equipment data catalog.");
 }
-if (!frontendEquipmentRuntime.includes('import("./data/equipment/frontendEquipmentData.json")')) {
-  throw new Error("Equipment data catalog must be loaded through the cached dynamic equipment data loader.");
+if (!frontendEquipmentRuntime.includes('import frontendEquipmentDataUrl from "./data/equipment/frontendEquipmentData.json?url"')) {
+  throw new Error("Equipment data catalog must be referenced as a URL so App startup does not inline the large catalog.");
+}
+if (!frontendEquipmentRuntime.includes("fetch(frontendEquipmentDataUrl)")) {
+  throw new Error("Equipment data catalog must be loaded through the cached equipment data fetch boundary.");
 }
 if (!frontendEquipmentRuntime.includes("preloadFrontendEquipmentData")) {
   throw new Error("Equipment runtime must expose a cached preload boundary for optional equipment data.");
