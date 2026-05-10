@@ -24,7 +24,7 @@
 - [x] 4.1 Create a focused client-side runtime owner for damage batch application with explicit dependencies for enemy state mutation, player recovery, drops, combat logs, kill counters, and event recursion.
 - [x] 4.2 Move `applyDamageEventBatch` behavior while preserving damage projection, HP mutation, energy-shield mutation, culling, kill detection, player on-hit recovery, enemy retention, combat-log updates, kill counters, drop spawning, and recursive on-kill event routing.
 - [x] 4.3 Route on-kill follow-up events through the single event-consumption owner and verify no separate damage queue, alternate damage application path, duplicate floating-text path, or backend/runtime service call is introduced.
-- [ ] 4.4 Preserve existing damage helper formulas, roll keys, resource ordering, status interactions, and return shapes without gameplay rebalance.
+- [x] 4.4 Preserve existing damage helper formulas, roll keys, resource ordering, status interactions, and return shapes without gameplay rebalance.
 - [ ] 4.5 Migrate smoke/source checks for damage-application invariants from App-location checks to owner-module checks.
 
 ## 5. Verify Damage Application Boundary
