@@ -24,6 +24,7 @@ const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "m
 const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
 const frontendPlayableSkillEventBuilders = readFileSync(join(root, "webapp", "runtime", "frontendPlayableSkillEventBuilders.ts"), "utf8");
 const projectileLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "projectileLifecycleRuntime.ts"), "utf8");
+const damageZoneLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "damageZoneLifecycleRuntime.ts"), "utf8");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const bossSkillConstants = readFileSync(join(root, "webapp", "runtime", "bossSkillConstants.ts"), "utf8");
 const monsterStatConstants = readFileSync(join(root, "webapp", "runtime", "monsterStatConstants.ts"), "utf8");
@@ -801,10 +802,35 @@ for (const token of [
 if (buildFrontendDamageZoneSkillEventsBody.indexOf("\"forced_movement\"") > buildFrontendDamageZoneSkillEventsBody.indexOf("if (useDynamicTickRuntime) continue")) {
   throw new Error("Dynamic damage-zone runtime must schedule pull forced_movement before skipping static tick damage.");
 }
-const activeDamageZoneRuntimeTickEventsBody = functionBody(app, "activeDamageZoneRuntimeTickEvents");
+const activeDamageZoneRuntimeTickEventsBody = functionBody(damageZoneLifecycleRuntime, "buildActiveDamageZoneRuntimeTickEvents");
 for (const token of ["damage_zone_hit", "damage", "hit_vfx", "floating_text", "forced_movement", "status_apply"]) {
   if (!activeDamageZoneRuntimeTickEventsBody.includes(token)) {
     throw new Error(`Dynamic damage-zone tick consumer must emit ${token}.`);
+  }
+}
+for (const token of [
+  "createActiveDamageZoneRuntime",
+  "replaceActiveDamageZoneRuntime",
+  "advanceActiveDamageZoneRuntime",
+  "activeDamageZoneTickProgressForZone"
+]) {
+  if (!app.includes(token)) throw new Error(`App must adapt damage-zone lifecycle ownership through ${token}.`);
+}
+for (const forbiddenDamageZoneLifecycleToken of [
+  "setEnemies",
+  "setBolts",
+  "setTexts",
+  "setHitVfxs",
+  "consumeSkillEventBatch",
+  "activeDamageZones.current",
+  "playerStateRef",
+  "enemiesStateRef",
+  "localStorage",
+  "fetch(",
+  "/" + "api/"
+]) {
+  if (damageZoneLifecycleRuntime.includes(forbiddenDamageZoneLifecycleToken)) {
+    throw new Error(`Damage-zone lifecycle runtime must stay explicit-input and App-independent: ${forbiddenDamageZoneLifecycleToken}`);
   }
 }
 const applyForcedMovementEventBody = functionBody(app, "applyForcedMovementEvent");
@@ -2163,6 +2189,7 @@ for (const zoneType of ["entrance", "corridor", "main_room", "large_room", "dead
 
 runMonsterSkillRuntimeSmoke();
 runMonsterSkillEventBuilderSmoke();
+runDamageZoneLifecycleRuntimeSmoke();
 runPlayerDamageRuntimeSmoke();
 runProceduralSpawnRuntimeSmoke();
 
@@ -2382,6 +2409,118 @@ function runMonsterSkillEventBuilderSmoke() {
   if (supportDisplay.texts.length !== 1 || supportDisplay.texts[0].id !== 30 || supportDisplay.texts[0].text !== "+25") throw new Error("monster support display builder changed heal text payload.");
   if (!supportDisplay.areaNova || supportDisplay.areaNova.id !== 8 || supportDisplay.areaNova.vfxKey !== "monster_heal_pulse") throw new Error("monster support display builder changed heal pulse payload.");
   if (supportDisplay.nextTextId !== 31 || supportDisplay.nextAreaNovaId !== 9) throw new Error("monster support display builder changed id advancement.");
+}
+
+function runDamageZoneLifecycleRuntimeSmoke() {
+  const outDir = join(root, ".vite", "damage-zone-lifecycle-smoke");
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  execFileSync(process.execPath, [
+    join(root, "node_modules", "typescript", "bin", "tsc"),
+    "webapp/runtime/damageZoneLifecycleRuntime.ts",
+    "--target", "ES2020",
+    "--module", "CommonJS",
+    "--moduleResolution", "Node",
+    "--skipLibCheck",
+    "--esModuleInterop",
+    "--resolveJsonModule",
+    "--outDir", outDir,
+    "--noEmitOnError", "true"
+  ], { cwd: root, encoding: "utf8" });
+
+  const runtime = require(join(outDir, "runtime", "damageZoneLifecycleRuntime.js"));
+  const baseEvent = {
+    event_id: "zone_smoke",
+    type: "damage_zone",
+    timestamp_ms: 1000,
+    source_entity: "player",
+    target_entity: "",
+    position: { x: 0, y: 0 },
+    direction: { x: 1, y: 0 },
+    delay_ms: 0,
+    duration_ms: 900,
+    amount: 40,
+    damage_type: "fire",
+    skill_instance_id: "skill_zone_smoke",
+    vfx_key: "fire_zone",
+    sfx_key: "",
+    reason_key: "",
+    payload: {
+      dynamic_tick_runtime: true,
+      tick_interval_ms: 300,
+      hit_at_ms: 300,
+      damage_amount: 40,
+      radius: 80,
+      max_targets: 2,
+      max_hits: 2,
+      max_hits_per_target: 1,
+      dynamic_tick_hit_vfx: true,
+      knockback_chance_percent: 100,
+      knockback_distance_add_percent: 50,
+      dynamic_buff_apply: {
+        chance_percent: 100,
+        duration_ms: 1200,
+        effect_per_stack: 8,
+        buff_type: "vulnerable"
+      },
+      aggravation_value: 20,
+      aggravation_cooldown_ms: 300,
+      dot_damage_bonus_per_10_aggravation_percent: 5
+    }
+  };
+  const zone = runtime.createActiveDamageZoneRuntime(baseEvent, "zone-a", { x: 10, y: 20 }, { x: 1, y: 0 }, "circle", 3);
+  if (!zone || zone.zoneId !== "zone-a" || zone.tickIntervalMs !== 300 || zone.nextTickMs !== 300) {
+    throw new Error("damage-zone lifecycle runtime must preserve zone id and first tick timing.");
+  }
+  const replaced = runtime.replaceActiveDamageZoneRuntime([{ ...zone, zoneId: "old" }, { ...zone, zoneId: "zone-a" }], zone);
+  if (replaced.length !== 2 || replaced[1].zoneId !== "zone-a") throw new Error("damage-zone lifecycle runtime must preserve unique zone replacement semantics.");
+  const tick = runtime.buildActiveDamageZoneRuntimeTickEvents(zone, {
+    player: { x: 10, y: 20 },
+    enemies: [{ id: 7, x: 50, y: 20, hp: 100 }, { id: 8, x: 150, y: 20, hp: 100 }],
+    frontendUniqueTargetsByDistance: (enemies, origin, radius, maxTargets) => enemies
+      .filter((enemy) => enemy.hp > 0 && Math.hypot(enemy.x - origin.x, enemy.y - origin.y) <= radius)
+      .slice(0, maxTargets),
+    damageNumberText: (amount) => String(Math.round(amount)),
+    stablePercent: () => 0,
+    frontendBaseKnockbackDistance: 36,
+    frontendKnockbackLockMs: 160
+  });
+  const tickTypes = tick.events.map((event) => event.type);
+  for (const expected of ["damage_zone_hit", "damage", "hit_vfx", "floating_text", "forced_movement", "buff_apply", "status_apply"]) {
+    if (!tickTypes.includes(expected)) throw new Error(`damage-zone lifecycle runtime missing tick event type: ${expected}`);
+  }
+  const damage = tick.events.find((event) => event.type === "damage");
+  if (damage.payload.zone_id !== "zone-a" || damage.payload.tick_time_ms !== 0 || damage.payload.damage_components.fire !== 40) {
+    throw new Error("damage-zone lifecycle runtime changed damage tick payload shape.");
+  }
+  const forcedMovement = tick.events.find((event) => event.type === "forced_movement");
+  if (forcedMovement.amount !== 54 || forcedMovement.payload.knockback_lock_ms !== 160 || forcedMovement.payload.movement_policy !== "push_along_direction") {
+    throw new Error("damage-zone lifecycle runtime changed knockback movement payload.");
+  }
+  if (tick.zone.totalHits !== 1 || tick.zone.hitCounts.get(7) !== 1) throw new Error("damage-zone lifecycle runtime must return updated hit counters.");
+  if (!runtime.damageZoneRectangleContains({ x: 50, y: 20 }, { x: 10, y: 20 }, { x: 1, y: 0 }, 60, 20)) {
+    throw new Error("damage-zone lifecycle runtime changed rectangle containment.");
+  }
+  if (runtime.damageZoneRectangleContains({ x: 50, y: 40 }, { x: 10, y: 20 }, { x: 1, y: 0 }, 60, 20)) {
+    throw new Error("damage-zone lifecycle runtime changed rectangle width filtering.");
+  }
+  const advanced = runtime.advanceActiveDamageZoneRuntime(zone, 300, (currentZone) => runtime.buildActiveDamageZoneRuntimeTickEvents(currentZone, {
+    player: { x: 10, y: 20 },
+    enemies: [{ id: 7, x: 50, y: 20, hp: 100 }],
+    frontendUniqueTargetsByDistance: (enemies) => enemies,
+    damageNumberText: (amount) => String(amount),
+    stablePercent: () => 100,
+    frontendBaseKnockbackDistance: 36,
+    frontendKnockbackLockMs: 160
+  }));
+  if (advanced.events.length < 3 || advanced.zone.tickIndex !== 1 || advanced.zone.nextTickMs !== 300) {
+    throw new Error("damage-zone lifecycle runtime changed dynamic tick advancement.");
+  }
+  const expired = runtime.advanceActiveDamageZoneRuntime({ ...zone, remainingMs: 100, nextTickMs: 500 }, 200, () => ({ zone, events: [] }));
+  if (expired.active) throw new Error("damage-zone lifecycle runtime must expire zones when remaining time reaches zero.");
+  if (runtime.activeDamageZoneTickProgressForZone({ ...zone, nextTickMs: 150, tickIntervalMs: 300 }) !== 0.5) {
+    throw new Error("damage-zone lifecycle runtime changed tick progress lookup math.");
+  }
 }
 
 function runPlayerDamageRuntimeSmoke() {

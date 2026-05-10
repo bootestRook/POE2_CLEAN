@@ -98,6 +98,13 @@ import {
   targetedEnemyForEvent
 } from "./runtime/projectileLifecycleRuntime";
 import {
+  activeDamageZoneTickProgressForZone,
+  advanceActiveDamageZoneRuntime,
+  buildActiveDamageZoneRuntimeTickEvents,
+  createActiveDamageZoneRuntime,
+  replaceActiveDamageZoneRuntime
+} from "./runtime/damageZoneLifecycleRuntime";
+import {
   buildFrontendChainSkillEvents as buildFrontendChainSkillEventsFromRuntime,
   buildFrontendDamageZoneSkillEvents as buildFrontendDamageZoneSkillEventsFromRuntime,
   buildFrontendMeleeArcSkillEvents as buildFrontendMeleeArcSkillEventsFromRuntime,
@@ -4382,38 +4389,9 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
   }
 
   function registerActiveDamageZone(event: SkillEvent, zoneId: string, origin: { x: number; y: number }, direction: { x: number; y: number }, shape: "circle" | "rectangle") {
-    if (event.type !== "damage_zone") return;
-    const payload = event.payload ?? {};
-    if (payload.dynamic_tick_runtime !== true) return;
-    const tickIntervalMs = Math.max(0, Math.round(Number(payload.tick_interval_ms ?? 0)));
-    const damageAmount = Math.max(0, Number(payload.damage_amount ?? event.amount ?? 0));
-    if (tickIntervalMs <= 0 || event.duration_ms <= 0 || damageAmount <= 0) return;
-    const firstTickMs = Math.max(0, Math.round(Number(payload.hit_at_ms ?? tickIntervalMs)));
-    const runtime: ActiveDamageZoneRuntime = {
-      zoneId,
-      event,
-      payload,
-      origin,
-      direction,
-      shape,
-      radius: Math.max(1, Number(payload.radius ?? 120)),
-      length: Math.max(1, Number(payload.length ?? payload.radius ?? 160)),
-      width: Math.max(1, Number(payload.width ?? payload.radius ?? 80)),
-      followPlayer: event.source_entity === "player" && payload.origin_policy === "caster",
-      remainingMs: Math.max(0, event.duration_ms),
-      tickIntervalMs,
-      nextTickMs: firstTickMs > 0 ? firstTickMs : tickIntervalMs,
-      tickIndex: 0,
-      maxTargets: Math.max(1, Math.round(Number(payload.max_targets ?? (enemiesStateRef.current.length || 1)))),
-      maxHits: Math.max(1, Math.round(Number(payload.max_hits ?? Number.MAX_SAFE_INTEGER))),
-      maxHitsPerTarget: Math.max(1, Math.round(Number(payload.max_hits_per_target ?? Number.MAX_SAFE_INTEGER))),
-      totalHits: 0,
-      hitCounts: new Map()
-    };
-    activeDamageZones.current = [
-      ...activeDamageZones.current.filter((zone) => zone.zoneId !== zoneId),
-      runtime
-    ];
+    const runtime = createActiveDamageZoneRuntime(event, zoneId, origin, direction, shape, enemiesStateRef.current.length);
+    if (!runtime) return;
+    activeDamageZones.current = replaceActiveDamageZoneRuntime(activeDamageZones.current, runtime);
   }
 
   function updateActiveDamageZones(dt: number) {
@@ -4423,14 +4401,9 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     const remainingZones: ActiveDamageZoneRuntime[] = [];
     const tickEvents: SkillEvent[] = [];
     for (const zone of activeDamageZones.current) {
-      zone.remainingMs -= deltaMs;
-      zone.nextTickMs -= deltaMs;
-      while (zone.nextTickMs <= 0 && zone.remainingMs >= 0 && zone.tickIntervalMs > 0) {
-        zone.tickIndex += 1;
-        tickEvents.push(...activeDamageZoneRuntimeTickEvents(zone));
-        zone.nextTickMs += zone.tickIntervalMs;
-      }
-      if (zone.remainingMs > 0 && zone.totalHits < zone.maxHits) remainingZones.push(zone);
+      const advanced = advanceActiveDamageZoneRuntime(zone, deltaMs, activeDamageZoneRuntimeTickEvents);
+      tickEvents.push(...advanced.events);
+      if (advanced.active) remainingZones.push(advanced.zone);
     }
     activeDamageZones.current = remainingZones;
     if (tickEvents.length > 0) consumeSkillEventBatch(tickEvents);
@@ -4438,204 +4411,21 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
   }
 
   function activeDamageZoneRuntimeTickEvents(zone: ActiveDamageZoneRuntime) {
-    const origin = zone.followPlayer ? { x: playerStateRef.current.x, y: playerStateRef.current.y } : zone.origin;
-    const maxTargets = Math.max(1, zone.maxTargets);
-    const targets = zone.shape === "circle"
-      ? frontendUniqueTargetsByDistance(enemiesStateRef.current, origin, zone.radius, maxTargets)
-      : frontendUniqueTargetsByDistance(enemiesStateRef.current, origin, Math.max(zone.length, zone.width), maxTargets)
-          .filter((enemy) => damageZoneRectangleContains(enemy, origin, zone.direction, zone.length, zone.width));
-    const damageAmount = Math.max(0, Number(zone.payload.damage_amount ?? zone.event.amount ?? 0));
-    if (damageAmount <= 0 || targets.length === 0) return [];
-    const tickTimeMs = zone.tickIndex * zone.tickIntervalMs;
-    const events: SkillEvent[] = [];
-    for (const target of targets) {
-      if (zone.totalHits >= zone.maxHits) break;
-      const previousHits = zone.hitCounts.get(target.id) ?? 0;
-      if (previousHits >= zone.maxHitsPerTarget) continue;
-      zone.totalHits += 1;
-      zone.hitCounts.set(target.id, previousHits + 1);
-      const position = { x: target.x, y: target.y };
-      const direction = guideDirection(origin, target);
-      const tickDamageComponents = zone.payload.damage_components && typeof zone.payload.damage_components === "object" && !Array.isArray(zone.payload.damage_components)
-        ? zone.payload.damage_components
-        : { [zone.event.damage_type]: damageAmount };
-      const basePayload = {
-        ...zone.payload,
-        zone_id: zone.zoneId,
-        tick_index: zone.tickIndex,
-        tick_time_ms: tickTimeMs,
-        tick_interval_ms: zone.tickIntervalMs,
-        hit_world_position: position,
-        impact_world_position: position,
-        target_world_position: position,
-        origin_world_position: origin,
-        damage_components: tickDamageComponents,
-        armor_reduction_penetration_percent: zone.payload.armor_reduction_penetration_percent,
-        resistance_penetration_percent: zone.payload.resistance_penetration_percent,
-        cull_threshold_percent: zone.payload.cull_threshold_percent,
-        double_damage_chance_percent: zone.payload.double_damage_chance_percent,
-        hit_vfx_key: zone.event.vfx_key,
-        emit_hit_vfx: zone.payload.dynamic_tick_hit_vfx === true || zone.payload.emit_hit_vfx === true
-      };
-      const baseId = `${zone.event.event_id}.runtime_tick.${zone.tickIndex}.${target.id}`;
-      events.push({
-        ...zone.event,
-        event_id: `${baseId}.damage_zone_hit`,
-        type: "damage_zone_hit",
-        target_entity: String(target.id),
-        position,
-        direction,
-        delay_ms: 0,
-        duration_ms: 0,
-        amount: damageAmount,
-        payload: basePayload
-      });
-      events.push({
-        ...zone.event,
-        event_id: `${baseId}.damage`,
-        type: "damage",
-        target_entity: String(target.id),
-        position,
-        direction,
-        delay_ms: 0,
-        duration_ms: 0,
-        amount: damageAmount,
-        payload: basePayload
-      });
-      if (basePayload.emit_hit_vfx) {
-        events.push({
-          ...zone.event,
-          event_id: `${baseId}.hit_vfx`,
-          type: "hit_vfx",
-          target_entity: String(target.id),
-          position,
-          direction,
-          delay_ms: 0,
-          duration_ms: 420,
-          amount: null,
-          payload: basePayload
-        });
-      }
-      events.push({
-        ...zone.event,
-        event_id: `${baseId}.floating_text`,
-        type: "floating_text",
-        target_entity: String(target.id),
-        position: { x: position.x, y: position.y - 28 },
-        direction,
-        delay_ms: 0,
-        duration_ms: 800,
-        amount: damageAmount,
-        payload: { ...basePayload, text: damageNumberText(damageAmount) }
-      });
-      const knockbackChancePercent = clamp(Number(zone.payload.knockback_chance_percent ?? 0), 0, 100);
-      const knockbackDistanceAddPercent = Number(zone.payload.knockback_distance_add_percent ?? 0);
-      const knockbackDistance = FRONTEND_BASE_KNOCKBACK_DISTANCE * Math.max(0, 1 + knockbackDistanceAddPercent / 100);
-      if (knockbackChancePercent > 0 && knockbackDistance > 0 && stablePercent(`${baseId}.knockback`) <= knockbackChancePercent) {
-        const knockbackOrigin = playerStateRef.current;
-        const knockbackDirection = guideDirection(knockbackOrigin, target);
-        const knockbackPayload = {
-          ...basePayload,
-          origin_world_position: knockbackOrigin,
-          movement_policy: "push_along_direction",
-          movement_distance: knockbackDistance,
-          knockback_chance_percent: knockbackChancePercent,
-          knockback_distance_add_percent: knockbackDistanceAddPercent,
-          knockback_lock_ms: Number(zone.payload.knockback_lock_ms ?? FRONTEND_KNOCKBACK_LOCK_MS)
-        };
-        events.push({
-          ...zone.event,
-          event_id: `${baseId}.forced_movement`,
-          type: "forced_movement",
-          target_entity: String(target.id),
-          position,
-          direction: knockbackDirection,
-          delay_ms: 0,
-          duration_ms: 0,
-          amount: knockbackDistance,
-          payload: knockbackPayload
-        });
-        events.push({
-          ...zone.event,
-          event_id: `${baseId}.knockback_text`,
-          type: "floating_text",
-          target_entity: String(target.id),
-          position: { x: position.x, y: position.y - 52 },
-          direction: knockbackDirection,
-          delay_ms: 0,
-          duration_ms: 650,
-          amount: 0,
-          payload: { ...knockbackPayload, text: "\u51fb\u9000" }
-        });
-      }
-      const dynamicBuffApply = typeof zone.payload.dynamic_buff_apply === "object" && zone.payload.dynamic_buff_apply
-        ? zone.payload.dynamic_buff_apply as Record<string, unknown>
-        : null;
-      if (dynamicBuffApply && stablePercent(`${baseId}.buff_apply`) <= Number(dynamicBuffApply.chance_percent ?? 0)) {
-        events.push({
-          ...zone.event,
-          event_id: `${baseId}.buff_apply`,
-          type: "buff_apply",
-          target_entity: String(target.id),
-          position,
-          direction,
-          delay_ms: Math.max(0, Number(dynamicBuffApply.trigger_delay_ms ?? 0)),
-          duration_ms: Math.max(0, Number(dynamicBuffApply.duration_ms ?? 0)),
-          amount: null,
-          payload: {
-            ...basePayload,
-            trigger_event_type: dynamicBuffApply.trigger_event_type ?? "damage_zone_hit",
-            buff_type: dynamicBuffApply.buff_type ?? "",
-            effect_type: dynamicBuffApply.effect_type ?? "damage_taken_increase",
-            chance_percent: Number(dynamicBuffApply.chance_percent ?? 0),
-            effect_per_stack: Number(dynamicBuffApply.effect_per_stack ?? 0),
-            duration_ms: Math.max(0, Number(dynamicBuffApply.duration_ms ?? 0)),
-            source_skill_id: dynamicBuffApply.source_skill_id ?? zone.event.skill_instance_id
-          }
-        });
-      }
-      const aggravationValue = Number(zone.payload.aggravation_value ?? 0);
-      const aggravationCooldownMs = Math.max(1, Number(zone.payload.aggravation_cooldown_ms ?? 1000));
-      if (aggravationValue > 0 && tickTimeMs % aggravationCooldownMs === 0) {
-        events.push({
-          ...zone.event,
-          event_id: `${baseId}.status_apply`,
-          type: "status_apply",
-          target_entity: String(target.id),
-          position,
-          direction,
-          delay_ms: 0,
-          duration_ms: zone.event.duration_ms,
-          amount: null,
-          payload: {
-            ...basePayload,
-            status_type: "aggravation",
-            source_skill_id: zone.event.skill_instance_id,
-            base_value: aggravationValue,
-            effect_per_stack: Number(zone.payload.dot_damage_bonus_per_10_aggravation_percent ?? 0),
-            duration_ms: zone.event.duration_ms
-          }
-        });
-      }
-    }
-    return events;
-  }
-
-  function damageZoneRectangleContains(point: { x: number; y: number }, origin: { x: number; y: number }, direction: { x: number; y: number }, length: number, width: number) {
-    const facing = normalizedWorldDirection(direction);
-    const right = { x: -facing.y, y: facing.x };
-    const dx = point.x - origin.x;
-    const dy = point.y - origin.y;
-    const forward = dx * facing.x + dy * facing.y;
-    const lateral = dx * right.x + dy * right.y;
-    return forward >= 0 && forward <= length && Math.abs(lateral) <= width / 2;
+    return buildActiveDamageZoneRuntimeTickEvents(zone, {
+      player: playerStateRef.current,
+      enemies: enemiesStateRef.current,
+      frontendUniqueTargetsByDistance,
+      damageNumberText,
+      stablePercent,
+      frontendBaseKnockbackDistance: FRONTEND_BASE_KNOCKBACK_DISTANCE,
+      frontendKnockbackLockMs: FRONTEND_KNOCKBACK_LOCK_MS
+    });
   }
 
   function activeDamageZoneTickProgress(zoneId: string | undefined) {
     if (!zoneId) return undefined;
     const zone = activeDamageZones.current.find((item) => item.zoneId === zoneId);
-    if (!zone || zone.tickIntervalMs <= 0) return undefined;
-    return 1 - clamp(zone.nextTickMs / zone.tickIntervalMs, 0, 1);
+    return activeDamageZoneTickProgressForZone(zone);
   }
 
   function consumeSkillEvent(event: SkillEvent) {

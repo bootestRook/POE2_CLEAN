@@ -317,3 +317,21 @@
 - `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-projectile-lifecycle-extraction.out.log` and `artifacts/logs/runbat-projectile-lifecycle-extraction.err.log`.
 - Playable WebApp verification followed title, new save, rest area, map selection, battle entry, and repeated skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/projectile-lifecycle-extraction-playable-battle.png`.
 - Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, automatic skill release, and multiple kill entries.
+
+## 12.1-12.6 Damage-Zone Lifecycle Helper Ownership
+
+- `webapp/runtime/damageZoneLifecycleRuntime.ts` now owns deterministic active damage-zone helper code for runtime creation, zone id replacement, zone advancement and expiration, dynamic tick event construction, rectangle containment, and tick progress math.
+- The moved dynamic tick builder receives explicit player, enemy, target-selection, damage-text, stable-roll, and knockback timing inputs. It returns tick events plus an updated zone snapshot instead of mutating App refs.
+- Dynamic tick payload ownership now covers `damage_zone_hit`, `damage`, optional `hit_vfx`, floating text, knockback `forced_movement`, dynamic buff apply, aggravation `status_apply`, zone ids, tick timing fields, damage components, origin/impact/target positions, and hit counters.
+- `webapp/App.tsx` still owns `activeDamageZones.current`, scheduled event queue mutation, `consumeSkillEventBatch`, player/enemy refs, React visual state mutation, damage application, status application, forced-movement mutation, combat logs, drops, and map progression.
+- `webapp/smoke-test.mjs` now reads damage-zone lifecycle invariants from `webapp/runtime/damageZoneLifecycleRuntime.ts`, guards the module against App refs, setters, event consumption, storage, and backend API calls, and compiles/executes representative lifecycle cases.
+
+## 12.7 Damage-Zone Lifecycle Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.` The focused damage-zone lifecycle smoke compiled and executed `webapp/runtime/damageZoneLifecycleRuntime.ts` and covered unique zone replacement, expiration, dynamic tick generation, movement/status payloads, rectangle containment, hit counters, and tick progress.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-damage-zone-lifecycle-extraction.out.log` and `artifacts/logs/runbat-damage-zone-lifecycle-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, map entry, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/damage-zone-lifecycle-extraction-playable-battle.png`.
+- Screenshot/log observation: the battle view showed `map_001` running, two canvas elements, procedural spawn debug information, and the frontend-run combat feed line that monsters, kills, and drops are handled by the frontend.
+- Root artifact check found no root-level screenshots, logs, traces, or generated test output files.

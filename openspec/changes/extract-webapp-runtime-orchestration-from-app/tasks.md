@@ -104,13 +104,13 @@
 
 ## 12. Damage-Zone Lifecycle And Dynamic Tick Helper Extraction
 
-- [ ] 12.1 Identify deterministic active damage-zone lifecycle helpers still in App, including zone uniqueness, zone expiration, dynamic tick event creation, zone lookup, and repeated-zone payload shaping.
-- [ ] 12.2 Create or extend a focused runtime module for damage-zone lifecycle helpers.
-- [ ] 12.3 Move only helpers that accept active zone snapshots and explicit time/player/enemy inputs without mutating App refs.
-- [ ] 12.4 Preserve zone id behavior, expiration timing, dynamic tick interval behavior, movement payloads, status payloads, and damage event payloads.
-- [ ] 12.5 Keep `activeDamageZones` ref ownership, scheduled event queue mutation, `consumeSkillEventBatch`, and React visual state mutation App-owned during this batch.
-- [ ] 12.6 Add focused checks for unique zones, expiration, dynamic tick event generation, movement/status payload preservation, and zone lookup behavior.
-- [ ] 12.7 Run build, `npm test`, focused zone lifecycle checks, OpenSpec validation, and playable battle visual verification; commit the batch.
+- [x] 12.1 Identify deterministic active damage-zone lifecycle helpers still in App, including zone uniqueness, zone expiration, dynamic tick event creation, zone lookup, and repeated-zone payload shaping.
+- [x] 12.2 Create or extend a focused runtime module for damage-zone lifecycle helpers.
+- [x] 12.3 Move only helpers that accept active zone snapshots and explicit time/player/enemy inputs without mutating App refs.
+- [x] 12.4 Preserve zone id behavior, expiration timing, dynamic tick interval behavior, movement payloads, status payloads, and damage event payloads.
+- [x] 12.5 Keep `activeDamageZones` ref ownership, scheduled event queue mutation, `consumeSkillEventBatch`, and React visual state mutation App-owned during this batch.
+- [x] 12.6 Add focused checks for unique zones, expiration, dynamic tick event generation, movement/status payload preservation, and zone lookup behavior.
+- [x] 12.7 Run build, `npm test`, focused zone lifecycle checks, OpenSpec validation, and playable battle visual verification; commit the batch.
 
 ## 13. Runtime Queue And Event Consumer Adapter Review
 
