@@ -2,6 +2,7 @@ import type { Enemy } from "../types/enemyTypes";
 import type { PlayerRuntimeState, SkillEvent } from "../types/combatRuntimeTypes";
 import type { SkillPreview } from "../types/skillPreviewTypes";
 import { clamp, distance, guideDirection } from "../utils/math2d";
+import { frontendPlayableSkillRuntimeFamilyForBehavior } from "../frontendPlayableSkillRuntime";
 
 export type FrontendPlayableSkillPoint = { x: number; y: number };
 
@@ -35,6 +36,54 @@ export type FrontendPlayableSkillEventFactory = (
   durationMs?: number,
   delayMs?: number
 ) => SkillEvent;
+
+export type FrontendPlayableSkillDispatcherDeps = {
+  buildFrontendChainSkillEvents: (
+    skill: SkillPreview,
+    caster: PlayerRuntimeState,
+    initialTargets: Enemy[],
+    current: Enemy[]
+  ) => SkillEvent[];
+  buildFrontendDamageZoneSkillEvents: (
+    skill: SkillPreview,
+    caster: PlayerRuntimeState,
+    initialTargets: Enemy[],
+    current: Enemy[]
+  ) => SkillEvent[];
+  buildFrontendMeleeArcSkillEvents: (
+    skill: SkillPreview,
+    caster: PlayerRuntimeState,
+    initialTargets: Enemy[],
+    current: Enemy[]
+  ) => SkillEvent[];
+  buildFrontendModuleChainSkillEvents: (
+    skill: SkillPreview,
+    caster: PlayerRuntimeState,
+    initialTargets: Enemy[],
+    current: Enemy[]
+  ) => SkillEvent[];
+  buildFrontendNovaSkillEvents: (
+    skill: SkillPreview,
+    caster: PlayerRuntimeState,
+    current: Enemy[]
+  ) => SkillEvent[];
+  buildFrontendProjectileSkillEvents: (
+    skill: SkillPreview,
+    caster: PlayerRuntimeState,
+    initialTargets: Enemy[],
+    current: Enemy[]
+  ) => SkillEvent[];
+  frontendDamageEventsForTarget: (
+    skill: SkillPreview,
+    target: Enemy,
+    position: FrontendPlayableSkillPoint,
+    direction: FrontendPlayableSkillPoint,
+    amount: number,
+    hitConfig?: Record<string, unknown>
+  ) => SkillEvent[];
+  isProjectileSkillTemplate: (behaviorTemplate: string | undefined) => boolean;
+  skillHasProjectileDamageZoneModules: (skill: SkillPreview) => boolean;
+};
 
 export type FrontendProjectileSkillEventBuilderDeps = {
   convertedDamageType: (skill: SkillPreview, hitConfig?: Record<string, unknown>) => string;
@@ -133,6 +182,27 @@ export type FrontendAreaSkillEventBuilderDeps = Pick<
   isThundercloudSkill: (skill: SkillPreview) => boolean;
   statValue: (stats: SkillPreview["skill_stats"], statId: string) => number;
 };
+
+export function buildFrontendPlayableSkillEvents(
+  skill: SkillPreview,
+  caster: PlayerRuntimeState,
+  initialTargets: Enemy[],
+  current: Enemy[],
+  behavior: string | undefined,
+  deps: FrontendPlayableSkillDispatcherDeps
+) {
+  const runtimeFamily = frontendPlayableSkillRuntimeFamilyForBehavior(
+    deps.isProjectileSkillTemplate(behavior) ? "projectile" : behavior,
+    deps.skillHasProjectileDamageZoneModules(skill)
+  );
+  if (runtimeFamily === "module_chain") return deps.buildFrontendModuleChainSkillEvents(skill, caster, initialTargets, current);
+  if (runtimeFamily === "projectile") return deps.buildFrontendProjectileSkillEvents(skill, caster, initialTargets, current);
+  if (runtimeFamily === "chain") return deps.buildFrontendChainSkillEvents(skill, caster, initialTargets, current);
+  if (runtimeFamily === "damage_zone") return deps.buildFrontendDamageZoneSkillEvents(skill, caster, initialTargets, current);
+  if (runtimeFamily === "melee_arc") return deps.buildFrontendMeleeArcSkillEvents(skill, caster, initialTargets, current);
+  if (runtimeFamily === "player_nova") return deps.buildFrontendNovaSkillEvents(skill, caster, current);
+  return initialTargets.flatMap((target) => deps.frontendDamageEventsForTarget(skill, target, { x: target.x, y: target.y }, guideDirection(caster, target), skill.final_damage, skill.hit as Record<string, unknown>));
+}
 
 export function buildFrontendProjectileSkillEvents(
   skill: SkillPreview,

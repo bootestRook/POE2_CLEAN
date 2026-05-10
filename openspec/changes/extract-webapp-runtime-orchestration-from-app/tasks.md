@@ -65,12 +65,12 @@
 
 ## 8. Skill Event Dispatcher Boundary
 
-- [ ] 8.1 Review `buildFrontendPlayableSkillEvents` and related dispatcher logic after family event builders are extracted.
-- [ ] 8.2 Move dispatcher logic into a focused frontend playable runtime module only if it can receive all required inputs explicitly and return event timelines without App side effects.
-- [ ] 8.3 Preserve behavior-family routing, module lookup order, default fallbacks, cooldown/resource preconditions, and event ordering.
-- [ ] 8.4 Keep skill release orchestration, mana spending mutation, cooldown mutation, continuous-attack runtime state, and event timeline consumption in App unless explicitly moved in a later batch.
-- [ ] 8.5 Add smoke checks that representative skill families route through the focused dispatcher and that App calls the dispatcher instead of rebuilding family events locally.
-- [ ] 8.6 Run build, `npm test`, focused dispatcher checks, OpenSpec validation, and playable battle verification; commit the batch.
+- [x] 8.1 Review `buildFrontendPlayableSkillEvents` and related dispatcher logic after family event builders are extracted.
+- [x] 8.2 Move dispatcher logic into a focused frontend playable runtime module only if it can receive all required inputs explicitly and return event timelines without App side effects.
+- [x] 8.3 Preserve behavior-family routing, module lookup order, default fallbacks, cooldown/resource preconditions, and event ordering.
+- [x] 8.4 Keep skill release orchestration, mana spending mutation, cooldown mutation, continuous-attack runtime state, and event timeline consumption in App unless explicitly moved in a later batch.
+- [x] 8.5 Add smoke checks that representative skill families route through the focused dispatcher and that App calls the dispatcher instead of rebuilding family events locally.
+- [x] 8.6 Run build, `npm test`, focused dispatcher checks, OpenSpec validation, and playable battle verification; commit the batch.
 
 ## 9. Enemy Damage And Status Helper Extraction
 

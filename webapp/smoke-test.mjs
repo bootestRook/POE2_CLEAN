@@ -573,7 +573,8 @@ if (!applyEnemyStatusBuffBody.includes("setEnemies(next);")) {
   throw new Error("Enemy status buff React state must mirror the playable post-status snapshot.");
 }
 const releaseFrontendPlayableSkillBody = functionBody(app, "releaseFrontendPlayableSkill");
-const buildFrontendPlayableSkillEventsBody = functionBody(app, "buildFrontendPlayableSkillEvents");
+const buildFrontendPlayableSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendPlayableSkillEvents");
+const buildFrontendPlayableSkillEventsAdapterBody = functionBody(app, "buildFrontendPlayableSkillEvents");
 for (const forbidden of ["releaseFrontendCanonicalSkill", "buildFrontendCanonicalSkillEvents"]) {
   if (webappSourceText.includes(forbidden)) {
     throw new Error(`Playable frontend skill runtime must not use backend-canonical entrypoint naming: ${forbidden}`);
@@ -581,16 +582,19 @@ for (const forbidden of ["releaseFrontendCanonicalSkill", "buildFrontendCanonica
 }
 for (const token of [
   "frontendPlayableSkillRuntimeFamilyForBehavior",
-  "buildFrontendModuleChainSkillEvents",
-  "buildFrontendProjectileSkillEvents",
-  "buildFrontendChainSkillEvents",
-  "buildFrontendDamageZoneSkillEvents",
-  "buildFrontendMeleeArcSkillEvents",
-  "buildFrontendNovaSkillEvents"
+  "deps.buildFrontendModuleChainSkillEvents",
+  "deps.buildFrontendProjectileSkillEvents",
+  "deps.buildFrontendChainSkillEvents",
+  "deps.buildFrontendDamageZoneSkillEvents",
+  "deps.buildFrontendMeleeArcSkillEvents",
+  "deps.buildFrontendNovaSkillEvents"
 ]) {
   if (!buildFrontendPlayableSkillEventsBody.includes(token)) {
     throw new Error(`Frontend playable skill dispatcher must route through ${token}.`);
   }
+}
+if (!buildFrontendPlayableSkillEventsAdapterBody.includes("buildFrontendPlayableSkillEventsFromRuntime")) {
+  throw new Error("App playable skill dispatcher must adapt the focused runtime dispatcher.");
 }
 for (const token of [
   "FRONTEND_PLAYABLE_SKILL_RUNTIME_MODULES",

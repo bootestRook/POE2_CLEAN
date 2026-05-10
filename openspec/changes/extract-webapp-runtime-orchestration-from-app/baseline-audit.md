@@ -247,3 +247,21 @@
 - `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-area-builder-extraction.out.log` and `artifacts/logs/runbat-area-builder-extraction.err.log`.
 - Playable WebApp verification followed title, new save, rest area, map selection, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/area-builder-extraction-playable-battle.png`.
 - Screenshot observation: the battle view showed `map_001` running, procedural spawn debug information, two canvas elements, and the frontend-run combat feed line for monsters, kills, and drops.
+
+## 8.1-8.5 Dispatcher Boundary
+
+- `buildFrontendPlayableSkillEvents` moved into `webapp/runtime/frontendPlayableSkillEventBuilders.ts`.
+- The moved dispatcher receives explicit family builder callbacks plus `frontendDamageEventsForTarget`, `isProjectileSkillTemplate`, and `skillHasProjectileDamageZoneModules`.
+- The dispatcher preserves family resolution through `frontendPlayableSkillRuntimeFamilyForBehavior`, module-chain precedence through the projectile damage-zone module check, projectile/chain/damage-zone/melee/nova routing, and direct-hit fallback event creation.
+- `webapp/App.tsx` keeps `releaseFrontendPlayableSkill`, guard runtime handling, target collection, mana spending, cooldown and continuous-attack runtime ownership, event timeline consumption, scheduled queues, combat logs, and all state mutation.
+- `webapp/smoke-test.mjs` now reads dispatcher route tokens from `webapp/runtime/frontendPlayableSkillEventBuilders.ts` and checks that App calls `buildFrontendPlayableSkillEventsFromRuntime`.
+
+## 8.6 Dispatcher Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- Focused dispatcher check confirmed family routing tokens live in the runtime builder owner and that release, timeline consumption, state mutation, storage, and backend API tokens were not introduced into the dispatcher module.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-dispatcher-extraction.out.log` and `artifacts/logs/runbat-dispatcher-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection, battle entry, and hotkey skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/dispatcher-extraction-playable-battle.png`.
+- Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, automatic skill releases, direct hit/critical hit log entries, a kill entry, and a dropped item entry.

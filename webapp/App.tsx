@@ -78,6 +78,7 @@ import {
   buildFrontendMeleeArcSkillEvents as buildFrontendMeleeArcSkillEventsFromRuntime,
   buildFrontendModuleChainSkillEvents as buildFrontendModuleChainSkillEventsFromRuntime,
   buildFrontendNovaSkillEvents as buildFrontendNovaSkillEventsFromRuntime,
+  buildFrontendPlayableSkillEvents as buildFrontendPlayableSkillEventsFromRuntime,
   buildFrontendProjectileSkillEvents as buildFrontendProjectileSkillEventsFromRuntime
 } from "./runtime/frontendPlayableSkillEventBuilders";
 import {
@@ -150,7 +151,6 @@ import { MONSTER_GEOMETRY_VISUALS, MONSTER_RARITY_VISUALS, resolveMonsterGeometr
 import {
   UnitDirection,
 } from "./unitAssets";
-import { frontendPlayableSkillRuntimeFamilyForBehavior } from "./frontendPlayableSkillRuntime";
 import { FRONTEND_GEM_DROP_POOL } from "./frontendGemDropData";
 import { FRONTEND_INITIAL_APP_STATE } from "./frontendGameData";
 import {
@@ -3834,17 +3834,17 @@ function frontendDamageEventsForTarget(
     current: Enemy[],
     behavior: string | undefined
   ) {
-    const runtimeFamily = frontendPlayableSkillRuntimeFamilyForBehavior(
-      isProjectileSkillTemplate(behavior) ? "projectile" : behavior,
-      skillHasProjectileDamageZoneModules(skill)
-    );
-    if (runtimeFamily === "module_chain") return buildFrontendModuleChainSkillEvents(skill, caster, initialTargets, current);
-    if (runtimeFamily === "projectile") return buildFrontendProjectileSkillEvents(skill, caster, initialTargets, current);
-    if (runtimeFamily === "chain") return buildFrontendChainSkillEvents(skill, caster, initialTargets, current);
-    if (runtimeFamily === "damage_zone") return buildFrontendDamageZoneSkillEvents(skill, caster, initialTargets, current);
-    if (runtimeFamily === "melee_arc") return buildFrontendMeleeArcSkillEvents(skill, caster, initialTargets, current);
-    if (runtimeFamily === "player_nova") return buildFrontendNovaSkillEvents(skill, caster, current);
-    return initialTargets.flatMap((target) => frontendDamageEventsForTarget(skill, target, { x: target.x, y: target.y }, guideDirection(caster, target), skill.final_damage, skill.hit as Record<string, unknown>));
+    return buildFrontendPlayableSkillEventsFromRuntime(skill, caster, initialTargets, current, behavior, {
+      buildFrontendChainSkillEvents,
+      buildFrontendDamageZoneSkillEvents,
+      buildFrontendMeleeArcSkillEvents,
+      buildFrontendModuleChainSkillEvents,
+      buildFrontendNovaSkillEvents,
+      buildFrontendProjectileSkillEvents,
+      frontendDamageEventsForTarget,
+      isProjectileSkillTemplate,
+      skillHasProjectileDamageZoneModules
+    });
   }
 
   function hitEnemies(current: Enemy[], skill: SkillPreview, options: { isContinuousRepeat?: boolean } = {}) {
