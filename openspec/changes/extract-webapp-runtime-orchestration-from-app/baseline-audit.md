@@ -198,3 +198,10 @@
 - `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
 - `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
 - `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+
+## 6.4 Projectile And Chain Payload Preservation
+
+- `webapp/runtime/frontendPlayableSkillEventBuilders.ts` owns projectile event construction tokens for `projectile_spawn`, `projectile_hit`, `hit_vfx`, `floating_text`, `projectile_id`, `projectile_index`, `projectile_count`, `projectile_continues`, positions, velocity, widths, heights, impact radius, lifetime, damage components, forced element payloads, shotgun sequence, and on-kill explosion payloads.
+- The same module owns chain payload tokens for `chain_segment`, `segment_id`, `segment_index`, start/end/target positions, segment hit timing, chain damage payloads, and hit VFX keys.
+- The same module owns module-chain payload tokens for projectile spawn/impact, corrosive ground `damage_zone`, dynamic tick runtime fields, zone hit events, buff apply payloads, and zone damage components.
+- `webapp/App.tsx` now keeps thin adapters that pass explicit dependencies into the runtime builder module and still owns timeline consumption, state mutation, refs, and scheduling.
