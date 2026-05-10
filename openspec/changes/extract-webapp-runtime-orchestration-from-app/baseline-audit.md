@@ -205,3 +205,10 @@
 - The same module owns chain payload tokens for `chain_segment`, `segment_id`, `segment_index`, start/end/target positions, segment hit timing, chain damage payloads, and hit VFX keys.
 - The same module owns module-chain payload tokens for projectile spawn/impact, corrosive ground `damage_zone`, dynamic tick runtime fields, zone hit events, buff apply payloads, and zone damage components.
 - `webapp/App.tsx` now keeps thin adapters that pass explicit dependencies into the runtime builder module and still owns timeline consumption, state mutation, refs, and scheduling.
+
+## 6.5 App-Owned Side Effects Retained
+
+- `consumeSkillEventTimeline`, `consumeSkillEvent`, `consumeSkillEventBatch`, `consumeImmediateSkillEvents`, `consumeScheduledSkillEvents`, `processFrontendProjectileImpacts`, `activeDamageZoneRuntimeTickEvents`, and `applyDamageEventBatch` remain in `webapp/App.tsx`.
+- React setters for texts, bolts, enemies, hit VFX, area novas, melee arcs, chain segments, damage zones, player state, combat logs, drops, and map progression remain in `webapp/App.tsx`.
+- Runtime refs including scheduled skill events, active damage zones, projectile/damage-zone queues, player/enemy refs, cooldown/continuous attack refs, and boss/monster skill timers remain in `webapp/App.tsx`.
+- The extracted builder module returns event arrays only; it does not call setters, mutate refs, write storage, consume timelines, apply damage, or schedule events.
