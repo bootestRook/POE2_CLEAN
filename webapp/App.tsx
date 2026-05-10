@@ -4364,21 +4364,6 @@ function frontendDamageEventsForTarget(
     activeDamageZones.current = replaceActiveDamageZoneRuntime(activeDamageZones.current, runtime);
   }
 
-  function updateActiveDamageZonesImpl(dt: number) {
-    if (activeDamageZones.current.length === 0) return 0;
-    const deltaMs = Math.max(0, Math.round(dt * 1000));
-    if (deltaMs <= 0) return 0;
-    const remainingZones: ActiveDamageZoneRuntime[] = [];
-    const tickEvents: SkillEvent[] = [];
-    for (const zone of activeDamageZones.current) {
-      const advanced = advanceActiveDamageZoneRuntime(zone, deltaMs, activeDamageZoneRuntimeTickEvents);
-      tickEvents.push(...advanced.events);
-      if (advanced.active) remainingZones.push(advanced.zone);
-    }
-    activeDamageZones.current = remainingZones;
-    if (tickEvents.length > 0) consumeSkillEventBatch(tickEvents);
-    return tickEvents.length;
-  }
 
   function activeDamageZoneRuntimeTickEvents(zone: ActiveDamageZoneRuntime) {
     return buildActiveDamageZoneRuntimeTickEvents(zone, {
@@ -4518,8 +4503,10 @@ function frontendDamageEventsForTarget(
         setBolts,
         setTexts
       },
-      updateActiveDamageZones: updateActiveDamageZonesImpl,
+      updateActiveDamageZones: () => 0,
       consumeSkillEventBatch: () => undefined,
+      activeDamageZoneRuntimeTickEvents,
+      advanceActiveDamageZoneRuntime,
       applyChannelMovementBuff,
       applyDamageEventBatch,
       applyEnemyBuffApplyEvent,

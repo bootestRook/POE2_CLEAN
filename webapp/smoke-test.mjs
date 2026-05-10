@@ -28,6 +28,7 @@ const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "m
 const frontendPlayableSkillEventBuilders = readFileSync(join(root, "webapp", "runtime", "frontendPlayableSkillEventBuilders.ts"), "utf8");
 const projectileLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "projectileLifecycleRuntime.ts"), "utf8");
 const damageZoneLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "damageZoneLifecycleRuntime.ts"), "utf8");
+const skillEventConsumerRuntime = readFileSync(join(root, "webapp", "runtime", "skillEventConsumerRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const bossSkillConstants = readFileSync(join(root, "webapp", "runtime", "bossSkillConstants.ts"), "utf8");
 const monsterStatConstants = readFileSync(join(root, "webapp", "runtime", "monsterStatConstants.ts"), "utf8");
@@ -534,9 +535,9 @@ if (!app.includes("const movementLength = Math.hypot(dx, dy);")
   throw new Error("Continuous attack repeats must keep playing while the player moves.");
 }
 
-const projectileImpactHandler = app.slice(
-  app.indexOf('if (event.type === "projectile_impact")'),
-  app.indexOf('if (event.type === "melee_arc")')
+const projectileImpactHandler = skillEventConsumerRuntime.slice(
+  skillEventConsumerRuntime.indexOf('if (event.type === "projectile_impact")'),
+  skillEventConsumerRuntime.indexOf('if (event.type === "melee_arc")')
 );
 if (!projectileImpactHandler.includes("targetId: hitVfxTargetId(event)")) {
   throw new Error("Projectile impact hit VFX must carry targetId so it anchors to the hit target center.");
@@ -558,7 +559,7 @@ if (!advanceEnemyBuffsBody.includes("if (enemy.hp <= 0)")) {
 if (!advanceEnemyBuffsBody.includes("activeBuffs: hp <= 0 ? [] : activeBuffs")) {
   throw new Error("Enemy DoT kills must clear status buffs after the lethal tick.");
 }
-const consumeSkillEventBatchBody = functionBody(app, "consumeSkillEventBatch");
+const consumeSkillEventBatchBody = functionBody(skillEventConsumerRuntime, "consumeSkillEventBatch");
 if (!consumeSkillEventBatchBody.includes("projectileTargetFollowupKey(event)")) {
   throw new Error("Projectile follow-up suppression must be scoped by projectile and target, not projectile id alone.");
 }
@@ -860,25 +861,25 @@ for (const token of [
     throw new Error(`Forced movement consumer must use current enemy positions and radius filtering: ${token}`);
   }
 }
-const consumeSkillEventTimelineBody = functionBody(app, "consumeSkillEventTimeline");
+const consumeSkillEventTimelineBody = functionBody(skillEventConsumerRuntime, "consumeSkillEventTimeline");
 for (const token of ["scheduledSkillEvents.current.push", "consumeSkillEventBatch(immediate)"]) {
   if (!consumeSkillEventTimelineBody.includes(token)) {
-    throw new Error(`App must intentionally retain timeline queue ownership: ${token}`);
+    throw new Error(`Skill event consumer owner must retain timeline queue ownership: ${token}`);
   }
 }
-const consumeScheduledSkillEventsBody = functionBody(app, "consumeScheduledSkillEvents");
+const consumeScheduledSkillEventsBody = functionBody(skillEventConsumerRuntime, "consumeScheduledSkillEvents");
 for (const token of ["scheduledSkillEvents.current", "const remaining = scheduled.remaining - dt", "consumeSkillEventBatch(ready)"]) {
   if (!consumeScheduledSkillEventsBody.includes(token)) {
-    throw new Error(`App must intentionally retain scheduled event consumption: ${token}`);
+    throw new Error(`Skill event consumer owner must retain scheduled event consumption: ${token}`);
   }
 }
-const updateActiveDamageZonesBody = functionBody(app, "updateActiveDamageZones");
+const updateActiveDamageZonesBody = functionBody(skillEventConsumerRuntime, "updateActiveDamageZones");
 for (const token of ["activeDamageZones.current", "advanceActiveDamageZoneRuntime", "consumeSkillEventBatch(tickEvents)"]) {
   if (!updateActiveDamageZonesBody.includes(token)) {
-    throw new Error(`App must intentionally retain active damage-zone queue mutation: ${token}`);
+    throw new Error(`Skill event consumer owner must retain active damage-zone queue mutation: ${token}`);
   }
 }
-const consumeSkillEventBatchOwnershipBody = functionBody(app, "consumeSkillEventBatch");
+const consumeSkillEventBatchOwnershipBody = functionBody(skillEventConsumerRuntime, "consumeSkillEventBatch");
 for (const token of [
   "projectedEnemyHp",
   "liveProjectileHits",
@@ -894,7 +895,13 @@ for (const token of [
   "applyDamageEventBatch(damageEvents)"
 ]) {
   if (!consumeSkillEventBatchOwnershipBody.includes(token)) {
-    throw new Error(`App event consumer boundary must retain coupled playable side effect: ${token}`);
+    throw new Error(`Skill event consumer boundary must retain coupled playable side effect: ${token}`);
+  }
+}
+const appEventConsumerWiringBody = functionBody(app, "skillEventConsumerRuntime");
+for (const token of ["createSkillEventConsumerRuntime", "scheduledSkillEvents", "activeDamageZones", "enemiesStateRef", "playerStateRef", "setBolts", "setTexts", "applyDamageEventBatch"]) {
+  if (!appEventConsumerWiringBody.includes(token)) {
+    throw new Error(`App must wire the skill event consumer owner explicitly: ${token}`);
   }
 }
 const applyDamageEventBatchBodyForOwnership = functionBody(app, "applyDamageEventBatch");
@@ -2096,7 +2103,7 @@ const monsterSkillStaticChecks = [
   [app, "monsterSkillsConfig", "App must load local monster skill config."],
   [app, "updateMonsterSkillRuntime", "App must dispatch monster skills in the battle runtime."],
   [app, "nextMonsterSkillCandidate", "Monster skill runtime must gate release by range, cooldown, and aggro."],
-  [app, "player_leash_range", "Monster skill projectiles must carry finite leash range."],
+  [skillEventConsumerRuntime, "player_leash_range", "Monster skill projectiles must carry finite leash range."],
   [app, "activeMonsterSkillUntilMs", "Runtime enemies must expose active monster skill lock timing."],
   [app, "bossPatternId", "Boss enemies must carry data-driven boss pattern identity."],
   [app, "monsterSkillModule", "Runtime enemies must carry materialized monster skill module identity."],

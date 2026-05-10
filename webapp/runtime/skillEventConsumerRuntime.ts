@@ -63,6 +63,8 @@ export function createSkillEventConsumerRuntime(deps: SkillEventConsumerRuntimeD
     applyEnemyStatusBuff,
     applyForcedMovementEvent,
     applyPlayerStatusBuffEvent,
+    activeDamageZoneRuntimeTickEvents,
+    advanceActiveDamageZoneRuntime,
     capRuntimeVisualBudget,
     clamp,
     damageDisplayKey,
@@ -159,7 +161,19 @@ export function createSkillEventConsumerRuntime(deps: SkillEventConsumerRuntimeD
   }
 
   function updateActiveDamageZones(dt: number) {
-    return deps.updateActiveDamageZones(dt);
+    if (activeDamageZones.current.length === 0) return 0;
+    const deltaMs = Math.max(0, Math.round(dt * 1000));
+    if (deltaMs <= 0) return 0;
+    const remainingZones: ActiveDamageZoneRuntime[] = [];
+    const tickEvents: SkillEvent[] = [];
+    for (const zone of activeDamageZones.current) {
+      const advanced = advanceActiveDamageZoneRuntime(zone, deltaMs, activeDamageZoneRuntimeTickEvents);
+      tickEvents.push(...advanced.events);
+      if (advanced.active) remainingZones.push(advanced.zone);
+    }
+    activeDamageZones.current = remainingZones;
+    if (tickEvents.length > 0) consumeSkillEventBatch(tickEvents);
+    return tickEvents.length;
   }
 
   function consumeSkillEvent(event: SkillEvent) {
