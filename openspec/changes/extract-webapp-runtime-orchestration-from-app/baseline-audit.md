@@ -148,3 +148,12 @@
 - Skill-editor timeline, skill-test dummy, monster-test spawn offsets, monster-test level/player life, and encounter palette constants remain in App because they are disabled-tooling/test/debug-adjacent and not part of the runtime owner extracted in this batch.
 - Boss pack id lists and supreme boss config constants remain in App because they are tied to map-run stage selection, local config loading, and boss runtime orchestration rather than pure constant ownership alone.
 - Keyboard pickup and click interaction radii remain in App because they sit in pickup/input orchestration that this pass has not moved.
+
+## 4.6 Constant Extraction Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` flow launched the WebApp on `http://127.0.0.1:8766/`; logs were stored under `artifacts/logs/`.
+- Playable WebApp browser verification captured `artifacts/screenshots/runtime-constants-playable-battle-final.png`.
+- Screenshot observation: `map_001` was running in the playable battle view, procedural spawn debug information was visible, two canvas elements were present, and the combat feed reported that monsters, kills, and drops are frontend-run.
