@@ -169,11 +169,11 @@
 
 ## 18. Completion Review
 
-- [ ] 18.1 Review final `webapp/App.tsx` size, line count, and responsibility map against the target for this change.
-- [ ] 18.2 Confirm moved type/constant/runtime helper/event builder owners are searchable in focused modules.
-- [ ] 18.3 Confirm remaining App code is mode routing, cross-domain state/ref initialization, callback wiring, save/rest/map flow orchestration, event consumer/runtime refs intentionally retained, or explicitly deferred runtime ownership.
-- [ ] 18.4 Confirm frontend playable skill runtime remains client-owned and no backend/canonical naming regression was introduced.
-- [ ] 18.5 Confirm no gameplay balance, save-schema, storage-key, CSS, copy, dependency, backend, server runtime, root artifact, or skill-editor acceptance change was introduced.
-- [ ] 18.6 Record final App responsibility summary and intentionally deferred runtime ownership in this change's implementation notes.
-- [ ] 18.7 Run `cmd /c npm run build`, `npm test`, focused runtime checks, and `openspec validate extract-webapp-runtime-orchestration-from-app --strict`.
-- [ ] 18.8 Commit the completion review.
+- [x] 18.1 Review final `webapp/App.tsx` size, line count, and responsibility map against the target for this change.
+- [x] 18.2 Confirm moved type/constant/runtime helper/event builder owners are searchable in focused modules.
+- [x] 18.3 Confirm remaining App code is mode routing, cross-domain state/ref initialization, callback wiring, save/rest/map flow orchestration, event consumer/runtime refs intentionally retained, or explicitly deferred runtime ownership.
+- [x] 18.4 Confirm frontend playable skill runtime remains client-owned and no backend/canonical naming regression was introduced.
+- [x] 18.5 Confirm no gameplay balance, save-schema, storage-key, CSS, copy, dependency, backend, server runtime, root artifact, or skill-editor acceptance change was introduced.
+- [x] 18.6 Record final App responsibility summary and intentionally deferred runtime ownership in this change's implementation notes.
+- [x] 18.7 Run `cmd /c npm run build`, `npm test`, focused runtime checks, and `openspec validate extract-webapp-runtime-orchestration-from-app --strict`.
+- [x] 18.8 Commit the completion review.

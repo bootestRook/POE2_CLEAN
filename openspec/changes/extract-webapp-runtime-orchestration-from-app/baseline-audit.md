@@ -413,3 +413,22 @@
 - Additional return-flow screenshot was captured at `artifacts/screenshots/final-verification-return-flow.png`; it showed the pause menu before the corrected exit click.
 - Root artifact check found no root-level screenshots, logs, traces, or generated test output files.
 - Verification did not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, `dist-skill-editor`, backend-only runtime reports, or Python-only runtime tests as acceptance evidence.
+
+## 18.1-18.8 Completion Review
+
+- Final `webapp/App.tsx` size: 362,032 bytes / 353.55 KiB / 7,955 lines.
+- App is now below the earlier 400 KiB concern, but size was not the only acceptance target. Remaining App responsibilities are intentionally App-owned: top-level `App`/`GameApp` routing, cross-domain React state/ref initialization, callback adapters, save/rest/map flow orchestration, runtime queue refs, event consumer side effects, battle-loop frame orchestration, map progression, pickup/drop flow, boss portal flow, and explicit deferred runtime boundaries.
+- Searchable moved owners now exist for:
+  - Skill/event and runtime shapes: `webapp/types/skillEventTypes.ts`, `webapp/types/damageZoneRuntimeTypes.ts`, `webapp/types/combatRuntimeTypes.ts`, `webapp/types/skillPreviewTypes.ts`.
+  - Stable constants: `webapp/runtime/bossSkillConstants.ts`, `webapp/runtime/monsterStatConstants.ts`, `webapp/runtime/runtimeTimingConstants.ts`.
+  - Frontend playable event builders and dispatcher: `webapp/runtime/frontendPlayableSkillEventBuilders.ts`.
+  - Enemy damage/status/resource helpers: `webapp/runtime/enemyDamageRuntime.ts`.
+  - Player damage/resource helpers: `webapp/runtime/playerDamageRuntime.ts`.
+  - Projectile lifecycle helpers: `webapp/runtime/projectileLifecycleRuntime.ts`.
+  - Damage-zone lifecycle helpers: `webapp/runtime/damageZoneLifecycleRuntime.ts`.
+- Frontend playable skill runtime remains client-owned. No backend API, server runtime, Python `SkillRuntime`, or backend-canonical playable naming path was introduced.
+- No gameplay balance, save-schema, storage-key, CSS, copy, dependency, backend, server runtime, root artifact, or skill-editor acceptance change was introduced.
+- Intentionally deferred ownership after this change: `consumeSkillEventTimeline`, `consumeScheduledSkillEvents`, `consumeSkillEventBatch`, `applyDamageEventBatch`, player/enemy status application, forced movement mutation, kill/drop progression, `stepGame`, animation-frame tick orchestration, battle-loop state/ref mutation, pickup/portal flow, map progression, and visual TTL advancement.
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.` This included focused runtime checks.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
