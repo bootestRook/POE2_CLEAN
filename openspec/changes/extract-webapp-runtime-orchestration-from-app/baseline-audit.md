@@ -229,3 +229,21 @@
 - `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-builder-extraction.out.log` and `artifacts/logs/runbat-builder-extraction.err.log`.
 - Playable WebApp verification followed title, new save, rest area, map selection, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/builder-extraction-playable-battle.png`.
 - Screenshot observation: the battle view showed `map_001` running, procedural spawn debug information, two canvas elements, and the frontend-run combat feed line for monsters, kills, and drops.
+
+## 7.1-7.4 Damage-Zone, Melee, Nova, Status, And Movement Builder Ownership
+
+- `webapp/runtime/frontendPlayableSkillEventBuilders.ts` now also owns `buildFrontendDamageZoneSkillEvents`, `buildFrontendMeleeArcSkillEvents`, and `buildFrontendNovaSkillEvents`.
+- Damage-zone builder ownership now covers zone ids, origin policy, radius, ring width, tick interval/count, duration, max hit fields, dynamic tick flags, channel stack/radius scale fields, damage components, reverse pull `forced_movement` payloads, static tick damage-zone hits, and aggravation `status_apply` payloads.
+- Melee-arc builder ownership now covers arc radius/angle, slash VFX key, hit timing, origin/direction payloads, slash-trigger roll result, flame-wave arc payloads, sequence fields, and shotgun falloff fields.
+- Nova builder ownership now covers area spawn id, center policy, radius, ring width, expand duration, on-kill recast fields, suppress-hit-VFX flag, and per-target damage payloads.
+- `webapp/App.tsx` keeps thin adapters that pass explicit dependencies into these builders and still owns active damage-zone refs, scheduled event queues, dynamic tick consumption, status application mutation, forced-movement mutation, player/enemy state mutation, combat logs, drops, and map progression.
+
+## 7.6-7.7 Area Builder Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- Focused builder source check confirmed representative damage-zone, damage-zone hit, melee-arc, area-spawn, status-apply, forced-movement, movement-scope, channel, flame-wave, and on-kill recast payload tokens live in `webapp/runtime/frontendPlayableSkillEventBuilders.ts`, with no setter, event-consumer, storage, backend API, `SkillRuntime`, or `CombatSession` matches in that module.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-area-builder-extraction.out.log` and `artifacts/logs/runbat-area-builder-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/area-builder-extraction-playable-battle.png`.
+- Screenshot observation: the battle view showed `map_001` running, procedural spawn debug information, two canvas elements, and the frontend-run combat feed line for monsters, kills, and drops.

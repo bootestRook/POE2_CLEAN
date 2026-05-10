@@ -656,11 +656,14 @@ for (const adapterToken of [
   "buildFrontendProjectileSkillEventsFromRuntime",
   "buildFrontendChainSkillEventsFromRuntime",
   "buildFrontendModuleChainSkillEventsFromRuntime",
+  "buildFrontendDamageZoneSkillEventsFromRuntime",
+  "buildFrontendMeleeArcSkillEventsFromRuntime",
+  "buildFrontendNovaSkillEventsFromRuntime",
   "elapsedRef.current * 1000"
 ]) {
   if (!app.includes(adapterToken)) throw new Error(`App must adapt playable builder dependencies explicitly: ${adapterToken}`);
 }
-const buildFrontendDamageZoneSkillEventsBody = functionBody(app, "buildFrontendDamageZoneSkillEvents");
+const buildFrontendDamageZoneSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendDamageZoneSkillEvents");
 for (const token of [
   "dynamic_tick_runtime: useDynamicTickRuntime",
   "movement_policy: \"pull_to_origin\"",
@@ -698,9 +701,13 @@ for (const token of [
   }
 }
 const buildFrontendMeleeArcSkillEventsBody = functionBody(app, "buildFrontendMeleeArcSkillEvents");
-const buildFrontendNovaSkillEventsBody = functionBody(app, "buildFrontendNovaSkillEvents");
+const buildFrontendMeleeArcRuntimeEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendMeleeArcSkillEvents");
+const buildFrontendNovaSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendNovaSkillEvents");
+if (!buildFrontendMeleeArcSkillEventsBody.includes("buildFrontendMeleeArcSkillEventsFromRuntime")) {
+  throw new Error("App melee-arc builder must adapt the focused runtime builder.");
+}
 for (const token of ["melee_arc", "frontendMeleeArcTargets", "frontendDamageEventsForTarget"]) {
-  if (!buildFrontendMeleeArcSkillEventsBody.includes(token)) throw new Error(`Melee-arc frontend runtime coverage missing ${token}.`);
+  if (!buildFrontendMeleeArcRuntimeEventsBody.includes(token)) throw new Error(`Melee-arc frontend runtime coverage missing ${token}.`);
 }
 for (const token of ["area_spawn", "on_kill_recast_chance_percent", "frontendDamageEventsForTarget"]) {
   if (!buildFrontendNovaSkillEventsBody.includes(token)) throw new Error(`Nova frontend runtime coverage missing ${token}.`);

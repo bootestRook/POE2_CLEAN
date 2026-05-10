@@ -110,6 +110,30 @@ export type FrontendChainSkillEventBuilderDeps = Pick<
   frontendSkillDotDamageMultiplier: (skill: SkillPreview) => number;
 };
 
+export type FrontendAreaSkillEventBuilderDeps = Pick<
+  FrontendProjectileSkillEventBuilderDeps,
+  | "convertedDamageType"
+  | "damagePayloadComponents"
+  | "frontendDamageEventsForTarget"
+  | "frontendSkillEvent"
+  | "frontendSkillVfxKey"
+  | "frontendUniqueTargetsByDistance"
+> & {
+  frontendKnockbackLockMs: number;
+  frontendMeleeArcTargets: (
+    current: Enemy[],
+    origin: FrontendPlayableSkillPoint,
+    direction: FrontendPlayableSkillPoint,
+    radius: number,
+    arcAngleDeg: number,
+    maxTargets: number
+  ) => Enemy[];
+  frontendRuntimeRoll: (skill: SkillPreview, target: Enemy, salt: number) => number;
+  frontendSkillDotDamageMultiplier: (skill: SkillPreview) => number;
+  isThundercloudSkill: (skill: SkillPreview) => boolean;
+  statValue: (stats: SkillPreview["skill_stats"], statId: string) => number;
+};
+
 export function buildFrontendProjectileSkillEvents(
   skill: SkillPreview,
   caster: PlayerRuntimeState,
@@ -437,4 +461,228 @@ export function buildFrontendModuleChainSkillEvents(
     }
   }
   return events;
+}
+
+export function buildFrontendDamageZoneSkillEvents(
+  skill: SkillPreview,
+  caster: PlayerRuntimeState,
+  initialTargets: Enemy[],
+  current: Enemy[],
+  deps: FrontendAreaSkillEventBuilderDeps,
+  elapsedMs: number
+) {
+  const params = skill.runtime_params ?? {};
+  const originPolicy = String(params.origin_policy ?? "target_position");
+  const originTarget = initialTargets[0];
+  if (!originTarget && originPolicy !== "caster") return [];
+  const origin = originPolicy === "caster" ? caster : { x: originTarget.x, y: originTarget.y };
+  const direction = originTarget ? guideDirection(caster, originTarget) : { x: 1, y: 0 };
+  const channelMaxStacks = Math.max(1, Math.round(Number(params.channel_max_stacks ?? 1)));
+  const channelStack = Math.max(
+    1,
+    Math.min(
+      channelMaxStacks,
+      Math.round(Number(params.current_channel_stack ?? Number(params.channel_min_stacks ?? 0) + 1))
+    )
+  );
+  const channelRadiusScale = channelMaxStacks > 1
+    ? 1 + ((channelStack - 1) / Math.max(1, channelMaxStacks - 1)) * 0.45
+    : 1;
+  const radius = Number(params.radius ?? skill.hit?.hit_radius ?? 120) * skill.area_multiplier * channelRadiusScale;
+  const waveCount = Math.max(1, Math.round(Number(params.wave_count ?? 1)));
+  const tickIntervalMs = Math.max(0, Number(params.tick_interval_ms ?? 0));
+  const durationMs = Math.max(Number(params.duration_ms ?? params.hit_at_ms ?? 240), tickIntervalMs || 1);
+  const tickCount = tickIntervalMs > 0 ? Math.max(1, Math.floor(durationMs / tickIntervalMs)) : 1;
+  const hitAtMs = Math.max(0, Number(params.hit_at_ms ?? 0));
+  const waveIntervalMs = Math.max(0, Number(params.wave_interval_ms ?? 0));
+  const events: SkillEvent[] = [];
+  for (let wave = 0; wave < waveCount; wave += 1) {
+    const waveDelayMs = wave * waveIntervalMs;
+    const waveOriginTarget = String(params.target_lock_policy ?? "") === "nearest_unique_enemy"
+      ? (deps.frontendUniqueTargetsByDistance(current, caster, Number(skill.cast?.search_range ?? 630), waveCount)[wave] ?? originTarget)
+      : originTarget;
+    if (!waveOriginTarget && originPolicy !== "caster") continue;
+    const center = originPolicy === "caster" ? caster : { x: waveOriginTarget!.x, y: waveOriginTarget!.y };
+    const zoneTargets = deps.frontendUniqueTargetsByDistance(current, center, radius, Math.max(1, Number(params.max_targets ?? 8)));
+    const zoneId = `${skill.active_gem_instance_id}.zone.${Math.round(elapsedMs)}.${wave + 1}`;
+    const useDynamicTickRuntime = tickIntervalMs > 0 && durationMs > 0;
+    const tickDamageBaseAmount = tickIntervalMs > 0 && skill.damage_type === "chaos" ? Number(skill.final_damage) * (tickIntervalMs / 1000) : Number(skill.final_damage);
+    const tickDamageAmount = tickIntervalMs > 0 ? tickDamageBaseAmount * deps.frontendSkillDotDamageMultiplier(skill) : tickDamageBaseAmount;
+    events.push(deps.frontendSkillEvent(skill, "damage_zone", null, center, direction, skill.final_damage, skill.damage_type, {
+      vfx_key: deps.frontendSkillVfxKey(skill, "zone"),
+      zone_id: zoneId,
+      shape: params.shape ?? "circle",
+      radius,
+      ring_width: Number(params.ring_width ?? 48),
+      tick_interval_ms: tickIntervalMs,
+      tick_count: tickCount,
+      duration_ms: durationMs,
+      max_targets: Number(params.max_targets ?? 8),
+      hit_target_count: zoneTargets.length,
+      wave_index: wave + 1,
+      target_lock_policy: params.target_lock_policy,
+      origin_policy: originPolicy,
+      dynamic_tick_runtime: useDynamicTickRuntime,
+      dynamic_tick_hit_vfx: deps.isThundercloudSkill(skill),
+      damage_amount: tickDamageAmount,
+      damage_components: deps.damagePayloadComponents(skill, tickDamageAmount, skill.damage_type, skill.hit as Record<string, unknown>),
+      knockback_chance_percent: deps.statValue(skill.skill_stats, "knockback_chance_percent"),
+      knockback_distance_add_percent: deps.statValue(skill.skill_stats, "knockback_distance_add_percent"),
+      knockback_lock_ms: deps.frontendKnockbackLockMs,
+      max_hits: Number(params.max_hits ?? Number.MAX_SAFE_INTEGER),
+      max_hits_per_target: Number(params.max_hits_per_target ?? Number.MAX_SAFE_INTEGER),
+      channel_stack: channelStack,
+      channel_max_stacks: params.channel_max_stacks,
+      channel_radius_scale: channelRadiusScale,
+      channel_move_speed_multiplier: params.channel_move_speed_multiplier,
+      knockback_policy: params.knockback_policy,
+      knockback_interval_ms: params.knockback_interval_ms,
+      aggravation_value: params.aggravation_value,
+      aggravation_cooldown_ms: params.aggravation_cooldown_ms,
+      dot_damage_bonus_per_10_aggravation_percent: params.dot_damage_bonus_per_10_aggravation_percent
+    }, durationMs, waveDelayMs));
+    if (String(params.knockback_policy ?? "") === "reverse") {
+      for (let pullMs = Number(params.knockback_interval_ms ?? 100); pullMs <= durationMs; pullMs += Number(params.knockback_interval_ms ?? 100)) {
+        events.push(deps.frontendSkillEvent(skill, "forced_movement", null, center, direction, Number(params.knockback_distance ?? 0), skill.damage_type, {
+          origin_world_position: center,
+          origin: center,
+          radius,
+          movement_policy: "pull_to_origin",
+          movement_scope: "damage_zone",
+          movement_distance: Number(params.knockback_distance ?? 0),
+          pull_time_ms: pullMs
+        }, 120, waveDelayMs + pullMs));
+      }
+    }
+    if (useDynamicTickRuntime) continue;
+    for (let tick = 1; tick <= tickCount; tick += 1) {
+      for (const target of zoneTargets) {
+        const baseAmount = tickIntervalMs > 0 && skill.damage_type === "chaos" ? Number(skill.final_damage) * (tickIntervalMs / 1000) : Number(skill.final_damage);
+        const amount = tickIntervalMs > 0 ? baseAmount * deps.frontendSkillDotDamageMultiplier(skill) : baseAmount;
+        const tickTimeMs = tickIntervalMs > 0 ? hitAtMs + (tick - 1) * tickIntervalMs : hitAtMs;
+        const eventDelayMs = waveDelayMs + tickTimeMs;
+        const tickPayload = {
+          vfx_key: deps.frontendSkillVfxKey(skill, "zone"),
+          zone_id: zoneId,
+          tick_time_ms: tickTimeMs,
+          tick_interval_ms: tickIntervalMs,
+          dot_damage_bonus_per_10_aggravation_percent: params.dot_damage_bonus_per_10_aggravation_percent
+        };
+        events.push(deps.frontendSkillEvent(skill, "damage_zone_hit", target, { x: target.x, y: target.y }, direction, amount, skill.damage_type, tickPayload, 0, eventDelayMs));
+        events.push(...deps.frontendDamageEventsForTarget(skill, target, { x: target.x, y: target.y }, direction, amount, skill.hit as Record<string, unknown>, {
+          ...tickPayload,
+          hit_vfx_key: deps.frontendSkillVfxKey(skill, "hit"),
+          emit_hit_vfx: tickIntervalMs <= 0 || deps.isThundercloudSkill(skill)
+        }, eventDelayMs));
+        if (Number(params.aggravation_value ?? 0) > 0 && tickIntervalMs > 0 && tickTimeMs % Math.max(1, Number(params.aggravation_cooldown_ms ?? 1000)) === hitAtMs % Math.max(1, Number(params.aggravation_cooldown_ms ?? 1000))) {
+          events.push(deps.frontendSkillEvent(skill, "status_apply", target, { x: target.x, y: target.y }, direction, null, skill.damage_type, {
+            status_type: "aggravation",
+            source_skill_id: skill.skill_package_id ?? skill.skill_template_id,
+            base_value: Number(params.aggravation_value ?? 0),
+            effect_per_stack: Number(params.dot_damage_bonus_per_10_aggravation_percent ?? 0),
+            duration_ms: durationMs
+          }, durationMs, eventDelayMs));
+        }
+      }
+    }
+  }
+  return events;
+}
+
+export function buildFrontendMeleeArcSkillEvents(
+  skill: SkillPreview,
+  caster: PlayerRuntimeState,
+  initialTargets: Enemy[],
+  current: Enemy[],
+  deps: FrontendAreaSkillEventBuilderDeps
+) {
+  const params = skill.runtime_params ?? {};
+  const target = initialTargets[0];
+  const direction = guideDirection(caster, target);
+  const radius = Number(params.arc_radius ?? params.radius ?? 160) * skill.area_multiplier;
+  const arcAngle = Number(params.arc_angle ?? 120);
+  const hitAtMs = Math.max(0, Number(params.hit_at_ms ?? skill.hit?.hit_delay_ms ?? 0));
+  const maxTargets = Math.max(1, Number(params.max_targets ?? 6));
+  const targets = deps.frontendMeleeArcTargets(current, caster, direction, radius, arcAngle, maxTargets);
+  const events: SkillEvent[] = [
+    deps.frontendSkillEvent(skill, "melee_arc", null, caster, direction, skill.final_damage, deps.convertedDamageType(skill, skill.hit as Record<string, unknown>), {
+      vfx_key: deps.frontendSkillVfxKey(skill, "hit", params.slash_vfx_key),
+      arc_radius: radius,
+      arc_angle: arcAngle,
+      origin_world_position: caster,
+      direction_world: direction,
+      hit_at_ms: hitAtMs,
+      slash_triggered: deps.frontendRuntimeRoll(skill, target, 901) * 100 <= Number(params.slash_chance_percent ?? 0)
+    }, 220)
+  ];
+  for (const hitTarget of targets) {
+    events.push(...deps.frontendDamageEventsForTarget(skill, hitTarget, { x: hitTarget.x, y: hitTarget.y }, direction, skill.final_damage, skill.hit as Record<string, unknown>, {
+      hit_vfx_key: deps.frontendSkillVfxKey(skill, "hit", params.slash_vfx_key)
+    }, hitAtMs));
+  }
+  const slashTriggered = Boolean(events[0].payload?.slash_triggered);
+  if (slashTriggered) {
+    const flameWaveCount = Math.max(1, Math.round(Number(params.flame_wave_count ?? 3)));
+    const waveRadius = Number(params.flame_wave_distance ?? radius);
+    const waveTargets = deps.frontendMeleeArcTargets(current, caster, direction, waveRadius, Number(params.flame_wave_arc_angle ?? arcAngle), Math.max(maxTargets, 8));
+    const sequenceByTarget = new Map<number, number>();
+    for (let wave = 0; wave < flameWaveCount; wave += 1) {
+      events.push(deps.frontendSkillEvent(skill, "melee_arc", null, caster, direction, skill.final_damage, deps.convertedDamageType(skill, skill.hit as Record<string, unknown>), {
+        vfx_key: deps.frontendSkillVfxKey(skill, "hit", params.slash_vfx_key),
+        arc_radius: waveRadius,
+        arc_angle: Number(params.flame_wave_arc_angle ?? arcAngle),
+        flame_wave_index: wave + 1,
+        origin_world_position: caster,
+        direction_world: direction
+      }, 220));
+      for (const waveTarget of waveTargets) {
+        const seq = sequenceByTarget.get(waveTarget.id) ?? 0;
+        sequenceByTarget.set(waveTarget.id, seq + 1);
+        const amount = Number(skill.final_damage) * (seq > 0 ? 1 - Number(params.shotgun_falloff_coeff ?? 0.5) : 1);
+        events.push(...deps.frontendDamageEventsForTarget(skill, waveTarget, { x: waveTarget.x, y: waveTarget.y }, direction, amount, skill.hit as Record<string, unknown>, {
+          hit_vfx_key: deps.frontendSkillVfxKey(skill, "hit", params.slash_vfx_key),
+          flame_wave_index: wave + 1,
+          same_target_hit_sequence: seq
+        }));
+      }
+    }
+  }
+  return events;
+}
+
+export function buildFrontendNovaSkillEvents(
+  skill: SkillPreview,
+  caster: PlayerRuntimeState,
+  current: Enemy[],
+  deps: FrontendAreaSkillEventBuilderDeps,
+  elapsedMs: number
+) {
+  const params = skill.runtime_params ?? {};
+  const radius = Number(params.radius ?? skill.hit?.hit_radius ?? 118) * skill.area_multiplier;
+  const direction = { x: 1, y: 0 };
+  const targets = deps.frontendUniqueTargetsByDistance(current, caster, radius, Math.max(1, Number(params.max_targets ?? 8)));
+  const areaId = `${skill.active_gem_instance_id}.nova.${Math.round(elapsedMs)}`;
+  const hitAtMs = Math.max(0, Number(params.hit_at_ms ?? skill.hit?.hit_delay_ms ?? 0));
+  return [
+    deps.frontendSkillEvent(skill, "area_spawn", null, caster, direction, skill.final_damage, skill.damage_type, {
+      vfx_key: deps.frontendSkillVfxKey(skill, "zone"),
+      area_id: areaId,
+      center_world_position: caster,
+      center_policy: params.center_policy ?? "player_center",
+      radius,
+      ring_width: Number(params.ring_width ?? 48),
+      on_kill_recast_chance_percent: params.on_kill_recast_chance_percent,
+      on_kill_recast_max_per_area: params.on_kill_recast_max_per_area,
+      suppress_hit_vfx: params.suppress_hit_vfx
+    }, Math.max(250, Number(params.expand_duration_ms ?? 250))),
+    ...targets.flatMap((target) => deps.frontendDamageEventsForTarget(skill, target, { x: target.x, y: target.y }, guideDirection(caster, target), skill.final_damage, skill.hit as Record<string, unknown>, {
+      hit_vfx_key: deps.frontendSkillVfxKey(skill, "hit"),
+      area_id: areaId,
+      hit_at_ms: hitAtMs,
+      on_kill_recast_chance_percent: params.on_kill_recast_chance_percent,
+      on_kill_recast_max_per_area: params.on_kill_recast_max_per_area,
+      radius,
+      ring_width: Number(params.ring_width ?? 48)
+    }, hitAtMs))
+  ];
 }

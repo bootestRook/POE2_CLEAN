@@ -55,13 +55,13 @@
 
 ## 7. Damage-Zone Melee Nova Status And Forced-Movement Builder Extraction
 
-- [ ] 7.1 Extend the frontend playable event builder module or add a focused adjacent module for damage-zone, melee-arc, nova, channel, status, and forced-movement event construction.
-- [ ] 7.2 Move damage-zone event construction helpers that preserve zone ids, origins, radii, shapes, repeat fields, dynamic tick flags, movement policies, movement scopes, timing fields, and damage payloads.
-- [ ] 7.3 Move melee-arc and player-nova event construction helpers while preserving arc angles, radii, origins, target fields, VFX payloads, and damage payloads.
-- [ ] 7.4 Move status and forced-movement payload construction helpers while preserving status ids, stack/duration semantics, movement distance, origin, scope, and scheduling fields.
-- [ ] 7.5 Keep active damage-zone refs, scheduled events, dynamic tick consumption, status application mutation, player/enemy state mutation, and combat logs App-owned during this batch.
-- [ ] 7.6 Add focused smoke/executable checks for representative damage-zone, dynamic tick, melee-arc, nova, status, and forced-movement payloads.
-- [ ] 7.7 Run build, `npm test`, focused builder checks, OpenSpec validation, and playable battle visual verification; commit the batch.
+- [x] 7.1 Extend the frontend playable event builder module or add a focused adjacent module for damage-zone, melee-arc, nova, channel, status, and forced-movement event construction.
+- [x] 7.2 Move damage-zone event construction helpers that preserve zone ids, origins, radii, shapes, repeat fields, dynamic tick flags, movement policies, movement scopes, timing fields, and damage payloads.
+- [x] 7.3 Move melee-arc and player-nova event construction helpers while preserving arc angles, radii, origins, target fields, VFX payloads, and damage payloads.
+- [x] 7.4 Move status and forced-movement payload construction helpers while preserving status ids, stack/duration semantics, movement distance, origin, scope, and scheduling fields.
+- [x] 7.5 Keep active damage-zone refs, scheduled events, dynamic tick consumption, status application mutation, player/enemy state mutation, and combat logs App-owned during this batch.
+- [x] 7.6 Add focused smoke/executable checks for representative damage-zone, dynamic tick, melee-arc, nova, status, and forced-movement payloads.
+- [x] 7.7 Run build, `npm test`, focused builder checks, OpenSpec validation, and playable battle visual verification; commit the batch.
 
 ## 8. Skill Event Dispatcher Boundary
 
