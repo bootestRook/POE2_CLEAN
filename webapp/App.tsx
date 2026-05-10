@@ -89,7 +89,10 @@ import {
 } from "./runtime/frontendPlayableSkillEventBuilders";
 import {
   applyDamageToPlayerResources,
+  applyPlayerEnergyShieldRecharge,
   convertIncomingPlayerDamageComponents,
+  frontendEnergyShieldRechargeDelayMs,
+  normalizePlayerRuntimeResources,
   mitigateIncomingPlayerDamageComponent,
   monsterAccuracy,
   monsterCritChancePercent,
@@ -100,6 +103,9 @@ import {
   playerEvasionChanceAgainstMonster,
   playerResistanceCap,
   playerResistancePercent,
+  recoverPlayerOnBlock,
+  recoverPlayerOnHit,
+  regeneratePlayerResources,
   resolveMonsterHitAgainstPlayer
 } from "./runtime/playerDamageRuntime";
 import {
@@ -1207,19 +1213,7 @@ function GameApp() {
   }
 
   function applyFrontendEnergyShieldRecharge(playerBeforeRecharge: PlayerRuntimeState, dt: number): PlayerRuntimeState {
-    if (dt <= 0 || playerBeforeRecharge.maxEnergyShield <= 0) return playerBeforeRecharge;
-    if (playerBeforeRecharge.currentEnergyShield >= playerBeforeRecharge.maxEnergyShield) return playerBeforeRecharge;
-    if (elapsedRef.current * 1000 + 1e-6 < energyShieldRechargeReadyMs.current) return playerBeforeRecharge;
-    const rechargePercentPerSecond = frontendEnergyShieldRechargePercentPerSecond(state?.player_stats);
-    if (rechargePercentPerSecond <= 0) return playerBeforeRecharge;
-    return {
-      ...playerBeforeRecharge,
-      currentEnergyShield: clamp(
-        playerBeforeRecharge.currentEnergyShield + playerBeforeRecharge.maxEnergyShield * rechargePercentPerSecond / 100 * dt,
-        0,
-        playerBeforeRecharge.maxEnergyShield
-      )
-    };
+    return applyPlayerEnergyShieldRecharge(playerBeforeRecharge, state?.player_stats, dt, elapsedRef.current * 1000, energyShieldRechargeReadyMs.current);
   }
 
   function resolveFrontendPlayerBlock(enemy: Enemy, hitKind: MonsterHitKind) {
@@ -1231,23 +1225,10 @@ function GameApp() {
   }
 
   function recoverFrontendPlayerOnBlock(playerBeforeHit: PlayerRuntimeState, nowMs: number): PlayerRuntimeState {
-    let nextPlayer = playerBeforeHit;
-    const lifePercent = Math.max(0, statNumber(state?.player_stats?.block_life_recovery_percent, 0));
-    const lifeInterval = Math.max(0, statNumber(state?.player_stats?.block_life_recovery_interval_ms, 0));
-    if (lifePercent > 0 && nowMs >= blockLifeRecoveryReadyMs.current && nextPlayer.hp < nextPlayer.maxHp) {
-      nextPlayer = { ...nextPlayer, hp: clamp(nextPlayer.hp + nextPlayer.maxHp * lifePercent / 100, 0, nextPlayer.maxHp) };
-      blockLifeRecoveryReadyMs.current = nowMs + lifeInterval;
-    }
-    const shieldPercent = Math.max(0, statNumber(state?.player_stats?.block_shield_recovery_percent, 0));
-    const shieldInterval = Math.max(0, statNumber(state?.player_stats?.block_shield_recovery_interval_ms, 0));
-    if (shieldPercent > 0 && nowMs >= blockShieldRecoveryReadyMs.current && nextPlayer.currentEnergyShield < nextPlayer.maxEnergyShield) {
-      nextPlayer = {
-        ...nextPlayer,
-        currentEnergyShield: clamp(nextPlayer.currentEnergyShield + nextPlayer.maxEnergyShield * shieldPercent / 100, 0, nextPlayer.maxEnergyShield)
-      };
-      blockShieldRecoveryReadyMs.current = nowMs + shieldInterval;
-    }
-    return nextPlayer;
+    const result = recoverPlayerOnBlock(playerBeforeHit, state?.player_stats, nowMs, blockLifeRecoveryReadyMs.current, blockShieldRecoveryReadyMs.current);
+    blockLifeRecoveryReadyMs.current = result.nextBlockLifeRecoveryReadyMs;
+    blockShieldRecoveryReadyMs.current = result.nextBlockShieldRecoveryReadyMs;
+    return result.nextPlayer;
   }
 
   function playerAbsorbBuffType(buffType: string) {
@@ -1256,20 +1237,10 @@ function GameApp() {
 
   function recoverFrontendPlayerOnHit(playerBeforeRecovery: PlayerRuntimeState): PlayerRuntimeState {
     const nowMs = Math.round(elapsedRef.current * 1000);
-    let nextPlayer = playerBeforeRecovery;
-    const lifePercent = Math.min(30, Math.max(0, statNumber(state?.player_stats?.life_return_percent, 0)));
-    if (lifePercent > 0 && nowMs >= lifeReturnReadyMs.current && nextPlayer.hp < nextPlayer.maxHp) {
-      const missingLife = Math.max(0, nextPlayer.maxHp - nextPlayer.hp);
-      nextPlayer = { ...nextPlayer, hp: clamp(nextPlayer.hp + missingLife * lifePercent / 100, 0, nextPlayer.maxHp) };
-      lifeReturnReadyMs.current = nowMs + 500;
-    }
-    const shieldPercent = Math.min(30, Math.max(0, statNumber(state?.player_stats?.shield_return_percent, 0)));
-    if (shieldPercent > 0 && nowMs >= shieldReturnReadyMs.current && nextPlayer.currentEnergyShield < nextPlayer.maxEnergyShield) {
-      const missingShield = Math.max(0, nextPlayer.maxEnergyShield - nextPlayer.currentEnergyShield);
-      nextPlayer = { ...nextPlayer, currentEnergyShield: clamp(nextPlayer.currentEnergyShield + missingShield * shieldPercent / 100, 0, nextPlayer.maxEnergyShield) };
-      shieldReturnReadyMs.current = nowMs + 500;
-    }
-    return nextPlayer;
+    const result = recoverPlayerOnHit(playerBeforeRecovery, state?.player_stats, nowMs, lifeReturnReadyMs.current, shieldReturnReadyMs.current);
+    lifeReturnReadyMs.current = result.nextLifeReturnReadyMs;
+    shieldReturnReadyMs.current = result.nextShieldReturnReadyMs;
+    return result.nextPlayer;
   }
 
   function applyFrontendDamageToPlayer(playerBeforeDamage: PlayerRuntimeState, damage: number): PlayerRuntimeState {
@@ -7013,50 +6984,6 @@ function statNumber(stat: PlayerStatView | undefined, fallback: number) {
 function statValue(stats: Record<string, number | boolean> | undefined, stat: string) {
   const value = stats?.[stat];
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function frontendEnergyShieldRechargePercentPerSecond(stats: AppState["player_stats"] | undefined) {
-  const speedAddPercent = statNumber(stats?.energy_shield_charge_speed_percent, 0)
-    + statNumber(stats?.energy_shield_charge_speed_add_percent, 0);
-  const speedFinalPercent = statNumber(stats?.energy_shield_charge_speed_final_percent, 0);
-  return Math.max(0, 20 * (1 + speedAddPercent / 100) * (1 + speedFinalPercent / 100));
-}
-
-function frontendEnergyShieldRechargeDelayMs(stats: AppState["player_stats"] | undefined) {
-  const baseDelayMs = Math.max(0, statNumber(stats?.energy_shield_charge_delay_ms, 2000));
-  const intervalAddPercent = statNumber(stats?.energy_shield_charge_interval_percent, 0)
-    + statNumber(stats?.energy_shield_charge_interval_add_percent, 0)
-    + statNumber(stats?.energy_shield_charge_delay_add_percent, 0);
-  const intervalFinalPercent = statNumber(stats?.energy_shield_charge_interval_final_percent, 0)
-    + statNumber(stats?.energy_shield_charge_delay_final_percent, 0);
-  return Math.max(0, baseDelayMs * Math.max(0, 1 + intervalAddPercent / 100) * Math.max(0, 1 + intervalFinalPercent / 100));
-}
-
-function regeneratePlayerResources(player: PlayerRuntimeState, stats: AppState["player_stats"] | undefined, dt: number): PlayerRuntimeState {
-  const lifeRegen = Math.max(0, statNumber(stats?.life_regen_flat, 0) * (1 + Math.max(0, statNumber(stats?.life_regen_add_percent, 0)) / 100))
-    + Math.max(0, player.maxHp * statNumber(stats?.life_regen_percent_per_second, 0) / 100);
-  const manaRegen = Math.max(0, statNumber(stats?.mana_regen_flat, 0) * (1 + Math.max(0, statNumber(stats?.mana_regen_add_percent, 0)) / 100));
-  if (lifeRegen <= 0 && manaRegen <= 0) return player;
-  return {
-    ...player,
-    hp: clamp(player.hp + lifeRegen * dt, 0, player.maxHp),
-    currentMana: clamp(player.currentMana + manaRegen * dt, 0, player.maxMana)
-  };
-}
-
-function normalizePlayerRuntimeResources(player: PlayerRuntimeState): PlayerRuntimeState {
-  const maxHp = Math.max(0, Number.isFinite(player.maxHp) ? player.maxHp : 0);
-  const maxMana = Math.max(0, Number.isFinite(player.maxMana) ? player.maxMana : 0);
-  const maxEnergyShield = Math.max(0, Number.isFinite(player.maxEnergyShield) ? player.maxEnergyShield : 0);
-  return {
-    ...player,
-    maxHp,
-    hp: clamp(Number.isFinite(player.hp) ? player.hp : maxHp, 0, maxHp),
-    maxMana,
-    currentMana: clamp(Number.isFinite(player.currentMana) ? player.currentMana : maxMana, 0, maxMana),
-    maxEnergyShield,
-    currentEnergyShield: clamp(Number.isFinite(player.currentEnergyShield) ? player.currentEnergyShield : maxEnergyShield, 0, maxEnergyShield)
-  };
 }
 
 function resolveTooltipPosition(anchor: HTMLElement, source: "board" | "inventory" | "equipment" | "stash", slotIndex?: number): Omit<Tooltip, "gem"> {

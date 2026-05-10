@@ -283,3 +283,20 @@
 - `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-enemy-damage-helper-extraction.out.log` and `artifacts/logs/runbat-enemy-damage-helper-extraction.err.log`.
 - Playable WebApp verification followed title, new save, rest area, map selection, battle entry, and repeated skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/enemy-damage-helper-extraction-playable-battle.png`.
 - Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, and repeated skill damage log entries in the playable battle path.
+
+## 10.1-10.6 Player Resource Helper Ownership
+
+- `webapp/runtime/playerDamageRuntime.ts` now also owns deterministic player resource helpers for energy-shield recharge speed/delay, life and mana regeneration, runtime resource normalization, energy-shield recharge application, block recovery, and hit recovery.
+- App wrappers still own `energyShieldRechargeReadyMs`, block recovery ready refs, life/shield return ready refs, player React state mutation, defeat handling, floating text, and combat logs.
+- Existing incoming damage helpers in `playerDamageRuntime.ts` continue to own mana-before-life, energy-shield-before-life, armor/resistance mitigation, block reduction, crit, double damage, evasion, and result shaping.
+- `webapp/smoke-test.mjs` compiles and executes `playerDamageRuntime.ts` and now covers regeneration, recharge delay, recharge speed, block recovery gating, hit recovery, mana-before-life, energy-shield-before-life, life damage, and resource normalization.
+
+## 10.7 Player Resource Helper Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- Focused player resource check confirmed representative regeneration, recharge, block recovery, hit recovery, resource normalization, mana-before-life, energy-shield, and life ordering behavior through executable smoke cases.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-player-resource-helper-extraction.out.log` and `artifacts/logs/runbat-player-resource-helper-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection, battle entry, movement, and repeated skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/player-resource-helper-extraction-playable-battle.png`.
+- Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, automatic skill releases, multiple kill entries, and a dropped item entry.

@@ -2395,6 +2395,45 @@ function runPlayerDamageRuntimeSmoke() {
   if (resources.nextPlayer.currentMana !== 50 || resources.shieldDamage !== 80 || resources.lifeDamage !== 70 || resources.nextPlayer.hp !== 930) {
     throw new Error("player damage runtime must preserve mana, energy-shield, and life damage ordering.");
   }
+  const regen = runtime.regeneratePlayerResources({ ...basePlayer, hp: 900, currentMana: 40 }, {
+    life_regen_flat: stat(10),
+    life_regen_add_percent: stat(50),
+    life_regen_percent_per_second: stat(1),
+    mana_regen_flat: stat(12),
+    mana_regen_add_percent: stat(25)
+  }, 2);
+  if (regen.hp !== 950 || regen.currentMana !== 70) throw new Error("player damage runtime must preserve life and mana regeneration formulas.");
+  const normalized = runtime.normalizePlayerRuntimeResources({ ...basePlayer, hp: Number.NaN, currentMana: 999, currentEnergyShield: -3 });
+  if (normalized.hp !== 1000 || normalized.currentMana !== 100 || normalized.currentEnergyShield !== 0) {
+    throw new Error("player damage runtime must normalize player resources against max values.");
+  }
+  const rechargeDelay = runtime.frontendEnergyShieldRechargeDelayMs({
+    energy_shield_charge_delay_ms: stat(2000),
+    energy_shield_charge_delay_add_percent: stat(-25),
+    energy_shield_charge_delay_final_percent: stat(-20)
+  });
+  if (Math.abs(rechargeDelay - 1200) > 0.01) throw new Error("player damage runtime must preserve energy shield recharge delay math.");
+  const recharge = runtime.applyPlayerEnergyShieldRecharge({ ...basePlayer, currentEnergyShield: 20 }, {
+    energy_shield_charge_speed_percent: stat(50),
+    energy_shield_charge_speed_final_percent: stat(100)
+  }, 1, 3000, 2500);
+  if (recharge.currentEnergyShield !== 80) throw new Error("player damage runtime must preserve energy shield recharge speed math.");
+  const blockRecover = runtime.recoverPlayerOnBlock({ ...basePlayer, hp: 500, currentEnergyShield: 10 }, {
+    block_life_recovery_percent: stat(10),
+    block_life_recovery_interval_ms: stat(250),
+    block_shield_recovery_percent: stat(20),
+    block_shield_recovery_interval_ms: stat(300)
+  }, 1000, 900, 900);
+  if (blockRecover.nextPlayer.hp !== 600 || blockRecover.nextPlayer.currentEnergyShield !== 30 || blockRecover.nextBlockLifeRecoveryReadyMs !== 1250 || blockRecover.nextBlockShieldRecoveryReadyMs !== 1300) {
+    throw new Error("player damage runtime must preserve block recovery gating and resource recovery.");
+  }
+  const hitRecover = runtime.recoverPlayerOnHit({ ...basePlayer, hp: 500, currentEnergyShield: 20 }, {
+    life_return_percent: stat(20),
+    shield_return_percent: stat(25)
+  }, 2000, 1500, 1500);
+  if (hitRecover.nextPlayer.hp !== 600 || hitRecover.nextPlayer.currentEnergyShield !== 40 || hitRecover.nextLifeReturnReadyMs !== 2500 || hitRecover.nextShieldReturnReadyMs !== 2500) {
+    throw new Error("player damage runtime must preserve hit recovery missing-resource formulas.");
+  }
 }
 
 function runProceduralSpawnRuntimeSmoke() {

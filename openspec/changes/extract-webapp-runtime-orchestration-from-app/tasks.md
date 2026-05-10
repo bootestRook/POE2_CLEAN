@@ -84,13 +84,13 @@
 
 ## 10. Player Resource And Incoming Damage Helper Extraction
 
-- [ ] 10.1 Identify remaining deterministic player resource and incoming damage helpers still in App, including regeneration, energy-shield recharge, block recovery, life/shield return timing, mana-before-life, resource normalization, and incoming damage result shaping.
-- [ ] 10.2 Extend `webapp/runtime/playerDamageRuntime.ts` or create an adjacent focused player resource runtime module.
-- [ ] 10.3 Move only helpers that preserve formulas and accept explicit player/stat/timestamp inputs.
-- [ ] 10.4 Preserve cooldown semantics, resource order, clamp behavior, damage-to-mana/shield/life order, and state result shape.
-- [ ] 10.5 Keep player React state mutation, defeat handling, recovery cooldown refs, floating text, and combat logs App-owned unless a later batch explicitly moves them.
-- [ ] 10.6 Add focused executable smoke cases for regeneration, recharge delay, block recovery gating, life return, shield return, mana-before-life, and resource normalization.
-- [ ] 10.7 Run build, `npm test`, focused player resource checks, OpenSpec validation, and playable battle verification; commit the batch.
+- [x] 10.1 Identify remaining deterministic player resource and incoming damage helpers still in App, including regeneration, energy-shield recharge, block recovery, life/shield return timing, mana-before-life, resource normalization, and incoming damage result shaping.
+- [x] 10.2 Extend `webapp/runtime/playerDamageRuntime.ts` or create an adjacent focused player resource runtime module.
+- [x] 10.3 Move only helpers that preserve formulas and accept explicit player/stat/timestamp inputs.
+- [x] 10.4 Preserve cooldown semantics, resource order, clamp behavior, damage-to-mana/shield/life order, and state result shape.
+- [x] 10.5 Keep player React state mutation, defeat handling, recovery cooldown refs, floating text, and combat logs App-owned unless a later batch explicitly moves them.
+- [x] 10.6 Add focused executable smoke cases for regeneration, recharge delay, block recovery gating, life return, shield return, mana-before-life, and resource normalization.
+- [x] 10.7 Run build, `npm test`, focused player resource checks, OpenSpec validation, and playable battle verification; commit the batch.
 
 ## 11. Projectile Lifecycle And Visual Follow-Up Helper Extraction
 

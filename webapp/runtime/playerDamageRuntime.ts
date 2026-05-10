@@ -248,6 +248,125 @@ export function applyDamageToPlayerResources(
   };
 }
 
+export function frontendEnergyShieldRechargePercentPerSecond(stats: PlayerStats) {
+  const speedAddPercent = statNumber(stats?.energy_shield_charge_speed_percent, 0)
+    + statNumber(stats?.energy_shield_charge_speed_add_percent, 0);
+  const speedFinalPercent = statNumber(stats?.energy_shield_charge_speed_final_percent, 0);
+  return Math.max(0, 20 * (1 + speedAddPercent / 100) * (1 + speedFinalPercent / 100));
+}
+
+export function frontendEnergyShieldRechargeDelayMs(stats: PlayerStats) {
+  const baseDelayMs = Math.max(0, statNumber(stats?.energy_shield_charge_delay_ms, 2000));
+  const intervalAddPercent = statNumber(stats?.energy_shield_charge_interval_percent, 0)
+    + statNumber(stats?.energy_shield_charge_interval_add_percent, 0)
+    + statNumber(stats?.energy_shield_charge_delay_add_percent, 0);
+  const intervalFinalPercent = statNumber(stats?.energy_shield_charge_interval_final_percent, 0)
+    + statNumber(stats?.energy_shield_charge_delay_final_percent, 0);
+  return Math.max(0, baseDelayMs * Math.max(0, 1 + intervalAddPercent / 100) * Math.max(0, 1 + intervalFinalPercent / 100));
+}
+
+export function regeneratePlayerResources<T extends PlayerDamageState>(player: T, stats: PlayerStats, dt: number): T {
+  const lifeRegen = Math.max(0, statNumber(stats?.life_regen_flat, 0) * (1 + Math.max(0, statNumber(stats?.life_regen_add_percent, 0)) / 100))
+    + Math.max(0, player.maxHp * statNumber(stats?.life_regen_percent_per_second, 0) / 100);
+  const manaRegen = Math.max(0, statNumber(stats?.mana_regen_flat, 0) * (1 + Math.max(0, statNumber(stats?.mana_regen_add_percent, 0)) / 100));
+  if (lifeRegen <= 0 && manaRegen <= 0) return player;
+  return {
+    ...player,
+    hp: clamp(player.hp + lifeRegen * dt, 0, player.maxHp),
+    currentMana: clamp(player.currentMana + manaRegen * dt, 0, player.maxMana)
+  };
+}
+
+export function normalizePlayerRuntimeResources<T extends PlayerDamageState>(player: T): T {
+  const maxHp = Math.max(0, Number.isFinite(player.maxHp) ? player.maxHp : 0);
+  const maxMana = Math.max(0, Number.isFinite(player.maxMana) ? player.maxMana : 0);
+  const maxEnergyShield = Math.max(0, Number.isFinite(player.maxEnergyShield) ? player.maxEnergyShield : 0);
+  return {
+    ...player,
+    maxHp,
+    hp: clamp(Number.isFinite(player.hp) ? player.hp : maxHp, 0, maxHp),
+    maxMana,
+    currentMana: clamp(Number.isFinite(player.currentMana) ? player.currentMana : maxMana, 0, maxMana),
+    maxEnergyShield,
+    currentEnergyShield: clamp(Number.isFinite(player.currentEnergyShield) ? player.currentEnergyShield : maxEnergyShield, 0, maxEnergyShield)
+  };
+}
+
+export function applyPlayerEnergyShieldRecharge<T extends PlayerDamageState>(
+  player: T,
+  stats: PlayerStats,
+  dt: number,
+  nowMs: number,
+  rechargeReadyMs: number
+): T {
+  if (dt <= 0 || player.maxEnergyShield <= 0) return player;
+  if (player.currentEnergyShield >= player.maxEnergyShield) return player;
+  if (nowMs + 1e-6 < rechargeReadyMs) return player;
+  const rechargePercentPerSecond = frontendEnergyShieldRechargePercentPerSecond(stats);
+  if (rechargePercentPerSecond <= 0) return player;
+  return {
+    ...player,
+    currentEnergyShield: clamp(
+      player.currentEnergyShield + player.maxEnergyShield * rechargePercentPerSecond / 100 * dt,
+      0,
+      player.maxEnergyShield
+    )
+  };
+}
+
+export function recoverPlayerOnBlock<T extends PlayerDamageState>(
+  player: T,
+  stats: PlayerStats,
+  nowMs: number,
+  blockLifeReadyMs: number,
+  blockShieldReadyMs: number
+) {
+  let nextPlayer = player;
+  let nextBlockLifeRecoveryReadyMs = blockLifeReadyMs;
+  let nextBlockShieldRecoveryReadyMs = blockShieldReadyMs;
+  const lifePercent = Math.max(0, statNumber(stats?.block_life_recovery_percent, 0));
+  const lifeInterval = Math.max(0, statNumber(stats?.block_life_recovery_interval_ms, 0));
+  if (lifePercent > 0 && nowMs >= nextBlockLifeRecoveryReadyMs && nextPlayer.hp < nextPlayer.maxHp) {
+    nextPlayer = { ...nextPlayer, hp: clamp(nextPlayer.hp + nextPlayer.maxHp * lifePercent / 100, 0, nextPlayer.maxHp) };
+    nextBlockLifeRecoveryReadyMs = nowMs + lifeInterval;
+  }
+  const shieldPercent = Math.max(0, statNumber(stats?.block_shield_recovery_percent, 0));
+  const shieldInterval = Math.max(0, statNumber(stats?.block_shield_recovery_interval_ms, 0));
+  if (shieldPercent > 0 && nowMs >= nextBlockShieldRecoveryReadyMs && nextPlayer.currentEnergyShield < nextPlayer.maxEnergyShield) {
+    nextPlayer = {
+      ...nextPlayer,
+      currentEnergyShield: clamp(nextPlayer.currentEnergyShield + nextPlayer.maxEnergyShield * shieldPercent / 100, 0, nextPlayer.maxEnergyShield)
+    };
+    nextBlockShieldRecoveryReadyMs = nowMs + shieldInterval;
+  }
+  return { nextPlayer, nextBlockLifeRecoveryReadyMs, nextBlockShieldRecoveryReadyMs };
+}
+
+export function recoverPlayerOnHit<T extends PlayerDamageState>(
+  player: T,
+  stats: PlayerStats,
+  nowMs: number,
+  lifeReadyMs: number,
+  shieldReadyMs: number
+) {
+  let nextPlayer = player;
+  let nextLifeReturnReadyMs = lifeReadyMs;
+  let nextShieldReturnReadyMs = shieldReadyMs;
+  const lifePercent = Math.min(30, Math.max(0, statNumber(stats?.life_return_percent, 0)));
+  if (lifePercent > 0 && nowMs >= nextLifeReturnReadyMs && nextPlayer.hp < nextPlayer.maxHp) {
+    const missingLife = Math.max(0, nextPlayer.maxHp - nextPlayer.hp);
+    nextPlayer = { ...nextPlayer, hp: clamp(nextPlayer.hp + missingLife * lifePercent / 100, 0, nextPlayer.maxHp) };
+    nextLifeReturnReadyMs = nowMs + 500;
+  }
+  const shieldPercent = Math.min(30, Math.max(0, statNumber(stats?.shield_return_percent, 0)));
+  if (shieldPercent > 0 && nowMs >= nextShieldReturnReadyMs && nextPlayer.currentEnergyShield < nextPlayer.maxEnergyShield) {
+    const missingShield = Math.max(0, nextPlayer.maxEnergyShield - nextPlayer.currentEnergyShield);
+    nextPlayer = { ...nextPlayer, currentEnergyShield: clamp(nextPlayer.currentEnergyShield + missingShield * shieldPercent / 100, 0, nextPlayer.maxEnergyShield) };
+    nextShieldReturnReadyMs = nowMs + 500;
+  }
+  return { nextPlayer, nextLifeReturnReadyMs, nextShieldReturnReadyMs };
+}
+
 function monsterOutgoingAilments(enemy: MonsterDamageEnemy, stats: PlayerStats, timestampMs: number) {
   const entries = [
     { statusType: "ignite", chance: enemyNumericStat(enemy, "ignite_chance_percent"), durationMs: 4000, damageType: "fire" },
