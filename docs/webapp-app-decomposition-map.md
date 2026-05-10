@@ -53,6 +53,19 @@ After the first App architecture pass, the runtime code that still intentionally
 - `webapp/types/`: shared type-only shapes needed by extracted modules.
 - `webapp/utils/` and `webapp/hooks/`: pure helpers and focused hooks after ownership is clear.
 
+## Target For This Runtime Pass
+
+This pass is complete when `webapp/App.tsx` has stopped being the place where searchable runtime formulas and event-builder families live. The final App target for this pass is:
+
+- top-level mode routing between title, save selection, rest area, playable battle, map editor, and disabled tooling stubs;
+- cross-domain React state and ref initialization for state that is still intentionally App-owned;
+- save, rest-area, map-run, battle reset, pause/failure, boss portal, pickup, and mode-transition wiring;
+- callback adapters that connect focused modules without taking ownership of their feature behavior;
+- viewport shell composition and launch/bootstrap flags;
+- intentionally deferred runtime refs and queues whose ownership would be unsafe to move before pure helpers, builders, and source-boundary checks are stable.
+
+The final App target is not a line-count target. Remaining App code is acceptable only when it is explicitly routing, state/ref wiring, callback adaptation, or deferred orchestration recorded in this map.
+
 ## Risk-Ordered Extraction Path
 
 1. Inventory overlay render-only composition.
