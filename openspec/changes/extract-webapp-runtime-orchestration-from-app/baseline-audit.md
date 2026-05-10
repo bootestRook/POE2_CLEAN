@@ -219,3 +219,13 @@
 - Projectile payload checks use `functionBody(frontendPlayableSkillEventBuilders, "buildFrontendProjectileSkillEvents")`.
 - Chain and module-chain payload checks use `functionBody(frontendPlayableSkillEventBuilders, "buildFrontendChainSkillEvents")` and `functionBody(frontendPlayableSkillEventBuilders, "buildFrontendModuleChainSkillEvents")`.
 - App checks remain for explicit adapter calls and App-owned side-effect boundaries.
+
+## 6.8 Projectile And Chain Builder Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- Focused builder source check confirmed representative projectile, chain, module-chain, hit VFX, floating text, and follow-up payload tokens remain in `webapp/runtime/frontendPlayableSkillEventBuilders.ts`, with no setter, event-consumer, storage, backend API, `SkillRuntime`, or `CombatSession` matches in that module.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-builder-extraction.out.log` and `artifacts/logs/runbat-builder-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/builder-extraction-playable-battle.png`.
+- Screenshot observation: the battle view showed `map_001` running, procedural spawn debug information, two canvas elements, and the frontend-run combat feed line for monsters, kills, and drops.

@@ -51,7 +51,7 @@
 - [x] 6.5 Keep `consumeSkillEventTimeline`, `consumeSkillEventBatch`, `setTexts`, `setBolts`, `setEnemies`, runtime refs, and scheduling in App during this batch.
 - [x] 6.6 Add focused smoke/executable checks for representative projectile, chain, module-chain, hit VFX, floating text, and follow-up suppression payloads.
 - [x] 6.7 Update existing App smoke checks so moved invariants read the new builder module.
-- [ ] 6.8 Run build, `npm test`, focused builder checks, OpenSpec validation, and actual playable battle verification if visuals can be affected; commit the batch.
+- [x] 6.8 Run build, `npm test`, focused builder checks, OpenSpec validation, and actual playable battle verification if visuals can be affected; commit the batch.
 
 ## 7. Damage-Zone Melee Nova Status And Forced-Movement Builder Extraction
 
