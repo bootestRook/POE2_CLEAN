@@ -1,6 +1,6 @@
 ## 1. Baseline And Scope Guardrails
 
-- [ ] 1.1 Confirm current branch and working tree status before implementation; stop if unrelated dirty files overlap `webapp/App.tsx`, WebApp runtime modules, WebApp type modules, smoke tests, or this change's OpenSpec files.
+- [x] 1.1 Confirm current branch and working tree status before implementation; stop if unrelated dirty files overlap `webapp/App.tsx`, WebApp runtime modules, WebApp type modules, smoke tests, or this change's OpenSpec files.
 - [ ] 1.2 Re-read `AGENTS.md`, `docs/webapp-module-boundaries.md`, `docs/webapp-app-decomposition-map.md`, this change's `proposal.md`, `design.md`, and spec deltas before editing.
 - [ ] 1.3 Run `openspec validate extract-webapp-runtime-orchestration-from-app --strict` before implementation begins.
 - [ ] 1.4 Record current `webapp/App.tsx` size, line count, major runtime function ranges, type/constant ranges, and smoke checks that still read App-owned runtime code.
