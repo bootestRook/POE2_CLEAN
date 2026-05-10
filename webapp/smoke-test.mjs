@@ -22,6 +22,9 @@ const monsterSkillRuntime = readFileSync(join(root, "webapp", "monsterSkillRunti
 const monsterSkillPresentation = readFileSync(join(root, "webapp", "runtime", "monsterSkillPresentation.ts"), "utf8");
 const monsterSkillEventBuilder = readFileSync(join(root, "webapp", "runtime", "monsterSkillEventBuilder.ts"), "utf8");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
+const bossSkillConstants = readFileSync(join(root, "webapp", "runtime", "bossSkillConstants.ts"), "utf8");
+const monsterStatConstants = readFileSync(join(root, "webapp", "runtime", "monsterStatConstants.ts"), "utf8");
+const runtimeTimingConstants = readFileSync(join(root, "webapp", "runtime", "runtimeTimingConstants.ts"), "utf8");
 const frontendAppState = readFileSync(join(root, "webapp", "state", "frontendAppState.ts"), "utf8");
 const frontendDropState = readFileSync(join(root, "webapp", "state", "frontendDropState.ts"), "utf8");
 const entryTitleScreen = readFileSync(join(root, "webapp", "components", "layout", "EntryTitleScreen.tsx"), "utf8");
@@ -376,6 +379,34 @@ for (const [filePath, source] of typeOnlySources) {
     if (source.includes(forbiddenTypeToken)) {
       throw new Error(`Type-only module must stay behavior-free (${filePath}): ${forbiddenTypeToken}`);
     }
+  }
+}
+for (const [source, token, message] of [
+  [bossSkillConstants, "export const BOSS_PROJECTILE_SPEED = 390", "Boss projectile speed constant must be owned by boss skill constants."],
+  [bossSkillConstants, "export const BOSS_BARRAGE_PROJECTILE_COUNT = 16", "Boss barrage projectile count constant must be owned by boss skill constants."],
+  [bossSkillConstants, "export const BOSS_BARRAGE_WAVE_OFFSETS_DEG = [0, 11.25, 22.5] as const", "Boss barrage wave offsets must preserve array order in boss skill constants."],
+  [monsterStatConstants, "export const MONSTER_NORMAL_LIFE_BASE = 70", "Monster normal life base must be owned by monster stat constants."],
+  [monsterStatConstants, "export const MONSTER_NORMAL_DAMAGE_GROWTH = 1.075", "Monster normal damage growth must be owned by monster stat constants."],
+  [runtimeTimingConstants, "export const RUNTIME_PERF_SYNC_INTERVAL_MS = 500", "Runtime perf sync interval must be owned by runtime timing constants."],
+  [runtimeTimingConstants, "export const MAX_RUNTIME_PROJECTILE_VISUALS = 80", "Runtime projectile visual cap must be owned by runtime timing constants."],
+  [runtimeTimingConstants, "export const MAX_RUNTIME_HIT_VFX = 80", "Runtime hit VFX cap must be owned by runtime timing constants."],
+  [runtimeTimingConstants, "export const MAX_RUNTIME_FLOATING_TEXT = 60", "Runtime floating text cap must be owned by runtime timing constants."],
+  [runtimeTimingConstants, "export const MAX_RUNTIME_AREA_VFX = 80", "Runtime area VFX cap must be owned by runtime timing constants."],
+  [runtimeTimingConstants, "export const TRIGGERED_SKILL_EVENT_MIN_DELAY_SECONDS = 1 / 60", "Triggered skill event delay constant must be owned by runtime timing constants."],
+  [runtimeTimingConstants, "export const FRONTEND_KNOCKBACK_LOCK_MS = 260", "Frontend knockback lock constant must be owned by runtime timing constants."]
+]) {
+  if (!source.includes(token)) throw new Error(message);
+}
+for (const forbiddenAppLocalRuntimeConstant of [
+  "const MONSTER_NORMAL_LIFE_BASE = 70",
+  "const BOSS_PROJECTILE_SPEED = 390",
+  "const BOSS_BARRAGE_PROJECTILE_COUNT = 16",
+  "const RUNTIME_PERF_SYNC_INTERVAL_MS = 500",
+  "const MAX_RUNTIME_PROJECTILE_VISUALS = 80",
+  "const FRONTEND_KNOCKBACK_LOCK_MS = 260"
+]) {
+  if (app.includes(forbiddenAppLocalRuntimeConstant)) {
+    throw new Error(`Moved runtime constant must not be redefined in App.tsx: ${forbiddenAppLocalRuntimeConstant}`);
   }
 }
 const extractedPresentationAndStateSources = [

@@ -31,7 +31,7 @@
 - [x] 4.2 Move only constants with clear focused owners into `webapp/runtime/`, `webapp/state/`, `webapp/components/inventory/`, or `webapp/types/` adjacent modules.
 - [x] 4.3 Preserve every numeric value, string value, array order, map key, and exported name needed by existing behavior.
 - [x] 4.4 Leave mixed or cross-domain constants in App if moving them would require unrelated ownership decisions.
-- [ ] 4.5 Update smoke/source-boundary tests to read moved constants from their owner modules.
+- [x] 4.5 Update smoke/source-boundary tests to read moved constants from their owner modules.
 - [ ] 4.6 Run build, `npm test`, OpenSpec validation, and commit the constant extraction batch.
 
 ## 5. Frontend Skill Runtime Family Audit
