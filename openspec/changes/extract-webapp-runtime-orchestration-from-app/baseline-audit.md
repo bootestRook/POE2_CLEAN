@@ -188,3 +188,7 @@
 - Checks that should move with future lifecycle/helper modules: projectile follow-up suppression keys, projectile id extraction, projectile completion, hit VFX anchoring, projectile anchoring, runtime visual budget caps, spread direction helpers, dynamic damage-zone uniqueness/expiration/tick payload helpers, and stable hash/percent helpers.
 - Checks that should stay App-owned until a later orchestration task: mana spending, actual release interval, continuous attack refs, timeline scheduling, `consumeSkillEventBatch` side effects, damage application, enemy/player status mutation, forced movement mutation, map-run monster creation, monster skill timeline consumption, pending monster damage-zone queues, repeated zone scheduling, player/enemy runtime refs, and `stepGame`.
 - Any moved source check must read the new owning module in the same batch that moves the code; App checks should be reduced to App-owned wiring calls.
+
+## 5.4 Audit Location
+
+- The frontend skill runtime audit for this change is recorded in sections 5.1, 5.2, and 5.3 of this baseline audit before event-builder or consumer code is moved.
