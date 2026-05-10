@@ -12,7 +12,8 @@ const enemyRuntime = readFileSync(join(root, "webapp", "runtime", "enemyRuntime.
 const enemyTypes = readFileSync(join(root, "webapp", "types", "enemyTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const combatRuntimeTypes = readFileSync(join(root, "webapp", "types", "combatRuntimeTypes.ts"), "utf8").replace(/\r\n/g, "\n");
 const skillPreviewTypes = readFileSync(join(root, "webapp", "types", "skillPreviewTypes.ts"), "utf8").replace(/\r\n/g, "\n");
-const runtimeEnemySourceText = [app, enemyRuntime, enemyTypes].join("\n");
+const enemyDamageRuntime = readFileSync(join(root, "webapp", "runtime", "enemyDamageRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
+const runtimeEnemySourceText = [app, enemyRuntime, enemyDamageRuntime, enemyTypes].join("\n");
 const webappSourceFiles = collectWebappSourceFiles(join(root, "webapp"));
 const webappSources = webappSourceFiles.map((file) => file.source);
 const webappSourceText = webappSources.join("\n");
@@ -561,6 +562,70 @@ if (!applyDamageEventBatchBody.includes("enemiesStateRef.current = liveEnemiesAf
 }
 if (!applyDamageEventBatchBody.includes("setEnemies(liveEnemiesAfterDamage);")) {
   throw new Error("Runtime damage React state must mirror the playable post-damage enemy snapshot.");
+}
+const damageEventAmountAgainstEnemyBody = functionBody(enemyDamageRuntime, "damageEventAmountAgainstEnemy");
+const scaledDamageAgainstEnemyBody = functionBody(enemyDamageRuntime, "scaledDamageAgainstEnemy");
+const applyDamageToEnemyResourcesBody = functionBody(enemyDamageRuntime, "applyDamageToEnemyResources");
+const enemyStatusApplyResistancePercentBody = functionBody(enemyDamageRuntime, "enemyStatusApplyResistancePercent");
+for (const token of [
+  "damageOverTimeAggravationMultiplier(event, enemy)",
+  "doubleDamageEventMultiplier(event, stablePercent)",
+  "resistance_penetration_percent",
+  "armor_reduction_penetration_percent",
+  "Object.entries(components",
+  "scaledDamageAgainstEnemy"
+]) {
+  if (!damageEventAmountAgainstEnemyBody.includes(token)) {
+    throw new Error(`Enemy damage runtime must preserve event damage formula token: ${token}`);
+  }
+}
+for (const token of [
+  "monsterDamageAvoided(enemy, rollKey, stablePercent)",
+  "monsterDamageBlocked(enemy, rollKey, stablePercent)",
+  "armor / (armor + 10 * scaledAmount)",
+  "enemyResistancePercent(enemy, damageType)",
+  "damage_mitigation_final_percent",
+  "statusIncreasesDamageTakenFrom"
+]) {
+  if (!scaledDamageAgainstEnemyBody.includes(token)) {
+    throw new Error(`Enemy damage runtime must preserve scaling token: ${token}`);
+  }
+}
+for (const token of [
+  "currentEnergyShield",
+  "shieldDamage = Math.min(currentShield, incoming)",
+  "lifeDamage = Math.max(0, incoming - shieldDamage)"
+]) {
+  if (!applyDamageToEnemyResourcesBody.includes(token)) {
+    throw new Error(`Enemy damage runtime must preserve shield-before-life token: ${token}`);
+  }
+}
+for (const token of [
+  "ailment_resistance_percent",
+  "isElementalAilment(statusType)",
+  "control_resistance_percent",
+  "freeze_resistance_percent",
+  "stun_resistance_percent",
+  "knockback_resistance_percent"
+]) {
+  if (!enemyStatusApplyResistancePercentBody.includes(token)) {
+    throw new Error(`Enemy status runtime must preserve resistance token: ${token}`);
+  }
+}
+for (const forbiddenEnemyDamageToken of [
+  "from \"../App\"",
+  "from \"./App\"",
+  "setEnemies",
+  "setCombatLogs",
+  "spawnFrontendDrops",
+  "gainWarIntentPoint",
+  "localStorage",
+  "fetch(",
+  "/" + "api/"
+]) {
+  if (enemyDamageRuntime.includes(forbiddenEnemyDamageToken)) {
+    throw new Error(`Enemy damage runtime must stay deterministic and App-independent: ${forbiddenEnemyDamageToken}`);
+  }
 }
 const applyEnemyStatusBuffBody = functionBody(app, "applyEnemyStatusBuff");
 if (!applyEnemyStatusBuffBody.includes("const next = enemiesStateRef.current.map")) {

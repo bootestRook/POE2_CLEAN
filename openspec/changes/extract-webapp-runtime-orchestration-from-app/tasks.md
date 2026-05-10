@@ -74,13 +74,13 @@
 
 ## 9. Enemy Damage And Status Helper Extraction
 
-- [ ] 9.1 Identify deterministic enemy damage/resource/status helper functions still in App, including resistance, armor, block, avoidance, damage-over-time aggravation, status damage taken, energy-shield/life resource application, and numeric stat lookup helpers.
-- [ ] 9.2 Create or extend a focused runtime module for enemy damage/status helpers.
-- [ ] 9.3 Move only helpers that are deterministic over explicit event/enemy/stat/roll inputs and do not mutate React state or runtime refs.
-- [ ] 9.4 Preserve formulas, roll-key behavior, resistance caps, armor behavior, block/avoidance behavior, status interactions, resource ordering, and returned result shapes.
-- [ ] 9.5 Keep `applyDamageEventBatch`, enemy array mutation, kill handling, drop progression, combat logs, and visual queue mutation App-owned during this batch.
-- [ ] 9.6 Add focused executable smoke cases for physical, elemental, chaos, armor, resistance, block, avoidance, damage-over-time, status damage taken, energy-shield, and life resource cases.
-- [ ] 9.7 Run build, `npm test`, focused enemy damage checks, OpenSpec validation, and playable battle verification; commit the batch.
+- [x] 9.1 Identify deterministic enemy damage/resource/status helper functions still in App, including resistance, armor, block, avoidance, damage-over-time aggravation, status damage taken, energy-shield/life resource application, and numeric stat lookup helpers.
+- [x] 9.2 Create or extend a focused runtime module for enemy damage/status helpers.
+- [x] 9.3 Move only helpers that are deterministic over explicit event/enemy/stat/roll inputs and do not mutate React state or runtime refs.
+- [x] 9.4 Preserve formulas, roll-key behavior, resistance caps, armor behavior, block/avoidance behavior, status interactions, resource ordering, and returned result shapes.
+- [x] 9.5 Keep `applyDamageEventBatch`, enemy array mutation, kill handling, drop progression, combat logs, and visual queue mutation App-owned during this batch.
+- [x] 9.6 Add focused executable smoke cases for physical, elemental, chaos, armor, resistance, block, avoidance, damage-over-time, status damage taken, energy-shield, and life resource cases.
+- [x] 9.7 Run build, `npm test`, focused enemy damage checks, OpenSpec validation, and playable battle verification; commit the batch.
 
 ## 10. Player Resource And Incoming Damage Helper Extraction
 

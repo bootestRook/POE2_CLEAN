@@ -73,6 +73,12 @@ import {
   TRIGGERED_SKILL_EVENT_MIN_DELAY_SECONDS
 } from "./runtime/runtimeTimingConstants";
 import {
+  applyDamageToEnemyResources,
+  damageEventAmountAgainstEnemy,
+  enemyStatusApplyResistancePercent,
+  enemyStatusDurationMultiplier
+} from "./runtime/enemyDamageRuntime";
+import {
   buildFrontendChainSkillEvents as buildFrontendChainSkillEventsFromRuntime,
   buildFrontendDamageZoneSkillEvents as buildFrontendDamageZoneSkillEventsFromRuntime,
   buildFrontendMeleeArcSkillEvents as buildFrontendMeleeArcSkillEventsFromRuntime,
@@ -5067,7 +5073,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
           const currentHp = projectedEnemyHp.get(targetId);
           if (currentHp === undefined || currentHp <= 0) continue;
           const enemy = projectedEnemyById.get(targetId);
-          const damage = enemy ? damageEventAmountAgainstEnemy(event, enemy) : Number(event.amount ?? 0);
+          const damage = enemy ? damageEventAmountAgainstEnemy(event, enemy, stablePercent) : Number(event.amount ?? 0);
           if (damage <= 0) continue;
           const nextHp = currentHp - damage;
           if (projectileId && isProjectileTickFollowup(event)) {
@@ -5294,7 +5300,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
     if (!statusType) return;
     const targetEnemy = enemiesStateRef.current.find((enemy) => enemy.id === targetId && enemy.hp > 0);
     if (!targetEnemy) return;
-    const applyChance = 100 - enemyStatusApplyResistancePercent(targetEnemy, statusType);
+    const applyChance = 100 - enemyStatusApplyResistancePercent(targetEnemy, statusType, (type) => frontendElementalAilmentTypes().has(type));
     if (applyChance <= 0) return;
     if (applyChance < 100 && stablePercent(`${event.event_id}:${targetId}:${statusType}:enemy_status_resist`) >= applyChance) return;
     const duration = Math.max(0.1, Number(payload.duration_ms ?? event.duration_ms ?? 0) / 1000)
@@ -5419,7 +5425,7 @@ function consumeImmediateSkillEvents(events: SkillEvent[]) {
       const targetId = Number(event.target_entity);
       if (!Number.isFinite(targetId)) continue;
       const enemy = enemyById.get(targetId);
-      const damage = enemy ? damageEventAmountAgainstEnemy(event, enemy) : Number(event.amount ?? 0);
+      const damage = enemy ? damageEventAmountAgainstEnemy(event, enemy, stablePercent) : Number(event.amount ?? 0);
       damageByTarget.set(targetId, (damageByTarget.get(targetId) ?? 0) + damage);
       if (!enemy || damage <= 0) continue;
       if (enemy.boss || enemy.spawnRarity === "rare") gainWarIntentPoint();
@@ -7612,145 +7618,6 @@ function hasShapeEffect(effects: readonly ShapeEffectPreview[] | undefined, id: 
 
 function proceduralSpawnLogLine(debug: ProceduralSpawnDebugSummary) {
   return `程序化生怪：地图类型 ${debug.map_type}，预算 ${debug.spent_pack_budget}/${debug.base_pack_budget}，怪物包 ${debug.generated_pack_count}，普通 ${debug.normal_monster_count}，魔法 ${debug.magic_monster_count}，稀有 ${debug.rare_monster_count}，传奇 ${debug.boss_monster_count}。`;
-}
-
-function enemyStatusApplyResistancePercent(enemy: Enemy, statusType: string) {
-  let resistance = enemyNumericStat(enemy, "ailment_resistance_percent");
-  if (frontendElementalAilmentTypes().has(statusType)) {
-    resistance += enemyNumericStat(enemy, "elemental_ailment_resistance_percent");
-  }
-  if (enemyControlStatusTypes().has(statusType)) {
-    resistance += enemyNumericStat(enemy, "control_resistance_percent");
-  }
-  if (statusType === "frozen" || statusType === "freeze") resistance += enemyNumericStat(enemy, "freeze_resistance_percent");
-  if (statusType === "stun" || statusType === "stunned") resistance += enemyNumericStat(enemy, "stun_resistance_percent");
-  if (statusType === "knockback") resistance += enemyNumericStat(enemy, "knockback_resistance_percent");
-  return clamp(resistance, 0, 100);
-}
-
-function enemyStatusDurationMultiplier(enemy: Enemy, statusType: string) {
-  let resistance = enemyNumericStat(enemy, "ailment_resistance_percent");
-  if (enemyControlStatusTypes().has(statusType)) {
-    resistance += enemyNumericStat(enemy, "control_resistance_percent");
-  }
-  return Math.max(0, 1 - clamp(resistance, 0, 100) / 100);
-}
-
-function enemyControlStatusTypes() {
-  return new Set(["frozen", "freeze", "stun", "stunned", "knockback", "numbed", "chill"]);
-}
-
-function damageEventAmountAgainstEnemy(event: SkillEvent, enemy: Enemy) {
-  if (enemy.supremeBossInvulnerableUntilMs !== undefined && event.timestamp_ms < enemy.supremeBossInvulnerableUntilMs) return 0;
-  const components = event.payload?.damage_components;
-  const multiplier = damageOverTimeAggravationMultiplier(event, enemy);
-  const doubleDamageMultiplier = doubleDamageEventMultiplier(event);
-  const resistancePenetrationPercent = Number(event.payload?.resistance_penetration_percent ?? 0);
-  const armorReductionPenetrationPercent = Number(event.payload?.armor_reduction_penetration_percent ?? 0);
-  if (components && typeof components === "object" && !Array.isArray(components)) {
-    return Object.entries(components as Record<string, unknown>).reduce((total, [damageType, value]) => {
-      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, event.event_id);
-    }, 0) * multiplier * doubleDamageMultiplier;
-  }
-  return scaledDamageAgainstEnemy(event.damage_type, Number(event.amount ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, event.event_id) * multiplier * doubleDamageMultiplier;
-}
-
-function doubleDamageEventMultiplier(event: SkillEvent) {
-  const chance = clamp(Number(event.payload?.double_damage_chance_percent ?? 0), 0, 100);
-  if (chance <= 0) return 1;
-  return stablePercent(`${event.event_id}:double_damage`) < chance ? 2 : 1;
-}
-
-function damageOverTimeAggravationMultiplier(event: SkillEvent, enemy: Enemy) {
-  const bonusPer10 = Math.max(0, Number(event.payload?.dot_damage_bonus_per_10_aggravation_percent ?? 0));
-  if (bonusPer10 <= 0) return 1;
-  const bonusPercent = (enemy.activeBuffs ?? [])
-    .filter((buff) => buff.statusType === "aggravation" && buff.remaining > 0)
-    .reduce((total, buff) => total + ((buff.baseValue ?? 0) / 10) * buff.valuePercent, 0);
-  return 1 + bonusPercent / 100;
-}
-
-function scaledDamageAgainstEnemy(damageType: string, amount: number, enemy: Enemy, resistancePenetrationPercent = 0, armorReductionPenetrationPercent = 0, rollKey = "") {
-  if (amount <= 0) return Math.max(0, amount);
-  let scaledAmount = Math.max(0, amount);
-  if (damageType === "true") return scaledAmount;
-  if (monsterDamageAvoided(enemy, rollKey)) return 0;
-  if (monsterDamageBlocked(enemy, rollKey)) {
-    scaledAmount *= 1 - monsterBlockDamageReduction(enemy) / 100;
-  }
-  if (damageType === "physical") {
-    const armor = enemyNumericStat(enemy, "armor");
-    if (armor > 0) {
-      const armorReduction = armor / (armor + 10 * scaledAmount);
-      scaledAmount *= 1 - Math.min(0.9, Math.max(0, armorReduction - armorReductionPenetrationPercent / 100));
-    }
-  }
-  const resistancePercent = enemyResistancePercent(enemy, damageType) - resistancePenetrationPercent;
-  if (resistancePercent > 0) {
-    scaledAmount *= 1 - Math.min(0.9, resistancePercent / 100);
-  }
-  scaledAmount *= 1 - Math.min(0.9, Math.max(0, enemyNumericStat(enemy, "damage_mitigation_final_percent")) / 100);
-  const takenIncrease = (enemy.activeBuffs ?? [])
-    .filter((buff) => (
-      buff.polarity === "negative"
-      && buff.remaining > 0
-      && statusIncreasesDamageTakenFrom(buff.statusType, damageType)
-    ))
-    .reduce((total, buff) => total + buff.valuePercent, 0);
-  return scaledAmount * (1 + takenIncrease / 100);
-}
-
-function monsterDamageAvoided(enemy: Enemy, rollKey: string) {
-  const chance = Math.min(75, Math.max(0, enemyNumericStat(enemy, "damage_avoidance_percent")));
-  if (chance <= 0) return false;
-  return stablePercent(`${rollKey || `enemy:${enemy.id}`}:monster_damage_avoid`) < chance;
-}
-
-function monsterDamageBlocked(enemy: Enemy, rollKey: string) {
-  const chance = Math.min(75, Math.max(0, enemyNumericStat(enemy, "block_chance_percent")));
-  if (chance <= 0) return false;
-  return stablePercent(`${rollKey || `enemy:${enemy.id}`}:monster_block`) < chance;
-}
-
-function monsterBlockDamageReduction(enemy: Enemy) {
-  return Math.min(90, Math.max(0, enemyNumericStat(enemy, "block_damage_reduction_percent")));
-}
-
-function applyDamageToEnemyResources(enemy: Enemy, damage: number): Pick<Enemy, "hp" | "currentEnergyShield"> {
-  const incoming = Math.max(0, damage);
-  if (incoming <= 0) return { hp: enemy.hp, currentEnergyShield: enemy.currentEnergyShield };
-  const currentShield = Math.max(0, Number(enemy.currentEnergyShield ?? 0));
-  if (currentShield <= 0) return { hp: enemy.hp - incoming, currentEnergyShield: enemy.currentEnergyShield };
-  const shieldDamage = Math.min(currentShield, incoming);
-  const lifeDamage = Math.max(0, incoming - shieldDamage);
-  return {
-    hp: enemy.hp - lifeDamage,
-    currentEnergyShield: currentShield - shieldDamage
-  };
-}
-
-function enemyResistancePercent(enemy: Enemy, damageType: string) {
-  if (damageType === "fire") return enemyNumericStat(enemy, "fire_resistance_percent") + enemyNumericStat(enemy, "elemental_resistance_percent");
-  if (damageType === "cold") return enemyNumericStat(enemy, "cold_resistance_percent") + enemyNumericStat(enemy, "elemental_resistance_percent");
-  if (damageType === "lightning") return enemyNumericStat(enemy, "lightning_resistance_percent") + enemyNumericStat(enemy, "elemental_resistance_percent");
-  if (damageType === "chaos" || damageType === "corrosion" || damageType === "erosion") {
-    return enemyNumericStat(enemy, "chaos_resistance_percent")
-      + enemyNumericStat(enemy, "corrosion_resistance_percent")
-      + enemyNumericStat(enemy, "erosion_resistance_percent");
-  }
-  return 0;
-}
-
-function enemyNumericStat(enemy: Enemy, stat: string) {
-  const value = (enemy as Enemy & Record<string, unknown>)[stat];
-  return typeof value === "number" ? value : 0;
-}
-
-function statusIncreasesDamageTakenFrom(statusType: string, damageType: string) {
-  if (statusType === "frostbite") return damageType === "cold";
-  if (statusType === "numbed") return damageType === "lightning";
-  if (statusType === "damage_taken_increase") return true;
-  return false;
 }
 
 function nearestGuideTarget(

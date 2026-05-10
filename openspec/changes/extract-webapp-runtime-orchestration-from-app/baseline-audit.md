@@ -265,3 +265,21 @@
 - `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-dispatcher-extraction.out.log` and `artifacts/logs/runbat-dispatcher-extraction.err.log`.
 - Playable WebApp verification followed title, new save, rest area, map selection, battle entry, and hotkey skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/dispatcher-extraction-playable-battle.png`.
 - Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, automatic skill releases, direct hit/critical hit log entries, a kill entry, and a dropped item entry.
+
+## 9.1-9.6 Enemy Damage Helper Ownership
+
+- `webapp/runtime/enemyDamageRuntime.ts` now owns deterministic enemy damage/status/resource helpers.
+- Moved helpers include enemy status apply resistance, enemy status duration multiplier, control status type classification, event damage amount scaling, double damage roll evaluation, damage-over-time aggravation multiplier, armor/resistance/final mitigation scaling, block/avoidance checks, block damage reduction, enemy energy-shield-before-life resource application, enemy resistance lookup, numeric stat lookup, and damage-taken status matching.
+- `webapp/App.tsx` now imports these helpers and passes `stablePercent` plus an elemental ailment predicate explicitly where deterministic rolls or frontend status classification are required.
+- `applyDamageEventBatch`, `applyEnemyStatusBuff`, enemy array mutation, kill-trigger processing, drop progression, war-intent gain, combat logs, visual queues, and React state mutation remain App-owned.
+- `webapp/smoke-test.mjs` reads `webapp/runtime/enemyDamageRuntime.ts` for damage formula, armor, resistance, block, avoidance, status damage taken, energy shield, and life resource tokens, and guards the module against App imports, setters, combat logs, drops, storage, and backend API calls.
+
+## 9.7 Enemy Damage Helper Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- Focused enemy damage check confirmed representative damage component, double damage, armor, mitigation, resistance, block, avoidance, status, energy-shield, and life resource tokens live in `webapp/runtime/enemyDamageRuntime.ts`, with no App mutation, storage, or backend API tokens in that module.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-enemy-damage-helper-extraction.out.log` and `artifacts/logs/runbat-enemy-damage-helper-extraction.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection, battle entry, and repeated skill attempts in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/enemy-damage-helper-extraction-playable-battle.png`.
+- Screenshot/log observation: the battle view showed two canvas elements, procedural spawn debug information, and repeated skill damage log entries in the playable battle path.
