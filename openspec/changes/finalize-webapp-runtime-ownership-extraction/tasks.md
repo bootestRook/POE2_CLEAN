@@ -2,7 +2,7 @@
 
 - [x] 1.1 Inspect current `webapp/App.tsx`, `webapp/runtime/`, `webapp/types/`, `webapp/smoke-test.mjs`, and docs to identify the exact dependencies of `consumeSkillEventTimeline`, `consumeScheduledSkillEvents`, `updateActiveDamageZones`, `consumeSkillEventBatch`, and `applyDamageEventBatch`.
 - [x] 1.2 Update the runtime ownership notes in `docs/webapp-app-decomposition-map.md` before code movement so the target owner modules, App-owned refs/state, and intentionally deferred wiring are explicit.
-- [ ] 1.3 Confirm no active worktree changes are unrelated to this pass before editing, and preserve any user changes encountered during implementation.
+- [x] 1.3 Confirm no active worktree changes are unrelated to this pass before editing, and preserve any user changes encountered during implementation.
 
 ## 2. Extract Skill Event Consumption Boundary
 
