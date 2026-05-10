@@ -144,12 +144,12 @@
 
 ## 16. Smoke And Focused Test Migration
 
-- [ ] 16.1 Update `webapp/smoke-test.mjs` so each moved invariant reads the new owning source module.
-- [ ] 16.2 Keep App-specific smoke checks limited to mode routing, cross-domain state/ref initialization, callback adapters, runtime refs that remain in App, disabled tooling gates, backend-coupling prevention, and playable WebApp acceptance boundaries.
-- [ ] 16.3 Add or update executable smoke checks for frontend playable event builders and runtime helper modules.
-- [ ] 16.4 Add or update tests preventing extracted runtime modules from importing from `webapp/App.tsx`.
-- [ ] 16.5 Add or update tests preventing backend gameplay API calls, server runtimes, Python runtime evidence as sufficient acceptance, duplicate frontend gameplay runtimes, and skill-editor acceptance paths.
-- [ ] 16.6 Run the repository's accepted WebApp test command `npm test` and any new focused checks, then commit the test migration batch.
+- [x] 16.1 Update `webapp/smoke-test.mjs` so each moved invariant reads the new owning source module.
+- [x] 16.2 Keep App-specific smoke checks limited to mode routing, cross-domain state/ref initialization, callback adapters, runtime refs that remain in App, disabled tooling gates, backend-coupling prevention, and playable WebApp acceptance boundaries.
+- [x] 16.3 Add or update executable smoke checks for frontend playable event builders and runtime helper modules.
+- [x] 16.4 Add or update tests preventing extracted runtime modules from importing from `webapp/App.tsx`.
+- [x] 16.5 Add or update tests preventing backend gameplay API calls, server runtimes, Python runtime evidence as sufficient acceptance, duplicate frontend gameplay runtimes, and skill-editor acceptance paths.
+- [x] 16.6 Run the repository's accepted WebApp test command `npm test` and any new focused checks, then commit the test migration batch.
 
 ## 17. Frontend Visual Verification
 

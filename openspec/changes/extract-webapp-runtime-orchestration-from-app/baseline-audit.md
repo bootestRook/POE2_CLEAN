@@ -387,3 +387,14 @@
 - Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/app-cleanup-boundary-hardening-playable-battle.png`.
 - Screenshot/log observation: the battle view showed two canvas elements, a dropped item (`Lv3 智慧盾牌`), procedural spawn debug information, automatic skill releases, kill entries, and monster attack log entries in the frontend-run playable path.
 - Root artifact check found no root-level screenshots, logs, traces, or generated test output files.
+
+## 16.1-16.6 Smoke And Focused Test Migration
+
+- Confirmed moved invariants now read their owner modules in `webapp/smoke-test.mjs`: `frontendPlayableSkillEventBuilders.ts`, `enemyDamageRuntime.ts`, `playerDamageRuntime.ts`, `projectileLifecycleRuntime.ts`, `damageZoneLifecycleRuntime.ts`, `skillEventTypes.ts`, and `damageZoneRuntimeTypes.ts`.
+- App-specific smoke checks now focus on mode routing, state/ref wiring, callback adapters, intentionally retained event consumer and battle-loop orchestration boundaries, disabled tooling gates, backend-coupling prevention, and playable WebApp acceptance boundaries.
+- Executable smoke coverage now compiles and runs focused modules for monster skill runtime, monster event builder, damage-zone lifecycle, player damage/resource runtime, and procedural spawn runtime. Source checks cover frontend playable builders, projectile lifecycle helpers, enemy damage helpers, moved constants, and type-only boundaries.
+- Extracted module import checks scan WebApp source files and fail if modules import `webapp/App.tsx`.
+- Client-only and acceptance checks fail on backend gameplay API/server tokens, backend-canonical playable runtime names, disabled skill-editor routes/query flags/ports/build outputs, and root-level acceptance misuse.
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
