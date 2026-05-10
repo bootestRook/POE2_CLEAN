@@ -58,3 +58,11 @@ Observed extraction dependency shape:
 - `cmd /c npm run build` passed.
 - `npm test` passed.
 - `openspec validate finalize-webapp-runtime-ownership-extraction --strict` passed.
+
+### Task 3.3 Event Consumer Playable WebApp Verification
+
+- Started the WebApp through `run.bat`; runner output was stored under `artifacts/logs/run-webapp-event-consumer-out.log` and `artifacts/logs/run-webapp-event-consumer-err.log`.
+- Verified the actual WebApp at `http://127.0.0.1:8766/`.
+- Captured playable screenshots under `artifacts/screenshots/`, including `event-consumer-playable-battle-active.png`, `event-consumer-playable-battle-corner.png`, and `event-consumer-playable-battle-vfx.png`.
+- Visible result: the playable battle/map view rendered with terrain, player HUD/resource bars, minimap, procedural spawn debug panel, combat feed, and the corner monster debug scenario. Combat feed showed automatic player skill release, monster melee/skill hits, enemy kills, item drops, and boss/monster skill messages after event consumption moved to the runtime owner.
+- The verification did not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, or `dist-skill-editor`.
