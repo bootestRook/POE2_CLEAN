@@ -212,3 +212,10 @@
 - React setters for texts, bolts, enemies, hit VFX, area novas, melee arcs, chain segments, damage zones, player state, combat logs, drops, and map progression remain in `webapp/App.tsx`.
 - Runtime refs including scheduled skill events, active damage zones, projectile/damage-zone queues, player/enemy refs, cooldown/continuous attack refs, and boss/monster skill timers remain in `webapp/App.tsx`.
 - The extracted builder module returns event arrays only; it does not call setters, mutate refs, write storage, consume timelines, apply damage, or schedule events.
+
+## 6.7 Smoke Ownership Migration
+
+- `webapp/smoke-test.mjs` now reads `webapp/runtime/frontendPlayableSkillEventBuilders.ts`.
+- Projectile payload checks use `functionBody(frontendPlayableSkillEventBuilders, "buildFrontendProjectileSkillEvents")`.
+- Chain and module-chain payload checks use `functionBody(frontendPlayableSkillEventBuilders, "buildFrontendChainSkillEvents")` and `functionBody(frontendPlayableSkillEventBuilders, "buildFrontendModuleChainSkillEvents")`.
+- App checks remain for explicit adapter calls and App-owned side-effect boundaries.
