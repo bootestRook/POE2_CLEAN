@@ -31,7 +31,7 @@
 
 - [x] 5.1 Run focused source/runtime checks for damage helper usage, enemy mutation, player on-hit recovery, drop spawning, combat-log side effects, and recursive on-kill event routing.
 - [x] 5.2 Run `cmd /c npm run build`, `npm test`, and OpenSpec validation for this change.
-- [ ] 5.3 Launch or match the project `run.bat` WebApp flow, exercise the actual playable battle view, capture screenshots under `artifacts/screenshots/`, and describe visible damage numbers, enemy damage/death, drops or progression feedback, and combat log behavior.
+- [x] 5.3 Launch or match the project `run.bat` WebApp flow, exercise the actual playable battle view, capture screenshots under `artifacts/screenshots/`, and describe visible damage numbers, enemy damage/death, drops or progression feedback, and combat log behavior.
 - [ ] 5.4 Stop and fix any behavior, import, backend-coupling, skill-editor-acceptance, duplicate-runtime, or root-artifact issue before evaluating battle-loop extraction.
 
 ## 6. Evaluate Optional Battle Loop Wiring
