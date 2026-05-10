@@ -46,3 +46,9 @@ Observed extraction dependency shape:
 - Source search found no `buildFrontend*`, `releaseFrontendPlayableSkill`, `frontendNearestSkillTargets`, `frontendUniqueTargetsByDistance`, `frontendDamageEventsForTarget`, `/api/`, or `fetch(` references in the event consumer owner.
 - Projectile trajectory and damage amount decisions remain behind injected helpers such as `liveMonsterProjectileTrajectoryForEvent` and `damageEventAmountAgainstEnemy`; the consumer routes events and side effects rather than rebuilding skill event payloads.
 - Event builder families remain separate in `webapp/runtime/frontendPlayableSkillEventBuilders.ts`.
+
+### Task 3.1 Event Consumer Focused Checks
+
+- Source checks confirmed `skillEventConsumerRuntime.ts` owns scheduled queue advancement, active damage-zone tick consumption, projectile follow-up suppression state, status routing, forced movement routing, VFX queue setters, and damage-event routing.
+- Source checks confirmed `App.tsx` wires the event consumer owner through `createSkillEventConsumerRuntime` with explicit refs, setters, and callbacks.
+- `npm test` passed after migrating owner checks.
