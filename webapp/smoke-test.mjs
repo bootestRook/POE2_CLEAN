@@ -624,6 +624,42 @@ for (const [body, family] of [[buildFrontendChainSkillEventsBody, "chain"], [bui
     if (!body.includes(token)) throw new Error(`${family} frontend runtime coverage missing ${token}.`);
   }
 }
+for (const [body, family, tokens] of [
+  [buildFrontendProjectileSkillEventsBody, "projectile", ["projectile_id", "projectile_index", "projectile_count", "projectile_continues", "same_target_hit_sequence", "shotgun_falloff_coeff", "on_kill_explosion_chance_percent"]],
+  [buildFrontendChainSkillEventsBody, "chain", ["segment_id", "segment_index", "start_position", "end_position", "target_world_position"]],
+  [buildFrontendModuleChainSkillEventsBody, "module-chain", ["module_projectile", "corrosive_ground", "dynamic_tick_runtime", "damage_zone_hit", "buff_apply"]]
+]) {
+  for (const token of tokens) {
+    if (!body.includes(token)) throw new Error(`${family} builder payload invariant missing from owner module: ${token}`);
+  }
+}
+for (const forbiddenBuilderToken of [
+  "from \"../App\"",
+  "from \"./App\"",
+  "setEnemies",
+  "setBolts",
+  "setTexts",
+  "setHitVfxs",
+  "consumeSkillEventTimeline",
+  "consumeSkillEventBatch",
+  "scheduledSkillEvents",
+  "activeDamageZones",
+  "localStorage",
+  "fetch(",
+  "/" + "api/"
+]) {
+  if (frontendPlayableSkillEventBuilders.includes(forbiddenBuilderToken)) {
+    throw new Error(`Frontend playable builder module must stay pure and App-independent: ${forbiddenBuilderToken}`);
+  }
+}
+for (const adapterToken of [
+  "buildFrontendProjectileSkillEventsFromRuntime",
+  "buildFrontendChainSkillEventsFromRuntime",
+  "buildFrontendModuleChainSkillEventsFromRuntime",
+  "elapsedRef.current * 1000"
+]) {
+  if (!app.includes(adapterToken)) throw new Error(`App must adapt playable builder dependencies explicitly: ${adapterToken}`);
+}
 const buildFrontendDamageZoneSkillEventsBody = functionBody(app, "buildFrontendDamageZoneSkillEvents");
 for (const token of [
   "dynamic_tick_runtime: useDynamicTickRuntime",
