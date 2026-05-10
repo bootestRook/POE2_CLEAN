@@ -132,3 +132,10 @@
 - Inventory/stash constants: inventory slot/column counts, stash page counts, equipment slot specs, weapon slot indices, item discard preference key, and starter board position.
 - Interaction radii and test/debug constants: keyboard pickup radius, click completion radius, monster test level/player life/dummy offsets, encounter palettes, and monster test spawn offsets.
 - Constants already owned elsewhere: enemy movement/combat constants live in `webapp/runtime/enemyRuntime.ts`; projectile VFX constants live in `webapp/components/battle/projectileVfxPresentation.ts`.
+
+## 4.3 Moved Constant Value Check
+
+- `webapp/runtime/monsterStatConstants.ts` preserves all moved monster normal base/growth numeric values and exported names.
+- `webapp/runtime/bossSkillConstants.ts` preserves all moved boss skill timing/range/projectile numeric values and `BOSS_BARRAGE_WAVE_OFFSETS_DEG = [0, 11.25, 22.5] as const`.
+- `webapp/runtime/runtimeTimingConstants.ts` preserves runtime perf thresholds, visual caps, damage-over-time text interval, triggered skill minimum delay, and frontend knockback constants.
+- `webapp/App.tsx` imports the moved constants by the same exported names and still references those names at the existing call sites.
