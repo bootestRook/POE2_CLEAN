@@ -139,3 +139,12 @@
 - `webapp/runtime/bossSkillConstants.ts` preserves all moved boss skill timing/range/projectile numeric values and `BOSS_BARRAGE_WAVE_OFFSETS_DEG = [0, 11.25, 22.5] as const`.
 - `webapp/runtime/runtimeTimingConstants.ts` preserves runtime perf thresholds, visual caps, damage-over-time text interval, triggered skill minimum delay, and frontend knockback constants.
 - `webapp/App.tsx` imports the moved constants by the same exported names and still references those names at the existing call sites.
+
+## 4.4 Constants Intentionally Left In App
+
+- Game resolution constants remain in App/hook-adjacent flow until resolution ownership is separately scoped.
+- Map dimension and battle camera anchor constants remain in App because they derive from the selected baked map and viewport shell composition.
+- Inventory, stash, equipment slot, tooltip, floating item, discard preference, and starter board constants remain in App because moving them cleanly requires a separate inventory/state ownership pass.
+- Skill-editor timeline, skill-test dummy, monster-test spawn offsets, monster-test level/player life, and encounter palette constants remain in App because they are disabled-tooling/test/debug-adjacent and not part of the runtime owner extracted in this batch.
+- Boss pack id lists and supreme boss config constants remain in App because they are tied to map-run stage selection, local config loading, and boss runtime orchestration rather than pure constant ownership alone.
+- Keyboard pickup and click interaction radii remain in App because they sit in pickup/input orchestration that this pass has not moved.
