@@ -617,8 +617,8 @@ for (const token of ["projectile_spawn", "projectile_hit", "frontendDamageEvents
     throw new Error(`Projectile frontend runtime coverage missing ${token}.`);
   }
 }
-const buildFrontendChainSkillEventsBody = functionBody(app, "buildFrontendChainSkillEvents");
-const buildFrontendModuleChainSkillEventsBody = functionBody(app, "buildFrontendModuleChainSkillEvents");
+const buildFrontendChainSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendChainSkillEvents");
+const buildFrontendModuleChainSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendModuleChainSkillEvents");
 for (const [body, family] of [[buildFrontendChainSkillEventsBody, "chain"], [buildFrontendModuleChainSkillEventsBody, "module-chain"]]) {
   for (const token of family === "chain" ? ["chain_segment", "frontendDamageEventsForTarget"] : ["projectile_spawn", "damage_zone", "frontendDamageEventsForTarget"]) {
     if (!body.includes(token)) throw new Error(`${family} frontend runtime coverage missing ${token}.`);

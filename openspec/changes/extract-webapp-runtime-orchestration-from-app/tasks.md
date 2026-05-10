@@ -46,7 +46,7 @@
 
 - [x] 6.1 Create a focused frontend playable skill runtime module for projectile and chain event builders, such as `webapp/runtime/frontendPlayableSkillEventBuilders.ts` or a narrower family-specific module.
 - [x] 6.2 Move projectile event construction helpers that can operate from explicit inputs without reading App refs or mutating state.
-- [ ] 6.3 Move chain, module-chain, pierce/fork follow-up, hit VFX payload, and floating-text payload construction helpers that can remain deterministic.
+- [x] 6.3 Move chain, module-chain, pierce/fork follow-up, hit VFX payload, and floating-text payload construction helpers that can remain deterministic.
 - [ ] 6.4 Preserve event ids, event types, source/target entities, delays, durations, projectile ids, positions, directions, ranges, widths, radii, damage payloads, VFX keys, floating-text payloads, and follow-up suppression keys.
 - [ ] 6.5 Keep `consumeSkillEventTimeline`, `consumeSkillEventBatch`, `setTexts`, `setBolts`, `setEnemies`, runtime refs, and scheduling in App during this batch.
 - [ ] 6.6 Add focused smoke/executable checks for representative projectile, chain, module-chain, hit VFX, floating text, and follow-up suppression payloads.

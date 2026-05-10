@@ -72,7 +72,11 @@ import {
   RUNTIME_SLOW_LOGIC_MS,
   TRIGGERED_SKILL_EVENT_MIN_DELAY_SECONDS
 } from "./runtime/runtimeTimingConstants";
-import { buildFrontendProjectileSkillEvents as buildFrontendProjectileSkillEventsFromRuntime } from "./runtime/frontendPlayableSkillEventBuilders";
+import {
+  buildFrontendChainSkillEvents as buildFrontendChainSkillEventsFromRuntime,
+  buildFrontendModuleChainSkillEvents as buildFrontendModuleChainSkillEventsFromRuntime,
+  buildFrontendProjectileSkillEvents as buildFrontendProjectileSkillEventsFromRuntime
+} from "./runtime/frontendPlayableSkillEventBuilders";
 import {
   applyDamageToPlayerResources,
   convertIncomingPlayerDamageComponents,
@@ -4028,152 +4032,31 @@ function frontendDamageEventsForTarget(
   }
 
   function buildFrontendChainSkillEvents(skill: SkillPreview, caster: PlayerRuntimeState, initialTargets: Enemy[], current: Enemy[]) {
-    const params = skill.runtime_params ?? {};
-    const maxSegments = Math.max(1, Math.round(Number(params.chain_count ?? 1)));
-    const chainRadius = Math.max(1, Number(params.chain_radius ?? skill.cast?.search_range ?? 180));
-    const chainDelayMs = Math.max(0, Number(params.chain_delay_ms ?? 90));
-    const events: SkillEvent[] = [];
-    const hitIds = new Set<number>();
-    let start: { x: number; y: number } = caster;
-    let target = initialTargets[0];
-    for (let index = 0; index < maxSegments && target; index += 1) {
-      const segmentDelayMs = index * chainDelayMs;
-      hitIds.add(target.id);
-      const direction = guideDirection(start, target);
-      const segmentId = `${skill.active_gem_instance_id}.chain.${Math.round(elapsedRef.current * 1000)}.${index + 1}`;
-      events.push(frontendSkillEvent(skill, "chain_segment", target, start, direction, skill.final_damage, skill.damage_type, {
-        vfx_key: frontendSkillVfxKey(skill, "segment"),
-        segment_id: segmentId,
-        segment_index: index,
-        start_position: { x: start.x, y: start.y },
-        end_position: { x: target.x, y: target.y },
-        target_world_position: { x: target.x, y: target.y },
-        hit_at_ms: segmentDelayMs
-      }, 180, segmentDelayMs));
-      events.push(...frontendDamageEventsForTarget(skill, target, { x: target.x, y: target.y }, direction, skill.final_damage, skill.hit as Record<string, unknown>, {
-        hit_vfx_key: frontendSkillVfxKey(skill, "hit"),
-        chain_segment_id: segmentId,
-        segment_index: index
-      }, segmentDelayMs));
-      start = target;
-      target = frontendUniqueTargetsByDistance(current, start, chainRadius, 1, hitIds)[0];
-    }
-    return events;
+    return buildFrontendChainSkillEventsFromRuntime(skill, caster, initialTargets, current, {
+      damagePayloadComponents,
+      frontendDamageEventsForTarget,
+      frontendSkillEvent,
+      frontendSkillVfxKey,
+      frontendUniqueTargetsByDistance,
+      projectileSpawnWorldPosition,
+      stablePercent,
+      frontendScaledSkillConfigDamageAmount,
+      frontendSkillDotDamageMultiplier
+    }, elapsedRef.current * 1000);
   }
 
   function buildFrontendModuleChainSkillEvents(skill: SkillPreview, caster: PlayerRuntimeState, initialTargets: Enemy[], current: Enemy[]) {
-    const params = skill.runtime_params ?? {};
-    const modules = Array.isArray(params.modules) ? params.modules as Array<{ id?: string; type?: string; params?: Record<string, unknown>; trigger?: Record<string, unknown> }> : [];
-    const projectileModule = modules.find((module) => module.type === "projectile");
-    const zoneModule = modules.find((module) => module.type === "damage_zone");
-    const buffModule = modules.find((module) => module.type === "buff");
-    if (!projectileModule || !zoneModule) return buildFrontendChainSkillEvents(skill, caster, initialTargets, current);
-    const target = initialTargets[0];
-    const projectileParams = projectileModule.params ?? {};
-    const zoneParams = zoneModule.params ?? {};
-    const spawn = projectileSpawnWorldPosition(caster, projectileParams);
-    const direction = guideDirection(spawn, target);
-    const impact = { x: target.x, y: target.y };
-    const projectileId = `${skill.active_gem_instance_id}.module_projectile.${Math.round(elapsedRef.current * 1000)}`;
-    const events: SkillEvent[] = [
-      frontendSkillEvent(skill, "projectile_spawn", target, spawn, direction, null, skill.damage_type, {
-        vfx_key: projectileParams.vfx_key ?? frontendSkillVfxKey(skill, "projectile"),
-        projectile_id: projectileId,
-        target_world_position: impact,
-        spawn_world_position: spawn,
-        direction_world: direction,
-        velocity_world: {
-          x: direction.x * Number(projectileParams.projectile_speed ?? params.projectile_speed ?? 540),
-          y: direction.y * Number(projectileParams.projectile_speed ?? params.projectile_speed ?? 540)
-        },
-        projectile_speed: Number(projectileParams.projectile_speed ?? params.projectile_speed ?? 540),
-        projectile_width: Number(projectileParams.projectile_width ?? params.projectile_width ?? 46),
-        projectile_height: Number(projectileParams.projectile_height ?? params.projectile_height ?? 30),
-        impact_radius: Number(projectileParams.impact_radius ?? params.impact_radius ?? skill.hit?.hit_radius ?? 24) * skill.area_multiplier,
-        area_scale: skill.area_multiplier,
-        trajectory: String(projectileParams.trajectory ?? "linear"),
-        arc_height: Number(projectileParams.arc_height ?? 0),
-        lifetime_ms: Number(projectileParams.travel_time_ms ?? 520)
-      }, Number(projectileParams.travel_time_ms ?? 520)),
-      frontendSkillEvent(skill, "projectile_impact", target, impact, direction, null, skill.damage_type, {
-      vfx_key: projectileParams.vfx_key ?? frontendSkillVfxKey(skill, "hit"),
-      projectile_id: projectileId,
-      marker_id: projectileParams.impact_marker_id ?? "corrosive_impact",
-      impact_radius: Number(projectileParams.impact_radius ?? params.impact_radius ?? skill.hit?.hit_radius ?? 24) * skill.area_multiplier,
-      area_scale: skill.area_multiplier,
-      impact_position: impact
-    }, 180, Number(projectileParams.travel_time_ms ?? 520))
-    ];
-    const impactDelayMs = Number(projectileParams.travel_time_ms ?? 520);
-    events.push(...frontendDamageEventsForTarget(skill, target, impact, direction, skill.final_damage, skill.hit as Record<string, unknown>, {
-      projectile_id: projectileId,
-      hit_vfx_key: frontendSkillVfxKey(skill, "hit", projectileParams.vfx_key),
-      marker_id: projectileParams.impact_marker_id ?? "corrosive_impact"
-    }, impactDelayMs));
-    const radius = Number(zoneParams.radius ?? 80) * skill.area_multiplier;
-    const tickIntervalMs = Math.max(1, Number(zoneParams.tick_interval_ms ?? 1000));
-    const durationMs = Math.max(tickIntervalMs, Number(zoneParams.duration_ms ?? 3000));
-    const tickCount = Math.max(1, Math.floor(durationMs / tickIntervalMs));
-    const zoneTargets = frontendUniqueTargetsByDistance(current, impact, radius, Math.max(1, Number(zoneParams.max_targets ?? 8)));
-    const zoneBaseDamageAmount = frontendScaledSkillConfigDamageAmount(skill, Number(zoneParams.damage_amount ?? 0));
-    const zoneDamageAmount = zoneBaseDamageAmount * frontendSkillDotDamageMultiplier(skill);
-    const zoneId = `${skill.active_gem_instance_id}.corrosive_ground.${Math.round(elapsedRef.current * 1000)}`;
-    const zoneDelayMs = impactDelayMs + Math.max(0, Number(zoneModule.trigger?.trigger_delay_ms ?? zoneParams.trigger_delay_ms ?? 0));
-    const hitAtMs = Math.max(0, Number(zoneParams.hit_at_ms ?? 0));
-    const useDynamicTickRuntime = tickIntervalMs > 0 && durationMs > 0;
-    const dynamicBuffApply = buffModule?.params ? {
-      trigger_event_type: "damage_zone_hit",
-      buff_type: "",
-      effect_type: buffModule.params.effect_type ?? "damage_taken_increase",
-      chance_percent: Number(buffModule.params.chance_percent ?? 0),
-      effect_per_stack: Number(buffModule.params.effect_per_stack ?? 0),
-      duration_ms: Number(buffModule.params.duration_ms ?? 2000),
-      trigger_delay_ms: Math.max(0, Number(buffModule.trigger?.trigger_delay_ms ?? 0)),
-      source_skill_id: skill.skill_package_id ?? skill.skill_template_id
-    } : null;
-    events.push(frontendSkillEvent(skill, "damage_zone", null, impact, direction, zoneDamageAmount, skill.damage_type, {
-      vfx_key: zoneParams.vfx_key ?? frontendSkillVfxKey(skill, "zone"),
-      zone_id: zoneId,
-      marker_id: "corrosive_ground",
-      trigger_marker_id: zoneModule.trigger?.trigger_marker_id ?? projectileParams.impact_marker_id,
-      shape: zoneParams.shape ?? "circle",
-      radius,
-      hit_at_ms: hitAtMs,
-      tick_interval_ms: tickIntervalMs,
-      tick_count: tickCount,
-      max_targets: Number(zoneParams.max_targets ?? 8),
-      hit_target_count: zoneTargets.length,
-      max_hits: Number(zoneParams.max_hits ?? Number.MAX_SAFE_INTEGER),
-      max_hits_per_target: Number(zoneParams.max_hits_per_target ?? Number.MAX_SAFE_INTEGER),
-      dynamic_tick_runtime: useDynamicTickRuntime,
-      damage_amount: zoneDamageAmount,
-      emit_hit_vfx: Boolean(zoneParams.emit_hit_vfx ?? false),
-      dynamic_buff_apply: dynamicBuffApply
-    }, durationMs, zoneDelayMs));
-    if (useDynamicTickRuntime) return events;
-    for (let tick = 1; tick <= tickCount; tick += 1) {
-      for (const zoneTarget of zoneTargets) {
-        const tickTimeMs = hitAtMs + (tick - 1) * tickIntervalMs;
-        const eventDelayMs = zoneDelayMs + tickTimeMs;
-        const tickPayload = { zone_id: zoneId, marker_id: "corrosive_ground_hit", tick_time_ms: tickTimeMs, tick_interval_ms: tickIntervalMs };
-        events.push(frontendSkillEvent(skill, "damage_zone_hit", zoneTarget, { x: zoneTarget.x, y: zoneTarget.y }, direction, zoneDamageAmount, skill.damage_type, { ...tickPayload, vfx_key: zoneParams.vfx_key ?? frontendSkillVfxKey(skill, "zone") }, 0, eventDelayMs));
-        events.push(...frontendDamageEventsForTarget(skill, zoneTarget, { x: zoneTarget.x, y: zoneTarget.y }, direction, zoneDamageAmount, {
-          damage_components: damagePayloadComponents(skill, zoneDamageAmount, skill.damage_type, skill.hit as Record<string, unknown>)
-        }, { ...tickPayload, emit_hit_vfx: false }, eventDelayMs));
-        if (buffModule?.params && stablePercent(`${zoneId}:${zoneTarget.id}:${tick}:buff_apply`) <= Number(buffModule.params.chance_percent ?? 0)) {
-          events.push(frontendSkillEvent(skill, "buff_apply", zoneTarget, { x: zoneTarget.x, y: zoneTarget.y }, direction, null, skill.damage_type, {
-            trigger_event_type: "damage_zone_hit",
-            buff_type: "",
-            effect_type: buffModule.params.effect_type ?? "damage_taken_increase",
-            chance_percent: Number(buffModule.params.chance_percent ?? 0),
-            effect_per_stack: Number(buffModule.params.effect_per_stack ?? 0),
-            duration_ms: Number(buffModule.params.duration_ms ?? 2000),
-            source_skill_id: skill.skill_package_id ?? skill.skill_template_id
-          }, Number(buffModule.params.duration_ms ?? 2000), eventDelayMs + Math.max(0, Number(buffModule.trigger?.trigger_delay_ms ?? 0))));
-        }
-      }
-    }
-    return events;
+    return buildFrontendModuleChainSkillEventsFromRuntime(skill, caster, initialTargets, current, {
+      damagePayloadComponents,
+      frontendDamageEventsForTarget,
+      frontendSkillEvent,
+      frontendSkillVfxKey,
+      frontendUniqueTargetsByDistance,
+      projectileSpawnWorldPosition,
+      stablePercent,
+      frontendScaledSkillConfigDamageAmount,
+      frontendSkillDotDamageMultiplier
+    }, elapsedRef.current * 1000);
   }
 
   function buildFrontendDamageZoneSkillEvents(skill: SkillPreview, caster: PlayerRuntimeState, initialTargets: Enemy[], current: Enemy[]) {
