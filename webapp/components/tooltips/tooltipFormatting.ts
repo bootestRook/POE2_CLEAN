@@ -1,4 +1,4 @@
-import type { TooltipRichLine } from "./TooltipPrimitives";
+﻿import type { TooltipRichLine } from "./TooltipPrimitives";
 import type { TooltipStatLine, TooltipView } from "./tooltipViewModel";
 
 const tooltipHighlightTones: Record<string, string> = {
@@ -342,6 +342,15 @@ export function frontendSkillPreviewEffectiveLevelText(
   const effectiveLevel = Math.max(1, Math.floor(Number(sourceContext.effective_gem_level ?? 1)));
   const baseLevel = Math.max(1, effectiveLevel - equipmentLevelAdd);
   return `${effectiveLevel}(${baseLevel}+${equipmentLevelAdd})`;
+}
+
+export function frontendSkillPreviewBaseLevelSection(
+  skill: { source_context?: Record<string, unknown> },
+  frontendRecord: (value: unknown) => Record<string, unknown>
+) {
+  const sourceContext = frontendRecord(skill.source_context);
+  const baseLevel = Math.max(1, Math.floor(Number(sourceContext.base_gem_level ?? sourceContext.effective_gem_level ?? 1)));
+  return { lines: [`\u57fa\u7840\u6280\u80fd\u7b49\u7ea7\u4e3a ${baseLevel}`] };
 }
 
 export function buildGemTooltipViewModelWithNormalizers<TGem extends { tooltip_view?: TooltipView }, TView extends TooltipView>(

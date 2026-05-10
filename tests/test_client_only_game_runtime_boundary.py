@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import textwrap
 from pathlib import Path
 
 
@@ -140,7 +142,13 @@ def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
     assert 'if (source.includes("盾牌")) return "weapon";' in source
     assert 'if (sourceSlot === "weapon") return isWeaponSlot(slot);' in source
     assert '? WEAPON_SLOT_INDICES' in source
-    assert 'setMessage("已添加到物品栏。");\n      onClose();' in source
+    gm_panel = _read(WEBAPP / "components" / "layout" / "GmToolPanel.tsx")
+    assert 'setMessage("已添加到物品栏。");\n      onClose();' not in gm_panel
+    assert 'selectedGemSudokuDigit' in gm_panel
+    assert '<option value="all">全部</option>' in gm_panel
+    assert 'const baseAffixes = affixes?.affixes.filter((affix) => affix.library === "base") ?? []' in gm_panel
+    assert 'const ordinaryAffixes = affixes?.affixes.filter((affix) => affix.library !== "base") ?? []' in gm_panel
+    assert "setGmOpen((current) => bagOpen ? !current : true)" in source
     assert "craftFrontendEquipmentAffix" in runtime
     assert "prefixSuffixCapacity" in runtime
     assert "applyFrontendEquipmentStatModifiers" in runtime
@@ -300,6 +308,63 @@ def test_frontend_equipment_runtime_consumes_recent_affix_effects() -> None:
         assert '"6"' not in conduit_table
     assert 'modifier.kind !== "player_stat"' in source
     assert 'modifier.kind !== "player_stat"' in equipment_source
+
+
+def test_frontend_support_conversion_stats_feed_damage_components() -> None:
+    source = _read(WEBAPP / "state" / "frontendSkillPreviewState.ts")
+
+    assert "frontendStatDamageConversions(skillStats)" in source
+    assert 'stat.match(/^conversion_(physical|fire|cold|lightning|chaos)_to_(physical|fire|cold|lightning|chaos)_percent$/)' in source
+    assert "isFrontendDamageConversionStat(stat) ? value : value * frontendRelationCoefficient(relation)" in source
+    assert "hit: damageConversions.length > 0" in source
+    assert "convertFrontendDamageComponents(baseComponents, damageConversions)" in source
+
+    script = textwrap.dedent(
+        r"""
+        const fs = require("node:fs");
+        const path = require("node:path");
+        const vm = require("node:vm");
+        const ts = require(path.join(process.cwd(), "node_modules", "typescript"));
+        const source = fs.readFileSync(path.join(process.cwd(), "webapp", "state", "frontendSkillPreviewState.ts"), "utf8");
+        const output = ts.transpileModule(source, {
+          compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+        }).outputText;
+        const sandbox = {
+          exports: {},
+          require: () => ({
+            FRONTEND_INITIAL_APP_STATE: {},
+            FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG: {},
+            FRONTEND_SKILL_LEVEL_TABLES: {},
+            applyFrontendEquipmentStatModifiers: () => ({}),
+            frontendEquipmentStatModifiers: () => [],
+            isActiveGem: () => false,
+            isPassiveGem: () => false,
+            isSupportGem: () => false,
+            clamp: (value, min, max) => Math.max(min, Math.min(max, value))
+          })
+        };
+        vm.runInNewContext(output, sandbox, { filename: "frontendSkillPreviewState.ts" });
+        const conversions = sandbox.exports.frontendStatDamageConversions({
+          conversion_lightning_to_cold_percent: 50,
+          lightning_damage_add_percent: 5.5
+        });
+        if (JSON.stringify(conversions) !== JSON.stringify([{ from: "lightning", to: "cold", percent: 50 }])) {
+          throw new Error(`unexpected conversions ${JSON.stringify(conversions)}`);
+        }
+        const components = sandbox.exports.convertFrontendDamageComponents({ lightning: 105.5 }, conversions);
+        if (Math.abs(components.cold - 52.75) > 0.000001 || Math.abs(components.lightning - 52.75) > 0.000001) {
+          throw new Error(`unexpected components ${JSON.stringify(components)}`);
+        }
+        const chained = sandbox.exports.convertFrontendDamageComponents({ physical: 33.4 }, [
+          { from: "physical", to: "lightning", percent: 100 },
+          { from: "lightning", to: "cold", percent: 50 }
+        ]);
+        if (Math.abs(chained.cold - 16.7) > 0.000001 || Math.abs(chained.lightning - 16.7) > 0.000001) {
+          throw new Error(`unexpected chained components ${JSON.stringify(chained)}`);
+        }
+        """
+    )
+    subprocess.run(["node", "-e", script], cwd=ROOT, check=True)
 
 
 def test_frontend_equipment_modifiers_recover_rolled_values_from_saved_affix_text() -> None:

@@ -12,6 +12,7 @@ import { frontendEquipmentIconSprite } from "../frontendEquipmentIconSprites";
 import { equipmentTooltipAffixLine, equipmentRarityTone } from "../components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView, type TooltipView } from "../components/tooltips/tooltipViewModel";
 import { frontendEquipmentSourceSlotIdFromText, isTwoHandedEquipmentSource } from "../components/inventory/equipmentRules";
+import { FRONTEND_SKILL_LEVEL_TABLES } from "../frontendSkillLevelTables";
 import { clamp } from "../utils/math2d";
 import type { Enemy } from "../types/enemyTypes";
 
@@ -36,6 +37,8 @@ type FrontendDropGem = {
   equipment_rarity?: string;
   [key: string]: unknown;
 };
+
+type FrontendSkillLevelValues = Record<string, number>;
 
 export type FrontendDropAppState<TGem extends FrontendDropGem> = {
   inventory: TGem[];
@@ -290,6 +293,133 @@ export function nextFrontendInventoryItemId<TState extends FrontendDropAppState<
   return id;
 }
 
+function frontendGemLevelTableValues(gem: FrontendDropGem, level: number): FrontendSkillLevelValues {
+  const tableId = String(gem.base_gem_id ?? gem.instance_id ?? "");
+  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, FrontendSkillLevelValues>>)[tableId];
+  if (!table) return {};
+  const levels = Object.keys(table).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+  if (levels.length === 0) return {};
+  const clampedLevel = Math.round(clamp(level, levels[0], levels[levels.length - 1]));
+  return { ...(table[clampedLevel] ?? {}) };
+}
+
+function frontendStatId(value: unknown) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return String((value as { id?: unknown }).id ?? "");
+  }
+  return "";
+}
+
+function frontendMaterializedLevelValue(levelValues: FrontendSkillLevelValues, key: string, fallback: unknown) {
+  const value = levelValues[key];
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function materializeFrontendGemModifiers(modifiers: unknown, levelValues: FrontendSkillLevelValues) {
+  if (!Array.isArray(modifiers)) return modifiers;
+  return modifiers.map((modifier) => {
+    if (!modifier || typeof modifier !== "object" || Array.isArray(modifier)) return modifier;
+    const record = modifier as Record<string, unknown>;
+    const key = String(record.table_key ?? frontendStatId(record.stat));
+    if (!key) return modifier;
+    return {
+      ...record,
+      value: frontendMaterializedLevelValue(levelValues, key, record.value),
+    };
+  });
+}
+
+function materializeFrontendPassiveEffects(passiveEffects: unknown, levelValues: FrontendSkillLevelValues) {
+  if (!Array.isArray(passiveEffects)) return passiveEffects;
+  return passiveEffects.map((effect) => {
+    if (!effect || typeof effect !== "object" || Array.isArray(effect)) return effect;
+    const record = effect as Record<string, unknown>;
+    const key = String(record.table_key ?? record.stat ?? "");
+    if (!key) return effect;
+    return {
+      ...record,
+      value: frontendMaterializedLevelValue(levelValues, key, record.value),
+    };
+  });
+}
+
+function materializeFrontendGemBaseEffect(baseEffect: unknown, levelValues: FrontendSkillLevelValues) {
+  if (!baseEffect || typeof baseEffect !== "object" || Array.isArray(baseEffect)) return baseEffect;
+  const next = { ...(baseEffect as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(levelValues)) {
+    if (key.startsWith("hit_damage_component_") || key.startsWith("hit_ailment_")) continue;
+    next[key] = value;
+  }
+  next.modifiers = materializeFrontendGemModifiers(next.modifiers, levelValues);
+  return next;
+}
+
+function materializeFrontendGemTlidb(tlidb: unknown, levelValues: FrontendSkillLevelValues) {
+  if (!tlidb || typeof tlidb !== "object" || Array.isArray(tlidb)) return tlidb;
+  return {
+    ...(tlidb as Record<string, unknown>),
+    level_values: {
+      ...(((tlidb as Record<string, unknown>).level_values as Record<string, unknown> | undefined) ?? {}),
+      ...levelValues,
+    },
+  };
+}
+
+function materializeFrontendGemTooltipView(tooltipView: unknown, level: number, levelValues: FrontendSkillLevelValues) {
+  if (!tooltipView || typeof tooltipView !== "object" || Array.isArray(tooltipView)) return tooltipView;
+  const view = tooltipView as TooltipView;
+  if (view.variant !== "active") return tooltipView;
+  const damage = levelValues.base_damage;
+  return {
+    ...view,
+    sections: {
+      ...view.sections,
+      stats: {
+        ...view.sections.stats,
+        lines: view.sections.stats.lines.map((line) => (
+          Number.isFinite(damage) && activeTooltipPrimaryDamageLine(line.label_text)
+            ? { ...line, value_text: materializedTooltipNumber(damage) }
+            : line
+        )),
+      },
+      base_skill_level: {
+        ...view.sections.base_skill_level,
+        lines: [`\u57fa\u7840\u6280\u80fd\u7b49\u7ea7\u4e3a ${level}`],
+      },
+    },
+  };
+}
+
+function activeTooltipPrimaryDamageLine(labelText: string) {
+  return labelText.includes("\u4f24\u5bb3") || labelText.includes("\u6d5c\u3085");
+}
+
+function materializedTooltipNumber(value: number) {
+  if (!Number.isFinite(value)) return "0";
+  if (Math.abs(value) >= 100) return Math.round(value).toString();
+  if (Math.abs(value) >= 10) return value.toFixed(1).replace(/\.0$/, "");
+  return value.toFixed(2).replace(/\.00$/, "").replace(/0$/, "");
+}
+
+function materializeFrontendGemLevel<TGem extends FrontendDropGem>(gem: TGem, level: number): TGem {
+  const normalizedLevel = Math.max(1, Math.floor(Number(level) || 1));
+  const levelValues = frontendGemLevelTableValues(gem, normalizedLevel);
+  if (Object.keys(levelValues).length === 0) {
+    return {
+      ...gem,
+      level: normalizedLevel,
+    };
+  }
+  return {
+    ...gem,
+    level: normalizedLevel,
+    base_effect: materializeFrontendGemBaseEffect(gem.base_effect, levelValues),
+    passive_effects: materializeFrontendPassiveEffects(gem.passive_effects, levelValues),
+    tlidb: materializeFrontendGemTlidb(gem.tlidb, levelValues),
+    tooltip_view: materializeFrontendGemTooltipView(gem.tooltip_view, normalizedLevel, levelValues),
+  };
+}
+
 export function createFrontendInventoryItem<TState extends FrontendDropAppState<TGem>, TGem extends FrontendDropGem>(
   drop: FrontendDropPrompt<TGem>,
   current: TState,
@@ -315,14 +445,13 @@ export function createFrontendInventoryItem<TState extends FrontendDropAppState<
         ?? current.inventory.find((item) => item.item_kind !== "equipment")
         ?? seedInventory.find((item) => item.item_kind !== "equipment");
       if (template) {
-        return {
+        return materializeFrontendGemLevel({
           ...template,
           instance_id: id,
           name_text: drop.name_text,
           rarity_text: drop.rarity_text || template.rarity_text,
           board_position: null,
-          level: drop.level ?? template.level
-        };
+        }, drop.level ?? template.level ?? 1);
       }
     }
     if (drop.loot_kind === "equipment") {

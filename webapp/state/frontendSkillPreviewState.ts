@@ -219,7 +219,7 @@ function frontendSupportSkillModifiersForTarget(
       const tableKey = String(modifier.table_key ?? stat);
       const value = frontendSkillLevelTableValueById(frontendSupportLevelTableId(sourceGem), sourceLevel, tableKey) ?? baseValue;
       if (!Number.isFinite(value) || value === 0) continue;
-      const appliedValue = value * frontendRelationCoefficient(relation);
+      const appliedValue = frontendSupportModifierAppliedValue(stat, value, relation);
       modifiers.push({
         source_modifier_id: `${sourceGem.instance_id}:${targetGem.instance_id}:${stat}`,
         kind: "skill_stat",
@@ -647,6 +647,10 @@ function frontendRelationCoefficient(relation: string) {
   return relation === "adjacent" ? 1.25 : 1;
 }
 
+function frontendSupportModifierAppliedValue(stat: string, value: number, relation: string) {
+  return isFrontendDamageConversionStat(stat) ? value : value * frontendRelationCoefficient(relation);
+}
+
 function frontendRelationText(relation: string) {
   if (relation === "board_wide") return "\u5168\u76d8";
   if (relation === "adjacent") return "相邻";
@@ -693,7 +697,11 @@ function applyFrontendEquipmentSkillModifiers(
   if (tags.has("attack")) {
     addFrontendDamageComponent(baseComponents, "physical", statValue(skillStats, "weapon_attack_base_damage"));
   }
-  const convertedComponents = convertFrontendDamageComponents(baseComponents, frontendDamageConversions(skill));
+  const damageConversions = [
+    ...frontendDamageConversions(skill),
+    ...frontendStatDamageConversions(skillStats),
+  ];
+  const convertedComponents = convertFrontendDamageComponents(baseComponents, damageConversions);
   const finalDamageComponents: Record<string, number> = Object.fromEntries(Object.entries(convertedComponents)
     .map(([componentType, componentAmount]) => [
       componentType,
@@ -773,6 +781,9 @@ function applyFrontendEquipmentSkillModifiers(
     source_context: skillLevelAdd ? frontendSkillSourceContextWithEquipmentLevel(skill, gem, skillLevelAdd) : skill.source_context,
     final_damage: nextDamage,
     final_damage_components: finalDamageComponents,
+    hit: damageConversions.length > 0
+      ? { ...(skill.hit ?? {}), damage_conversions: damageConversions }
+      : skill.hit,
     non_crit_damage: nextDamage,
     crit_chance: critChance,
     crit_multiplier: critMultiplier,
@@ -903,17 +914,39 @@ export function frontendDamageConversions(skill: SkillPreview, hitConfig?: Recor
       : [];
 }
 
+export function frontendStatDamageConversions(skillStats: Record<string, number | boolean>) {
+  const conversions: Record<string, unknown>[] = [];
+  for (const [stat, value] of Object.entries(skillStats)) {
+    const match = frontendDamageConversionStatMatch(stat);
+    if (!match) continue;
+    const percent = Math.max(0, Number(value ?? 0));
+    if (!Number.isFinite(percent) || percent <= 0) continue;
+    conversions.push({ from: match[1], to: match[2], percent });
+  }
+  return conversions;
+}
+
+function isFrontendDamageConversionStat(stat: string) {
+  return Boolean(frontendDamageConversionStatMatch(stat));
+}
+
+function frontendDamageConversionStatMatch(stat: string) {
+  return stat.match(/^conversion_(physical|fire|cold|lightning|chaos)_to_(physical|fire|cold|lightning|chaos)_percent$/);
+}
+
 export function convertFrontendDamageComponents(components: Record<string, number>, conversions: Record<string, unknown>[]) {
-  const converted: Record<string, number> = {};
-  for (const [damageType, rawAmount] of Object.entries(components)) {
-    let remainder = Math.max(0, Number(rawAmount ?? 0));
+  const converted: Record<string, number> = { ...components };
+  const sourceOrder = Array.from(new Set(conversions.map((conversion) => String(conversion.from ?? "")).filter(Boolean)));
+  for (const damageType of sourceOrder) {
+    const rawAmount = Math.max(0, Number(converted[damageType] ?? 0));
+    if (rawAmount <= 0) continue;
     const matchingConversions = conversions
       .filter((conversion) => String(conversion.from ?? "") === damageType && typeof conversion.to === "string")
-      .map((conversion) => ({ to: String(conversion.to), percent: Math.max(0, Number(conversion.percent ?? 0)) }));
-    if (matchingConversions.length === 0) {
-      addFrontendDamageComponent(converted, damageType, remainder);
-      continue;
-    }
+      .map((conversion) => ({ to: String(conversion.to), percent: Math.max(0, Number(conversion.percent ?? 0)) }))
+      .filter((conversion) => conversion.percent > 0);
+    if (matchingConversions.length === 0) continue;
+    delete converted[damageType];
+    let remainder = rawAmount;
     const totalPercent = matchingConversions.reduce((total, conversion) => total + conversion.percent, 0);
     const scale = totalPercent > 100 ? 100 / totalPercent : 1;
     for (const conversion of matchingConversions) {

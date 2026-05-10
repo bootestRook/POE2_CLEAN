@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { clampNumber } from "../../utils/number";
 
@@ -10,7 +10,7 @@ type GmOptions = {
 
 type GmEquipmentAffixResponse = {
   capacity: { prefix: number; suffix: number };
-  affixes: Array<{ id: string; name_text: string; gen: string }>;
+  affixes: Array<{ id: string; name_text: string; library: string; gen: string }>;
 };
 
 export function GmToolPanel({
@@ -27,11 +27,13 @@ export function GmToolPanel({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"gem" | "specific" | "random">("gem");
+  const [selectedGemSudokuDigit, setSelectedGemSudokuDigit] = useState("all");
   const [selectedGemId, setSelectedGemId] = useState("");
   const [gemLevel, setGemLevel] = useState(1);
   const [gemQuantity, setGemQuantity] = useState(1);
   const [source, setSource] = useState("");
   const [equipmentLevel, setEquipmentLevel] = useState(86);
+  const [selectedBaseAffixId, setSelectedBaseAffixId] = useState("");
   const [selectedAffixIds, setSelectedAffixIds] = useState<string[]>([]);
   const [randomRarity, setRandomRarity] = useState("purple");
   const [busy, setBusy] = useState(false);
@@ -39,13 +41,30 @@ export function GmToolPanel({
 
   useEffect(() => {
     if (!options) return;
-    setSelectedGemId((current) => current || options.gems[0]?.id || "");
     setSource((current) => current || options.equipment_sources[0]?.id || "");
     setRandomRarity((current) => current || options.equipment_rarities[2]?.id || "purple");
   }, [options]);
 
+  const gemSudokuDigits = useMemo(() => {
+    const digits = new Set((options?.gems ?? []).map((gem) => String(gem.sudoku_digit)));
+    return Array.from(digits).sort((left, right) => Number(left) - Number(right));
+  }, [options]);
+
+  const filteredGems = useMemo(() => {
+    const gems = options?.gems ?? [];
+    if (selectedGemSudokuDigit === "all") return gems;
+    return gems.filter((gem) => String(gem.sudoku_digit) === selectedGemSudokuDigit);
+  }, [options, selectedGemSudokuDigit]);
+
+  useEffect(() => {
+    setSelectedGemId((current) => (
+      filteredGems.some((gem) => gem.id === current) ? current : filteredGems[0]?.id ?? ""
+    ));
+  }, [filteredGems]);
+
   useEffect(() => {
     if (!source) return;
+    setSelectedBaseAffixId("");
     setSelectedAffixIds([]);
     onLoadAffixes(source, equipmentLevel).catch((error: Error) => setMessage(error.message));
   }, [source, equipmentLevel]);
@@ -57,12 +76,12 @@ export function GmToolPanel({
         if (mode === "gem") {
         await onSubmit("gm-add-gem", { base_gem_id: selectedGemId, level: gemLevel, quantity: gemQuantity }, "GM 已添加宝石。");
         } else if (mode === "specific") {
-        await onSubmit("gm-add-equipment", { source, level: equipmentLevel, affix_ids: selectedAffixIds }, "GM 已添加指定装备。");
+        const affixIds = selectedBaseAffixId ? [selectedBaseAffixId, ...selectedAffixIds] : selectedAffixIds;
+        await onSubmit("gm-add-equipment", { source, level: equipmentLevel, affix_ids: affixIds }, "GM 已添加指定装备。");
         } else {
         await onSubmit("gm-add-equipment", { source, level: equipmentLevel, random_rarity: randomRarity }, "GM 已添加随机装备。");
       }
       setMessage("已添加到物品栏。");
-      onClose();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "GM 操作失败。");
     } finally {
@@ -75,12 +94,12 @@ export function GmToolPanel({
     setSelectedAffixIds(ids);
   }
 
-  const selectedAffixes = affixes?.affixes.filter((affix) => selectedAffixIds.includes(affix.id)) ?? [];
+  const baseAffixes = affixes?.affixes.filter((affix) => affix.library === "base") ?? [];
+  const ordinaryAffixes = affixes?.affixes.filter((affix) => affix.library !== "base") ?? [];
+  const selectedAffixes = ordinaryAffixes.filter((affix) => selectedAffixIds.includes(affix.id));
   const prefixCount = selectedAffixes.filter((affix) => affix.gen === "prefix").length;
   const suffixCount = selectedAffixes.filter((affix) => affix.gen === "suffix").length;
-  const ordinaryAffixCount = selectedAffixes.filter((affix) => affix.gen !== "base").length;
-  const baseCount = selectedAffixes.filter((affix) => affix.gen === "base").length;
-  const qualityPreview = equipmentQualityByAffixCount(ordinaryAffixCount);
+  const qualityPreview = equipmentQualityByAffixCount(selectedAffixes.length);
 
   return (
     <section className="gm-tool-panel" aria-label="GM工具">
@@ -100,9 +119,18 @@ export function GmToolPanel({
           {mode === "gem" && (
             <>
               <label>
-                <span>宝石类型</span>
+                <span>数独类型</span>
+                <select value={selectedGemSudokuDigit} onChange={(event) => setSelectedGemSudokuDigit(event.currentTarget.value)}>
+                  <option value="all">全部</option>
+                  {gemSudokuDigits.map((digit) => (
+                    <option key={digit} value={digit}>数独 {digit}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>宝石</span>
                 <select value={selectedGemId} onChange={(event) => setSelectedGemId(event.currentTarget.value)}>
-                  {options.gems.map((gem) => (
+                  {filteredGems.map((gem) => (
                     <option key={gem.id} value={gem.id}>{gem.name_text} · {gem.kind} · {gem.sudoku_digit}</option>
                   ))}
                 </select>
@@ -138,16 +166,25 @@ export function GmToolPanel({
               {mode === "specific" ? (
                 <>
                   <label>
+                    <span>装备基础</span>
+                    <select value={selectedBaseAffixId} onChange={(event) => setSelectedBaseAffixId(event.currentTarget.value)}>
+                      <option value="">随机基础</option>
+                      {baseAffixes.map((affix) => (
+                        <option key={affix.id} value={affix.id}>{affix.name_text}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
                     <span>词缀</span>
                     <select multiple value={selectedAffixIds} onChange={updateSelectedAffixes} className="gm-affix-select">
-                      {(affixes?.affixes ?? []).map((affix) => (
+                      {ordinaryAffixes.map((affix) => (
                         <option key={affix.id} value={affix.id}>{affix.name_text}</option>
                       ))}
                     </select>
                   </label>
                   <div className="gm-tool-summary">
                     <span>{qualityPreview}装备</span>
-                    <span>基础 {baseCount}/1</span>
+                    <span>基础 {selectedBaseAffixId ? 1 : 0}/1</span>
                     <span>前缀 {prefixCount}/{affixes?.capacity.prefix ?? 0}</span>
                     <span>后缀 {suffixCount}/{affixes?.capacity.suffix ?? 0}</span>
                   </div>

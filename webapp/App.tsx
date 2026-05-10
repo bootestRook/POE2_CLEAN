@@ -253,7 +253,7 @@ import { createNormalizeActiveTooltipView } from "./components/tooltips/activeTo
 import { equipmentTooltipBonusLines, equipmentTooltipRarityTone, equipmentTooltipStatLines, normalizedEquipmentTooltipTags } from "./components/tooltips/equipmentTooltipAdapters";
 import { GemOrb } from "./components/tooltips/GemOrb";
 import { GemTooltipOverlay } from "./components/tooltips/GemTooltipOverlay";
-import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, damageTypeText, formatModifierValue, formatPreviewNumber, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
+import { activeDpsToneClass, buildGemTooltipViewModelWithNormalizers, damageTypeText, formatModifierValue, formatPreviewNumber, frontendChannelStackTooltipLines, frontendDamageComponentTooltipLines, frontendEquipmentGrantedTooltipLines, frontendGemLevelText, frontendGuardTooltipLines, frontendProjectileCountTooltipLine, frontendSkillPreviewBaseLevelSection, frontendSkillPreviewEffectiveLevelText, frontendSupportModifierTooltipLines, highlightTooltipText, mergeFrontendSkillPreviewBonusLines, mergeFrontendSkillPreviewTooltipLines } from "./components/tooltips/tooltipFormatting";
 import { frontendDisplayGemKindTag, frontendTargetTagTexts, normalizeSupportConditionRichLineSection, replaceGemTagRichLines } from "./components/tooltips/tooltipGemTags";
 import { getComparisonTooltipPosition as resolveComparisonTooltipPosition, resolveTooltipPosition as resolveTooltipAnchorPosition } from "./components/tooltips/tooltipPositioning";
 import { createFrontendItemTooltipView } from "./components/tooltips/tooltipViewModel";
@@ -1646,6 +1646,16 @@ function GameApp() {
       if (key === "f" && !event.repeat) {
         event.preventDefault();
         handleKeyboardInteract();
+        return;
+      }
+      if (key === "g" && RELEASE_DEBUG_TOOLS_ENABLED && !event.repeat && !isPlayableBattleTypingTarget(event.target)) {
+        event.preventDefault();
+        setBagOpen(true);
+        setGmOpen((current) => bagOpen ? !current : true);
+        setBattlePauseOpen(false);
+        setRestAreaPanel(null);
+        setTooltip(null);
+        setHoveredGemId(null);
         return;
       }
       if (key === "c") {
@@ -6952,17 +6962,10 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
   ];
   const bonusLines = frontendSupportModifierTooltipLines(skill, formatModifierValue);
   const levelText = frontendSkillPreviewEffectiveLevelText(skill, frontendRecord);
+  const baseSkillLevelSection = frontendSkillPreviewBaseLevelSection(skill, frontendRecord);
   const projectileLine = frontendProjectileCountTooltipLine(gem, skill, statValue, formatPreviewNumber);
   const channelLines = frontendChannelStackTooltipLines(gem, skill, formatPreviewNumber);
   const guardLines = frontendGuardTooltipLines(skill, formatPreviewNumber);
-  if (
-    componentLines.length === 0
-    && bonusLines.length === 0
-    && !levelText
-    && !projectileLine
-    && channelLines.length === 0
-    && guardLines.length === 0
-  ) return gem;
   return {
     ...gem,
     tooltip_view: {
@@ -6982,6 +6985,7 @@ function gemWithFrontendSkillPreviewTooltip(gem: Gem, skill?: SkillPreview): Gem
           title_text: view.sections.bonuses?.title_text ?? "当前加成",
           lines: mergeFrontendSkillPreviewBonusLines(view.sections.bonuses?.lines ?? [], bonusLines)
         },
+        base_skill_level: baseSkillLevelSection,
       }
     }
   };

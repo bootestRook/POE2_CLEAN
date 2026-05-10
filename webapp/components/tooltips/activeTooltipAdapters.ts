@@ -1,4 +1,5 @@
 import type { TooltipTagView } from "./TooltipPrimitives";
+import { FRONTEND_SKILL_LEVEL_TABLES } from "../../frontendSkillLevelTables";
 import {
   ensureGemLevelStatLine,
   ensureReleaseIntervalStatLine,
@@ -9,6 +10,9 @@ import { frontendDisplayGemKindTag, frontendTargetTagTexts } from "./tooltipGemT
 import type { TooltipStatLine, TooltipView } from "./tooltipViewModel";
 
 type ActiveTooltipGem = {
+  instance_id?: string;
+  base_gem_id?: string;
+  level?: number;
   gem_kind?: string;
   base_effect?: unknown;
   tags: readonly { id?: string; text: string }[];
@@ -46,29 +50,84 @@ const NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS = new Set([
 
 export function createNormalizeActiveTooltipView(deps: ActiveTooltipAdapterDeps) {
   return function normalizeActiveTooltipView(gem: ActiveTooltipGem, view: TooltipView): TooltipView {
+    const leveledView = normalizeActiveTooltipLevel(gem, view, deps);
     const tags = view.tags
       .filter((tag) => !HIDDEN_ACTIVE_TOOLTIP_TAG_IDS.has(tag.id ?? ""))
       .filter((tag) => shouldShowTooltipTagForGem(gem, tag, deps))
       .map((tag) => frontendDisplayGemKindTag(gem, tag));
     const statLines = normalizePassiveTooltipStatLines(
       gem,
-      ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, view.sections.stats.lines), deps.frontendSkillPreviewsBySkillTag, deps.formatPreviewNumber),
+      ensureReleaseIntervalStatLine(gem, ensureGemLevelStatLine(gem, leveledView.sections.stats.lines), deps.frontendSkillPreviewsBySkillTag, deps.formatPreviewNumber),
       deps
     );
     const sections = {
-      ...view.sections,
+      ...leveledView.sections,
       stats: {
-        ...view.sections.stats,
+        ...leveledView.sections.stats,
         lines: statLines,
       },
     };
     return {
-      ...view,
+      ...leveledView,
       tags,
       subtitle_text: normalizedTooltipSubtitle(view.subtitle_text, tags),
       sections,
     };
   };
+}
+
+function normalizeActiveTooltipLevel(gem: ActiveTooltipGem, view: TooltipView, deps: ActiveTooltipAdapterDeps): TooltipView {
+  if (view.variant !== "active") return view;
+  const level = activeTooltipGemLevel(gem);
+  const levelValues = activeTooltipLevelValues(gem, level);
+  const baseEffect = deps.frontendRecord(gem.base_effect);
+  const damage = activeTooltipLevelNumber(
+    levelValues,
+    "base_damage",
+    Number(baseEffect.base_damage ?? baseEffect.final_damage ?? baseEffect.damage ?? NaN)
+  );
+  const lines = view.sections.stats.lines.map((line) => (
+    Number.isFinite(damage) && isPrimaryDamageTooltipLine(line.label_text)
+      ? { ...line, value_text: deps.formatPreviewNumber(damage) }
+      : line
+  ));
+  return {
+    ...view,
+    sections: {
+      ...view.sections,
+      stats: {
+        ...view.sections.stats,
+        lines,
+      },
+      base_skill_level: {
+        ...view.sections.base_skill_level,
+        lines: [`\u57fa\u7840\u6280\u80fd\u7b49\u7ea7\u4e3a ${level}`],
+      },
+    },
+  };
+}
+
+function activeTooltipGemLevel(gem: ActiveTooltipGem) {
+  return Math.max(1, Math.floor(Number(gem.level ?? 1)));
+}
+
+function activeTooltipLevelValues(gem: ActiveTooltipGem, level: number) {
+  const tableId = String(gem.base_gem_id ?? gem.instance_id ?? "");
+  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
+  if (!table) return {};
+  const levels = Object.keys(table).map(Number).filter(Number.isFinite).sort((left, right) => left - right);
+  if (levels.length === 0) return {};
+  const clampedLevel = Math.max(levels[0], Math.min(levels[levels.length - 1], level));
+  return table[clampedLevel] ?? {};
+}
+
+function activeTooltipLevelNumber(levelValues: Record<string, number>, key: string, fallback: number) {
+  const value = levelValues[key];
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function isPrimaryDamageTooltipLine(labelText: string) {
+  return labelText.includes("\u4f24\u5bb3") || labelText.includes("\u6d5c\u3085");
 }
 
 function shouldShowTooltipTagForGem(gem: ActiveTooltipGem, tag: TooltipTagView, deps: ActiveTooltipAdapterDeps) {
