@@ -47,4 +47,4 @@
 - [x] 7.2 Run `openspec validate finalize-webapp-runtime-ownership-extraction --strict`, `cmd /c npm run build`, `npm test`, and all focused runtime/source checks.
 - [x] 7.3 Run final playable WebApp browser verification through the `run.bat` flow, capture screenshots under `artifacts/screenshots/`, store logs under `artifacts/logs/` if captured, and ensure no verification artifacts remain in the repository root.
 - [x] 7.4 Review the final diff to confirm it contains no backend calls, server runtime behavior, duplicate gameplay runtimes, save-schema changes, storage-key changes, CSS redesign, copy changes, gameplay balance changes, unrelated refactors, root-level screenshots, or root-level logs.
-- [ ] 7.5 Mark this App decomposition effort complete once App is shell/routing/state-ref/callback wiring plus documented deferred orchestration, even if `webapp/App.tsx` remains large.
+- [x] 7.5 Mark this App decomposition effort complete once App is shell/routing/state-ref/callback wiring plus documented deferred orchestration, even if `webapp/App.tsx` remains large.
