@@ -121,3 +121,14 @@
 - `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
 - `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
 - `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+
+## 4.1 Stable Constant Extraction Candidates
+
+- Battle camera/rendering: `MAP_WIDTH`, `MAP_HEIGHT`, `MAP_VISUAL_WIDTH`, `MAP_VISUAL_HEIGHT`, `PLAYER_SPEED`, `FLOATING_TEXT_VISUAL_RISE_SPEED`, `BATTLE_CAMERA_ZOOM`, `BATTLE_CAMERA_ANCHOR_X`, `BATTLE_CAMERA_ANCHOR_Y`, `BATTLE_CAMERA_FOLLOW_OFFSET_Y`, `BATTLE_ENTITY_Z_INDEX_BASE`, `CANVAS_GEOMETRY_BATTLE_OBJECTS`, and `CANVAS_GEOMETRY_SKILL_EFFECTS`.
+- Runtime visual budgets and perf timing: `RUNTIME_PERF_SYNC_INTERVAL_MS`, `RUNTIME_DROPPED_FRAME_MS`, `RUNTIME_SLOW_LOGIC_MS`, `RUNTIME_MIN_FRAME_MS`, `MAX_RUNTIME_PROJECTILE_VISUALS`, `MAX_RUNTIME_HIT_VFX`, `MAX_RUNTIME_FLOATING_TEXT`, `MAX_RUNTIME_AREA_VFX`, and `DOT_FLOATING_TEXT_INTERVAL_SECONDS`.
+- Skill timing: `TRIGGERED_SKILL_EVENT_MIN_DELAY_SECONDS`, `FRONTEND_BASE_KNOCKBACK_DISTANCE`, and `FRONTEND_KNOCKBACK_LOCK_MS`.
+- Monster level formulas: `MONSTER_NORMAL_LIFE_BASE/GROWTH`, `MONSTER_NORMAL_DAMAGE_BASE/GROWTH`, `MONSTER_NORMAL_ACCURACY_BASE/GROWTH`, `MONSTER_NORMAL_ARMOR_BASE/GROWTH`, and `MONSTER_NORMAL_ENERGY_SHIELD_BASE/GROWTH`.
+- Boss skill defaults: boss projectile interval/range/speed/radius constants, area warning/radius constants, barrage count/wave interval/offset constants, boss pack id sets, and supreme boss config constants.
+- Inventory/stash constants: inventory slot/column counts, stash page counts, equipment slot specs, weapon slot indices, item discard preference key, and starter board position.
+- Interaction radii and test/debug constants: keyboard pickup radius, click completion radius, monster test level/player life/dummy offsets, encounter palettes, and monster test spawn offsets.
+- Constants already owned elsewhere: enemy movement/combat constants live in `webapp/runtime/enemyRuntime.ts`; projectile VFX constants live in `webapp/components/battle/projectileVfxPresentation.ts`.

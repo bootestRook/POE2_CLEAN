@@ -27,7 +27,7 @@
 
 ## 4. Stable Runtime Constant Extraction
 
-- [ ] 4.1 Identify stable App-local constants that are needed by extracted runtime modules, grouped by gameplay family: battle camera/rendering, runtime visual budgets, skill timing, monster level formulas, boss skill defaults, inventory/stash constants, and interaction radii.
+- [x] 4.1 Identify stable App-local constants that are needed by extracted runtime modules, grouped by gameplay family: battle camera/rendering, runtime visual budgets, skill timing, monster level formulas, boss skill defaults, inventory/stash constants, and interaction radii.
 - [ ] 4.2 Move only constants with clear focused owners into `webapp/runtime/`, `webapp/state/`, `webapp/components/inventory/`, or `webapp/types/` adjacent modules.
 - [ ] 4.3 Preserve every numeric value, string value, array order, map key, and exported name needed by existing behavior.
 - [ ] 4.4 Leave mixed or cross-domain constants in App if moving them would require unrelated ownership decisions.
