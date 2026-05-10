@@ -66,3 +66,12 @@ Observed extraction dependency shape:
 - Captured playable screenshots under `artifacts/screenshots/`, including `event-consumer-playable-battle-active.png`, `event-consumer-playable-battle-corner.png`, and `event-consumer-playable-battle-vfx.png`.
 - Visible result: the playable battle/map view rendered with terrain, player HUD/resource bars, minimap, procedural spawn debug panel, combat feed, and the corner monster debug scenario. Combat feed showed automatic player skill release, monster melee/skill hits, enemy kills, item drops, and boss/monster skill messages after event consumption moved to the runtime owner.
 - The verification did not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, or `dist-skill-editor`.
+
+### Task 3.4 Event Consumer Gate Before Damage Extraction
+
+- Worktree check before damage extraction: clean.
+- `npm test` passed.
+- `openspec validate finalize-webapp-runtime-ownership-extraction --strict` passed.
+- Root artifact check found no root-level screenshots or logs.
+- Coupling searches found no `from "../App"`, `from "./App"`, `/api/`, `fetch(`, skill-editor route, `dist-skill-editor`, or port `8765` usage in `webapp/runtime/skillEventConsumerRuntime.ts`.
+- Matches in `webapp/smoke-test.mjs` and OpenSpec artifacts are guard/check text, not playable runtime coupling.

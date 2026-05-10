@@ -17,7 +17,7 @@
 - [x] 3.1 Run focused source/runtime checks for scheduled queue handling, active damage-zone routing, projectile follow-up suppression, status routing, forced movement routing, VFX queue updates, and damage-event routing.
 - [x] 3.2 Run `cmd /c npm run build`, `npm test`, and OpenSpec validation for this change.
 - [x] 3.3 Launch or match the project `run.bat` WebApp flow, exercise the actual playable battle view, capture screenshots under `artifacts/screenshots/`, and describe visible projectiles, damage zones, hit feedback, status or movement feedback, and combat UI behavior.
-- [ ] 3.4 Stop and fix any behavior, import, backend-coupling, skill-editor-acceptance, or root-artifact issue before starting damage application extraction.
+- [x] 3.4 Stop and fix any behavior, import, backend-coupling, skill-editor-acceptance, or root-artifact issue before starting damage application extraction.
 
 ## 4. Extract Damage Application Boundary
 
