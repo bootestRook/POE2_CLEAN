@@ -39,3 +39,10 @@ Observed extraction dependency shape:
   - `4c4d3d1 Document final runtime ownership boundaries`
   - `6b29d64 Add runtime ownership extraction plan`
 - No unrelated user changes were present at the start of runtime extraction.
+
+### Task 2.3 Event Consumer Boundary Check
+
+- `webapp/runtime/skillEventConsumerRuntime.ts` does not import or reference `frontendPlayableSkillEventBuilders`.
+- Source search found no `buildFrontend*`, `releaseFrontendPlayableSkill`, `frontendNearestSkillTargets`, `frontendUniqueTargetsByDistance`, `frontendDamageEventsForTarget`, `/api/`, or `fetch(` references in the event consumer owner.
+- Projectile trajectory and damage amount decisions remain behind injected helpers such as `liveMonsterProjectileTrajectoryForEvent` and `damageEventAmountAgainstEnemy`; the consumer routes events and side effects rather than rebuilding skill event payloads.
+- Event builder families remain separate in `webapp/runtime/frontendPlayableSkillEventBuilders.ts`.

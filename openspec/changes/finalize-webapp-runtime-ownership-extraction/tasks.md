@@ -8,7 +8,7 @@
 
 - [x] 2.1 Create a focused client-side runtime owner for skill event timeline and batch consumption with explicit dependency inputs from App.
 - [x] 2.2 Move timeline scheduling, scheduled event consumption, immediate event batching, active damage-zone tick routing, projectile follow-up suppression, VFX queue updates, status routing, forced movement routing, floating text routing, and damage-event routing into the event-consumption owner without changing behavior.
-- [ ] 2.3 Keep event builders separate from event consumption and verify the event consumer does not duplicate target selection, hit timing, projectile trajectory, damage-zone origin, chain target selection, damage amount generation, or event payload construction.
+- [x] 2.3 Keep event builders separate from event consumption and verify the event consumer does not duplicate target selection, hit timing, projectile trajectory, damage-zone origin, chain target selection, damage amount generation, or event payload construction.
 - [ ] 2.4 Update App wiring so `webapp/App.tsx` imports the event-consumption owner and passes existing refs, setters, state snapshots, and callbacks explicitly.
 - [ ] 2.5 Migrate smoke/source checks for event-consumption invariants from App-location checks to owner-module checks.
 
