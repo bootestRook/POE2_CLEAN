@@ -29,6 +29,7 @@ const frontendPlayableSkillEventBuilders = readFileSync(join(root, "webapp", "ru
 const projectileLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "projectileLifecycleRuntime.ts"), "utf8");
 const damageZoneLifecycleRuntime = readFileSync(join(root, "webapp", "runtime", "damageZoneLifecycleRuntime.ts"), "utf8");
 const skillEventConsumerRuntime = readFileSync(join(root, "webapp", "runtime", "skillEventConsumerRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
+const damageApplicationRuntime = readFileSync(join(root, "webapp", "runtime", "damageApplicationRuntime.ts"), "utf8").replace(/\r\n/g, "\n");
 const playerDamageRuntime = readFileSync(join(root, "webapp", "runtime", "playerDamageRuntime.ts"), "utf8");
 const bossSkillConstants = readFileSync(join(root, "webapp", "runtime", "bossSkillConstants.ts"), "utf8");
 const monsterStatConstants = readFileSync(join(root, "webapp", "runtime", "monsterStatConstants.ts"), "utf8");
@@ -291,6 +292,7 @@ const moduleOwnerChecks = [
   [frontendSaveStorage, "export function frontendSaveSlotKey", "Save storage key behavior must be checked in frontendSaveStorage."],
   [monsterSkillPresentation, "export function monsterSkillProjectileSpreadAngles", "Monster skill presentation helpers must be checked in monsterSkillPresentation."],
   [monsterSkillEventBuilder, "export function buildMonsterSkillProjectileEvents", "Monster event payload builders must be checked in monsterSkillEventBuilder."],
+  [damageApplicationRuntime, "export function createDamageApplicationRuntime", "Damage application owner must be checked in damageApplicationRuntime."],
   [playerDamageRuntime, "export function resolveMonsterHitAgainstPlayer", "Player damage formulas must be checked in playerDamageRuntime."]
 ];
 for (const [source, token, message] of moduleOwnerChecks) {
@@ -623,7 +625,7 @@ for (const forbiddenProjectileLifecycleToken of [
     throw new Error(`Projectile lifecycle runtime must stay deterministic and App-independent: ${forbiddenProjectileLifecycleToken}`);
   }
 }
-const applyDamageEventBatchBody = functionBody(app, "applyDamageEventBatch");
+const applyDamageEventBatchBody = functionBody(damageApplicationRuntime, "applyDamageEventBatch");
 if (!applyDamageEventBatchBody.includes("enemiesStateRef.current = liveEnemiesAfterDamage;")) {
   throw new Error("Runtime damage application must update the playable enemy ref synchronously.");
 }
@@ -904,7 +906,13 @@ for (const token of ["createSkillEventConsumerRuntime", "scheduledSkillEvents", 
     throw new Error(`App must wire the skill event consumer owner explicitly: ${token}`);
   }
 }
-const applyDamageEventBatchBodyForOwnership = functionBody(app, "applyDamageEventBatch");
+const appDamageApplicationWiringBody = functionBody(app, "damageApplicationRuntime");
+for (const token of ["createDamageApplicationRuntime", "enemiesStateRef", "setEnemies", "setRuntimePlayer", "setKills", "setCombatLogs", "consumeSkillEventBatch"]) {
+  if (!appDamageApplicationWiringBody.includes(token)) {
+    throw new Error(`App must wire the damage application owner explicitly: ${token}`);
+  }
+}
+const applyDamageEventBatchBodyForOwnership = functionBody(damageApplicationRuntime, "applyDamageEventBatch");
 for (const token of [
   "damageEventAmountAgainstEnemy",
   "applyDamageToEnemyResources",
