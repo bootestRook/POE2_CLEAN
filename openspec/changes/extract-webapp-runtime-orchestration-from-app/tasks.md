@@ -114,13 +114,13 @@
 
 ## 13. Runtime Queue And Event Consumer Adapter Review
 
-- [ ] 13.1 Review `consumeSkillEventTimeline`, `consumeImmediateSkillEvents`, `consumeSkillEventBatch`, scheduled event queue handling, active damage-zone ticks, and damage batch application after helper extraction.
-- [ ] 13.2 Decide whether a focused runtime event consumer adapter can be introduced without creating a second gameplay path.
-- [ ] 13.3 If safe, extract a narrow adapter that receives explicit callbacks/setters/refs and returns or applies only the same mutations currently performed by App.
-- [ ] 13.4 If not safe, record the exact event consumer responsibilities intentionally remaining App-owned and why.
-- [ ] 13.5 Ensure no extracted adapter imports App, owns hidden global state, calls backend APIs, or duplicates target selection/damage application.
-- [ ] 13.6 Add smoke checks proving the playable path calls the focused adapter if extracted, or proving consumer ownership remains intentionally App-specific if deferred.
-- [ ] 13.7 Run build, `npm test`, focused event consumer checks, OpenSpec validation, and playable battle verification; commit the batch.
+- [x] 13.1 Review `consumeSkillEventTimeline`, `consumeImmediateSkillEvents`, `consumeSkillEventBatch`, scheduled event queue handling, active damage-zone ticks, and damage batch application after helper extraction.
+- [x] 13.2 Decide whether a focused runtime event consumer adapter can be introduced without creating a second gameplay path.
+- [x] 13.3 If safe, extract a narrow adapter that receives explicit callbacks/setters/refs and returns or applies only the same mutations currently performed by App.
+- [x] 13.4 If not safe, record the exact event consumer responsibilities intentionally remaining App-owned and why.
+- [x] 13.5 Ensure no extracted adapter imports App, owns hidden global state, calls backend APIs, or duplicates target selection/damage application.
+- [x] 13.6 Add smoke checks proving the playable path calls the focused adapter if extracted, or proving consumer ownership remains intentionally App-specific if deferred.
+- [x] 13.7 Run build, `npm test`, focused event consumer checks, OpenSpec validation, and playable battle verification; commit the batch.
 
 ## 14. Battle Loop Orchestration Boundary Review
 

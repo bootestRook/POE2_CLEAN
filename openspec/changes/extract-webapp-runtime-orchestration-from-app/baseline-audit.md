@@ -335,3 +335,21 @@
 - Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, map entry, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/damage-zone-lifecycle-extraction-playable-battle.png`.
 - Screenshot/log observation: the battle view showed `map_001` running, two canvas elements, procedural spawn debug information, and the frontend-run combat feed line that monsters, kills, and drops are handled by the frontend.
 - Root artifact check found no root-level screenshots, logs, traces, or generated test output files.
+
+## 13.1-13.6 Event Consumer Boundary Review
+
+- Reviewed `consumeSkillEventTimeline`, `consumeScheduledSkillEvents`, `consumeSkillEventBatch`, `updateActiveDamageZones`, and `applyDamageEventBatch` after helper extraction.
+- Decision: no focused event consumer adapter was introduced in this batch. The remaining event consumer layer still couples scheduled queue mutation, active damage-zone queue mutation, projected enemy HP, projectile follow-up suppression sets, projectile completion, status application, forced movement, visual queue setters, damage batching, kill-trigger events, drop spawning, combat logs, and React state mutation.
+- Extracting that layer now would create a wide callback/ref/setter adapter with hidden ordering risk rather than a smaller owner. It would also make it easier to accidentally create a second gameplay path for target filtering, damage acceptance, status application, or kill/drop progression.
+- Responsibilities intentionally remaining App-owned: `scheduledSkillEvents.current`, `activeDamageZones.current`, `consumeSkillEventTimeline`, `consumeScheduledSkillEvents`, `consumeSkillEventBatch`, `activeDamageZoneRuntimeTickEvents` adapter, `applyDamageEventBatch`, player/enemy status application, forced movement application, visual queue setters, damage/kill/drop mutation, and on-kill event recursion through the same playable consumer.
+- `webapp/smoke-test.mjs` now guards the retained boundary by checking that App still owns timeline scheduling, scheduled consumption, active-zone tick consumption, projected damage gating, projectile follow-up state, status/forced movement application, visual setters, damage batch application, kill/drop side effects, and on-kill recursive consumption.
+
+## 13.7 Event Consumer Boundary Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.` The focused event consumer checks confirmed App intentionally retains timeline queues, scheduled event consumption, active-zone tick consumption, projected projectile/damage gating, status/forced movement side effects, visual setters, damage batching, kill/drop side effects, and on-kill recursive consumption.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-event-consumer-boundary-review.out.log` and `artifacts/logs/runbat-event-consumer-boundary-review.err.log`.
+- Playable WebApp verification followed title, new save, rest area, map selection through the rest-area `王阳` interaction, and battle entry in the normal playable path. Screenshot evidence was captured at `artifacts/screenshots/event-consumer-boundary-review-playable-battle.png`.
+- Screenshot/log observation: the battle view showed two canvas elements, a dropped item (`Lv3 敏捷胸甲`), procedural spawn debug information, automatic skill releases, kill entries, and monster attack log entries in the frontend-run playable path.
+- Root artifact check found no root-level screenshots, logs, traces, or generated test output files.

@@ -848,6 +848,56 @@ for (const token of [
     throw new Error(`Forced movement consumer must use current enemy positions and radius filtering: ${token}`);
   }
 }
+const consumeSkillEventTimelineBody = functionBody(app, "consumeSkillEventTimeline");
+for (const token of ["scheduledSkillEvents.current.push", "consumeSkillEventBatch(immediate)"]) {
+  if (!consumeSkillEventTimelineBody.includes(token)) {
+    throw new Error(`App must intentionally retain timeline queue ownership: ${token}`);
+  }
+}
+const consumeScheduledSkillEventsBody = functionBody(app, "consumeScheduledSkillEvents");
+for (const token of ["scheduledSkillEvents.current", "const remaining = scheduled.remaining - dt", "consumeSkillEventBatch(ready)"]) {
+  if (!consumeScheduledSkillEventsBody.includes(token)) {
+    throw new Error(`App must intentionally retain scheduled event consumption: ${token}`);
+  }
+}
+const updateActiveDamageZonesBody = functionBody(app, "updateActiveDamageZones");
+for (const token of ["activeDamageZones.current", "advanceActiveDamageZoneRuntime", "consumeSkillEventBatch(tickEvents)"]) {
+  if (!updateActiveDamageZonesBody.includes(token)) {
+    throw new Error(`App must intentionally retain active damage-zone queue mutation: ${token}`);
+  }
+}
+const consumeSkillEventBatchOwnershipBody = functionBody(app, "consumeSkillEventBatch");
+for (const token of [
+  "projectedEnemyHp",
+  "liveProjectileHits",
+  "deadProjectileHits",
+  "acceptedProjectileDamageTicks",
+  "registerActiveDamageZone",
+  "applyEnemyStatusBuff",
+  "applyPlayerStatusBuffEvent",
+  "applyForcedMovementEvent",
+  "setBolts",
+  "setTexts",
+  "setHitVfxs",
+  "applyDamageEventBatch(damageEvents)"
+]) {
+  if (!consumeSkillEventBatchOwnershipBody.includes(token)) {
+    throw new Error(`App event consumer boundary must retain coupled playable side effect: ${token}`);
+  }
+}
+const applyDamageEventBatchBodyForOwnership = functionBody(app, "applyDamageEventBatch");
+for (const token of [
+  "damageEventAmountAgainstEnemy",
+  "applyDamageToEnemyResources",
+  "setRuntimePlayer",
+  "setEnemies",
+  "spawnFrontendDrops",
+  "consumeSkillEventBatch(onKillEvents)"
+]) {
+  if (!applyDamageEventBatchBodyForOwnership.includes(token)) {
+    throw new Error(`App damage consumer boundary must retain coupled damage/kill/drop side effect: ${token}`);
+  }
+}
 const buildFrontendMeleeArcSkillEventsBody = functionBody(app, "buildFrontendMeleeArcSkillEvents");
 const buildFrontendMeleeArcRuntimeEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendMeleeArcSkillEvents");
 const buildFrontendNovaSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendNovaSkillEvents");
