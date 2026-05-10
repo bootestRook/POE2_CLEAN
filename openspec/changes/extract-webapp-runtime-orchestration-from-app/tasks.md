@@ -153,19 +153,19 @@
 
 ## 17. Frontend Visual Verification
 
-- [ ] 17.1 Run `cmd /c npm run build`.
-- [ ] 17.2 Run `npm test`.
-- [ ] 17.3 Run any focused runtime smoke checks added by this change.
-- [ ] 17.4 Run `openspec validate extract-webapp-runtime-orchestration-from-app --strict`.
-- [ ] 17.5 Start/open the WebApp through the project `run.bat` flow.
-- [ ] 17.6 Verify the actual playable WebApp title/save/rest flow if touched by wiring changes.
-- [ ] 17.7 Verify actual playable battle entry, player skill use, representative projectile visuals, damage-zone visuals, melee/nova/chain/status/forced-movement visuals as applicable to moved batches.
-- [ ] 17.8 Verify pause/exit/rest return flow still works if battle-loop or shell wiring was touched.
-- [ ] 17.9 Capture screenshots under `artifacts/screenshots/` for each verified playable WebApp surface.
-- [ ] 17.10 Store logs or generated verification evidence under `artifacts/logs/` or a task-specific `artifacts/` subdirectory.
-- [ ] 17.11 Confirm no screenshots, logs, traces, test outputs, or generated evidence were left in the repository root.
-- [ ] 17.12 Confirm verification did not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, `dist-skill-editor`, backend-only runtime reports, or Python-only runtime tests as acceptance evidence.
-- [ ] 17.13 Commit the final frontend verification evidence and notes.
+- [x] 17.1 Run `cmd /c npm run build`.
+- [x] 17.2 Run `npm test`.
+- [x] 17.3 Run any focused runtime smoke checks added by this change.
+- [x] 17.4 Run `openspec validate extract-webapp-runtime-orchestration-from-app --strict`.
+- [x] 17.5 Start/open the WebApp through the project `run.bat` flow.
+- [x] 17.6 Verify the actual playable WebApp title/save/rest flow if touched by wiring changes.
+- [x] 17.7 Verify actual playable battle entry, player skill use, representative projectile visuals, damage-zone visuals, melee/nova/chain/status/forced-movement visuals as applicable to moved batches.
+- [x] 17.8 Verify pause/exit/rest return flow still works if battle-loop or shell wiring was touched.
+- [x] 17.9 Capture screenshots under `artifacts/screenshots/` for each verified playable WebApp surface.
+- [x] 17.10 Store logs or generated verification evidence under `artifacts/logs/` or a task-specific `artifacts/` subdirectory.
+- [x] 17.11 Confirm no screenshots, logs, traces, test outputs, or generated evidence were left in the repository root.
+- [x] 17.12 Confirm verification did not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, `dist-skill-editor`, backend-only runtime reports, or Python-only runtime tests as acceptance evidence.
+- [x] 17.13 Commit the final frontend verification evidence and notes.
 
 ## 18. Completion Review
 

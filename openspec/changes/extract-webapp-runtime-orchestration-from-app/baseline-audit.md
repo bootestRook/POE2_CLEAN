@@ -398,3 +398,18 @@
 - `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
 - `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
 - `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+
+## 17.1-17.13 Final Frontend Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.` This included the focused runtime smoke checks added during this change.
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+- `run.bat` launched the playable WebApp at `http://127.0.0.1:8766/`; logs were stored in `artifacts/logs/runbat-final-frontend-verification.out.log` and `artifacts/logs/runbat-final-frontend-verification.err.log`.
+- Verified actual playable WebApp title/save flow and captured `artifacts/screenshots/final-verification-title-save.png`.
+- Verified new-save rest-area entry and captured `artifacts/screenshots/final-verification-rest-area.png`.
+- Verified rest-area `王阳` interaction, map selection, actual playable battle entry, automatic player skill release, monster attacks, kills, drops, and frontend-run combat log in `map_001`; captured `artifacts/screenshots/final-verification-playable-battle.png`.
+- Verified pause menu after battle entry and captured `artifacts/screenshots/final-verification-pause-menu.png`.
+- Verified pause exit/return flow with `退出当前对局`, returning to the rest area with `已退出当前对局，返回休息区域。`; captured `artifacts/screenshots/final-verification-exit-return-rest.png`.
+- Additional return-flow screenshot was captured at `artifacts/screenshots/final-verification-return-flow.png`; it showed the pause menu before the corrected exit click.
+- Root artifact check found no root-level screenshots, logs, traces, or generated test output files.
+- Verification did not use `/skill-editor`, `?skill_editor=1`, `view=skill_editor`, port `8765`, `dist-skill-editor`, backend-only runtime reports, or Python-only runtime tests as acceptance evidence.
