@@ -92,3 +92,11 @@
 - `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
 - `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
 - `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+
+## 3.1 App-Local Type Extraction Candidates
+
+- Existing type owners: `webapp/types/enemyTypes.ts` owns `Enemy`, `EnemyBuff`, `EncounterMonsterPalette`, runtime tier/engagement shapes, and scan summary shapes; `webapp/types/skillEditorTypes.ts` owns disabled skill-editor/tooling shapes; state modules own preview/drop helper generics.
+- Immediate runtime-module candidates: `SkillEvent`, `PlayerRuntimeState`, `FloatingText`, `PlayerBuff`, `FireBolt`, `HitVfx`, `AreaNova`, `MeleeArcVfx`, `ChainSegmentVfx`, `DamageZoneVfx`, `ActiveDamageZoneRuntime`, `ThundercloudChannelRuntime`, `ScheduledSkillEvent`, `ContinuousAttackRuntime`, `RuntimeSkillEventsResponse`, `RuntimePerfSummary`, `Camera2D`, `UnitVisualRuntime`, and `EnemyVisualRuntime`.
+- State/save/drop candidates needed by later state or orchestration boundaries: `Gem`, `AppState`, `FrontendSavePayload`, `FrontendMapRunMonster`, `DropPrompt`, `BossPortal`, `MapProgressionStageView`, `PlacementResult`, `PlacementPrompt`, `ItemDiscardPrompt`, and `FrontendSaveSlotSummary`.
+- UI/tooling shapes to avoid moving into runtime modules unless a focused UI owner needs them: `Cell`, GM option/response shapes, `Tooltip`, and `FloatingGem`.
+- `PendingBossDamageZoneHit`, `BossSkillTimers`, and `SupremeBossSkillTimer` are queue/timer orchestration shapes; they can move to type-only modules only if the related runtime owner receives all state explicitly and does not take over hidden App refs.

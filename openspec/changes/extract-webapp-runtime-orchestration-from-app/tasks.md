@@ -17,7 +17,7 @@
 
 ## 3. Type-Only Runtime Shape Extraction
 
-- [ ] 3.1 Identify App-local type definitions needed by runtime extraction, including `SkillEvent`, player runtime state, enemy runtime state, battle VFX shapes, damage-zone runtime shapes, scheduled skill events, drop prompt slices, map progression slices, tooltip/floating item shapes, and App state/save slices.
+- [x] 3.1 Identify App-local type definitions needed by runtime extraction, including `SkillEvent`, player runtime state, enemy runtime state, battle VFX shapes, damage-zone runtime shapes, scheduled skill events, drop prompt slices, map progression slices, tooltip/floating item shapes, and App state/save slices.
 - [ ] 3.2 Create or extend thin `webapp/types/` modules for only the shapes needed by the next runtime modules.
 - [ ] 3.3 Move selected type definitions without changing field names, literal values, optionality, or semantic shape.
 - [ ] 3.4 Ensure new type modules do not import `webapp/App.tsx`, React state/runtime, generated data, browser APIs, storage helpers, backend calls, or gameplay mutation code.
