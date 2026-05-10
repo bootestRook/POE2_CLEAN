@@ -30,7 +30,7 @@ export const FRONTEND_PLAYABLE_SKILL_RUNTIME_MODULES: readonly FrontendPlayableS
   {
     family: "module_chain",
     eventBuilderName: "buildFrontendModuleChainSkillEvents",
-    primaryEventTypes: ["projectile_spawn", "projectile_impact", "damage_zone", "damage", "hit_vfx", "floating_text"],
+    primaryEventTypes: ["projectile_spawn", "projectile_hit", "damage_zone", "damage", "hit_vfx", "floating_text"],
     consumerBehaviors: ["module-chain sequencing", "damage-zone registration", "damage application"]
   },
   {

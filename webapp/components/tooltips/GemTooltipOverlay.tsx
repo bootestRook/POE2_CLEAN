@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RichText, TooltipSection, TooltipTag } from "./TooltipPrimitives";
 import type { TooltipRichLine, TooltipTagView } from "./TooltipPrimitives";
+import { equipmentTooltipAffixGroup, equipmentTooltipAffixLine } from "./tooltipFormatting";
 
 export type TooltipStatLineView = {
   label_text: string;
@@ -55,6 +56,23 @@ type GemTooltipOverlayProps<TGem, TTooltip extends GemTooltipPosition<TGem>, TVi
   equipmentTooltipBonusLines: (gem: TGem, lines: string[]) => string[];
   frontendGemLevelText: (gem: TGem) => string;
   isEquipmentTooltip: (gem: TGem) => boolean;
+};
+
+type EquipmentTooltipAffix = {
+  effect: string;
+  tier: unknown;
+  gen?: unknown;
+};
+
+type EquipmentTooltipAffixSection = {
+  key: "base" | "explicit";
+  title: string;
+  lines: EquipmentTooltipAffixLine[];
+};
+
+type EquipmentTooltipAffixLine = {
+  text: string;
+  tier: unknown;
 };
 
 export function GemTooltipOverlay<TGem, TTooltip extends GemTooltipPosition<TGem>, TView extends GemTooltipViewModel>(props: GemTooltipOverlayProps<TGem, TTooltip, TView>) {
@@ -122,6 +140,7 @@ function GemTooltipPanel<TGem, TTooltip extends GemTooltipPosition<TGem>, TView 
   const showIdentity = Boolean(view.type_identity_text) && !equipmentTooltip;
   const statLines = equipmentTooltip ? equipmentTooltipStatLines(gem, sections.stats.lines) : sections.stats.lines;
   const bonusLines = equipmentTooltip && sections.bonuses ? equipmentTooltipBonusLines(gem, sections.bonuses.lines) : sections.bonuses?.lines ?? [];
+  const equipmentAffixSections = equipmentTooltip ? groupedEquipmentAffixSections(gem, bonusLines) : [];
   return (
     <div className={`gem-tooltip ${isActiveTooltip ? "active-tooltip" : ""} ${className}`.trim()} style={{ left, top, transform }}>
       <div className="tooltip-header">
@@ -160,10 +179,31 @@ function GemTooltipPanel<TGem, TTooltip extends GemTooltipPosition<TGem>, TView 
           </dl>
         </TooltipSection>
       )}
-      {sections.bonuses && bonusLines.length > 0 && (
+      {sections.bonuses && bonusLines.length > 0 && !equipmentTooltip && (
         <TooltipSection title={sections.bonuses.title_text}>
           {bonusLines.map((line, index) => <p key={`${index}-${line}`} className={`tooltip-bonus-line ${isActiveTooltip ? "tooltip-tone-rule" : ""}`}>{line}</p>)}
         </TooltipSection>
+      )}
+      {sections.bonuses && equipmentTooltip && equipmentAffixSections.length > 0 && (
+        <section className="tooltip-section equipment-affix-section">
+          <div className="tooltip-section-content">
+          <div className="equipment-affix-groups">
+            {equipmentAffixSections.map((section) => (
+              <div key={section.key} className={`equipment-affix-group equipment-affix-group-${section.key}`}>
+                <div className="equipment-affix-divider">
+                  <span>{section.title}</span>
+                </div>
+                {section.lines.map((line, index) => (
+                  <p key={`${section.key}-${index}-${line.text}`} className={`tooltip-bonus-line equipment-affix-line equipment-affix-line-${equipmentAffixTierTone(line.tier)}`}>
+                    <span className="equipment-affix-bullet" aria-hidden="true" />
+                    <span className="equipment-affix-text">{line.text}</span>
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+          </div>
+        </section>
       )}
       {view.variant === "active" && sections.base_skill_level && sections.base_skill_level.lines.length > 0 && (
         <TooltipSection title="">
@@ -184,6 +224,43 @@ function GemTooltipPanel<TGem, TTooltip extends GemTooltipPosition<TGem>, TView 
       {showCompareHint && <div className="equipment-compare-hint">按住ctrl对比</div>}
     </div>
   );
+}
+
+function groupedEquipmentAffixSections<TGem>(gem: TGem, fallbackLines: string[]): EquipmentTooltipAffixSection[] {
+  const affixes = equipmentAffixesForTooltip(gem);
+  if (affixes.length === 0) {
+    return fallbackLines.length > 0 ? [{ key: "explicit", title: "词缀", lines: fallbackLines.map((text) => ({ text, tier: null })) }] : [];
+  }
+  const grouped = affixes.reduce<Record<EquipmentTooltipAffixSection["key"], EquipmentTooltipAffixLine[]>>((acc, affix) => {
+    acc[equipmentTooltipAffixGroup(affix.gen)].push({
+      text: equipmentTooltipAffixLine(affix.effect, affix.tier, affix.gen),
+      tier: affix.tier
+    });
+    return acc;
+  }, { base: [], explicit: [] });
+  return [
+    { key: "base", title: "基础词缀", lines: grouped.base },
+    { key: "explicit", title: "前后缀", lines: grouped.explicit },
+  ].filter((section) => section.lines.length > 0);
+}
+
+function equipmentAffixTierTone(tier: unknown): "bluewhite" | "purple" | "orange" {
+  const tierNumber = Number(tier);
+  if (!Number.isFinite(tierNumber)) return "bluewhite";
+  if (tierNumber <= 1) return "orange";
+  if (tierNumber <= 4) return "purple";
+  return "bluewhite";
+}
+
+function equipmentAffixesForTooltip<TGem>(gem: TGem): EquipmentTooltipAffix[] {
+  const affixes = (gem as { equipment_affixes?: unknown }).equipment_affixes;
+  if (!Array.isArray(affixes)) return [];
+  return affixes.filter((affix): affix is EquipmentTooltipAffix => (
+    Boolean(affix)
+    && typeof affix === "object"
+    && !Array.isArray(affix)
+    && typeof (affix as { effect?: unknown }).effect === "string"
+  ));
 }
 
 function SupportGemTooltip<TGem>({

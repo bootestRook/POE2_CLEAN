@@ -1,3 +1,5 @@
+import { localize, localizeTemplate } from "../localization";
+
 export const FRONTEND_AUTOSAVE_STORAGE_KEY = "poe2.v1.frontend.autosave";
 export const FRONTEND_ACTIVE_SAVE_SLOT_STORAGE_KEY = "poe2.v1.frontend.active_save_slot";
 export const FRONTEND_SAVE_SLOT_KEY_PREFIX = "poe2.v1.frontend.save.slot.";
@@ -70,15 +72,15 @@ export function loadFrontendAutosaveResult<TSave extends FrontendSaveStoragePayl
     if (!raw) return { save: null, errorText: "" };
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") {
-      return { save: null, errorText: "鏈湴瀛樻。鏍煎紡鏃犳晥锛屽凡鎭㈠鏂版父鎴忋€?" };
+      return { save: null, errorText: localize("ui.save.autosave_invalid_format") };
     }
     const save = parsed as TSave;
     if (save.version !== FRONTEND_SAVE_VERSION) {
-      return { save: null, errorText: "鏈湴瀛樻。鐗堟湰涓嶅吋瀹癸紝宸叉仮澶嶆柊娓告垙銆?" };
+      return { save: null, errorText: localize("ui.save.autosave_version_mismatch") };
     }
     return { save, errorText: "" };
   } catch {
-    return { save: null, errorText: "鏈湴瀛樻。璇诲彇澶辫触锛屽凡鎭㈠鏂版父鎴忋€?" };
+    return { save: null, errorText: localize("ui.save.autosave_read_failed") };
   }
 }
 
@@ -91,15 +93,15 @@ export function loadFrontendSaveSlotResult<TSave extends FrontendSaveStoragePayl
     if (!raw) return { save: null, errorText: "" };
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") {
-      return { save: null, errorText: `瀛樻。 ${slotId} 鏍煎紡鏃犳晥銆俙` };
+      return { save: null, errorText: localizeTemplate("ui.save.slot_invalid_format", { slotId }) };
     }
     const save = parsed as TSave;
     if (save.version !== FRONTEND_SAVE_VERSION) {
-      return { save: null, errorText: `瀛樻。 ${slotId} 鐗堟湰涓嶅吋瀹广€俙` };
+      return { save: null, errorText: localizeTemplate("ui.save.slot_version_mismatch", { slotId }) };
     }
     return { save, errorText: "" };
   } catch {
-    return { save: null, errorText: `瀛樻。 ${slotId} 璇诲彇澶辫触銆俙` };
+    return { save: null, errorText: localizeTemplate("ui.save.slot_read_failed", { slotId }) };
   }
 }
 

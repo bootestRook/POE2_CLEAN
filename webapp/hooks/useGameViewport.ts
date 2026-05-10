@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { localize } from "../localization";
 
 export type GameResolutionMode = "original" | "fullscreen" | "4k" | "2k" | "1080p";
 
@@ -20,8 +21,8 @@ export type GameViewport = {
 export const GAME_RESOLUTION_STORAGE_KEY = "poe2.v1.game.resolution";
 export const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "fullscreen";
 export const GAME_RESOLUTION_PRESETS: GameResolutionPreset[] = [
-  { mode: "original", label: "鍘熷灏哄", width: null, height: null },
-  { mode: "fullscreen", label: "鍏ㄥ睆", width: 1920, height: 1080 },
+  { mode: "original", label: localize("ui.viewport.resolution.original"), width: null, height: null },
+  { mode: "fullscreen", label: localize("ui.viewport.resolution.fullscreen"), width: 1920, height: 1080 },
   { mode: "4k", label: "4K", width: 3840, height: 2160 },
   { mode: "2k", label: "2K", width: 2560, height: 1440 },
   { mode: "1080p", label: "1080p", width: 1920, height: 1080 }

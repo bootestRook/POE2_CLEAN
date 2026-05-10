@@ -1,3 +1,5 @@
+import { localize, localizeTemplate } from "../../localization";
+
 type MapSelectionStage = {
   id: string;
   display_name: string;
@@ -29,13 +31,13 @@ export function MapSelectionPanel<TStage extends MapSelectionStage>({
   const stages = progression?.stages ?? [];
   const selectedStage = stages.find((stage) => stage.selected) ?? stages.find((stage) => stage.enterable) ?? stages[0];
   return (
-    <section className="map-selection-panel" aria-label="地图选择">
+    <section className="map-selection-panel" aria-label={localize("ui.map_selection.header")}>
       <header className="map-selection-header">
         <div>
-          <h2>选择战斗地图</h2>
-          <span>自动存档已启用，起始区域 I 可无限免费刷。</span>
+          <h2>{localize("ui.map_selection.header")}</h2>
+          <span>{localize("ui.map_selection.notice")}</span>
         </div>
-        {onClose && <button type="button" onClick={onClose}>返回休息区</button>}
+        {onClose && <button type="button" onClick={onClose}>{localize("ui.map_selection.return_rest")}</button>}
       </header>
       <div className="map-selection-list">
         {stages.map((stage) => {
@@ -49,14 +51,14 @@ export function MapSelectionPanel<TStage extends MapSelectionStage>({
               onClick={() => onStart(stage.id)}
             >
               <strong>{stage.display_name}</strong>
-              <span>地图等级：{stage.map_level_text} · 怪物等级：{stage.monster_level}</span>
-              <span>{stage.free_entry ? "无限免费" : `门票 ${stage.entry_count}/${stage.entry_cost}`}{stage.boss_stage ? " · Boss奖励" : ""} · {stageScopeText(stage)} · {stageBossPoolText(stage)}</span>
+              <span>{localizeTemplate("ui.map_selection.map_level", { level: stage.map_level_text })} · {localizeTemplate("ui.map_selection.monster_level", { level: stage.monster_level })}</span>
+              <span>{stage.free_entry ? localize("ui.map_selection.free_entry") : localizeTemplate("ui.map_selection.entry_cost", { count: stage.entry_count, cost: stage.entry_cost })}{stage.boss_stage ? ` · ${localize("ui.map_selection.boss_reward")}` : ""} · {stageScopeText(stage)} · {stageBossPoolText(stage)}</span>
             </button>
           );
         })}
       </div>
       <button className="start-button" type="button" disabled={!battleMapReady || !selectedStage?.enterable} onClick={() => selectedStage && onStart(selectedStage.id)}>
-        {battleMapReady ? "进入选中地图" : "地图加载中"}
+        {battleMapReady ? localize("ui.map_selection.enter_selected") : localize("ui.map_selection.loading")}
       </button>
     </section>
   );

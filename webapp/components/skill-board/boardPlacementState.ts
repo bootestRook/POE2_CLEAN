@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { localize, localizeTemplate } from "../../localization";
 import { isActiveGem, isGemItem, isPassiveGem, isSupportGem } from "../inventory/equipmentRules";
 import { previewRelationLabel } from "./SkillBoardPresentation";
 import type { PreviewRelationType } from "./SkillBoardPresentation";
@@ -48,14 +49,14 @@ export function usePlacementInvalidReason<TState extends BoardPlacementState<TGe
 ) {
   return useMemo(() => {
     if (!state || !floatingGem || !hoveredBoardCell || legalPlacementCells.has(hoveredBoardCell)) return null;
-    if (!isGemItem(floatingGem.gem)) return "涓嶅彲鏀剧疆锛氬彧鏈夊疂鐭冲彲浠ユ斁鍏ユ暟鐙洏";
+    if (!isGemItem(floatingGem.gem)) return localize("ui.skill_board.invalid.only_gems");
     const cell = boardCellByKey(state, hoveredBoardCell);
-    if (!cell) return "涓嶅彲鏀剧疆锛氬潗鏍囪秴鍑烘暟鐙洏";
+    if (!cell) return localize("ui.skill_board.invalid.out_of_bounds");
     const ignoredInstanceIds = new Set([floatingGem.gem.instance_id, cell.gem?.instance_id ?? ""]);
     if (cell.gem && cell.gem.instance_id !== floatingGem.gem.instance_id && !ignoredInstanceIds.has(cell.gem.instance_id)) {
-      return "涓嶅彲鏀剧疆锛氱洰鏍囨牸宸叉湁瀹濈煶";
+      return localize("ui.skill_board.invalid.target_occupied");
     }
-    return "涓嶅彲鏀剧疆锛氬悓琛屻€佸悓鍒楁垨鍚屽宸叉湁鐩稿悓鏁扮嫭鏁板瓧";
+    return localize("ui.skill_board.invalid.duplicate_digit");
   }, [state, floatingGem, hoveredBoardCell, legalPlacementCells]);
 }
 
@@ -96,8 +97,8 @@ export function usePlacementPreview<TState extends BoardPlacementState<TGem>, TG
 
     const affectedGemCount = previewAffectedGems.size;
     const previewSkillSummary = affectedGemCount > 0
-      ? `${affectedGemCount} 涓凡鏀剧疆瀹濈煶锛?{previewRelations.length} 涓叧绯绘牸`
-      : "鏃犲彲褰卞搷鐩爣";
+      ? localizeTemplate("ui.skill_board.preview.summary", { gemCount: affectedGemCount, relationCount: previewRelations.length })
+      : localize("ui.skill_board.preview.none");
 
     return {
       previewCell: { row: targetCell.row, column: targetCell.column },

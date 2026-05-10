@@ -1,5 +1,6 @@
 ﻿import type { TooltipRichLine } from "./TooltipPrimitives";
 import type { TooltipStatLine, TooltipView } from "./tooltipViewModel";
+import { localize } from "../../localization";
 
 const tooltipHighlightTones: Record<string, string> = {
   "红色": "color-red",
@@ -60,10 +61,12 @@ export function equipmentRarityTone(rarity: unknown) {
 }
 
 export function equipmentTooltipAffixLine(effect: string, tier: unknown, gen?: unknown) {
-  const tierNumber = Number(tier);
-  const suffix = gen === "base" ? "" : Number.isFinite(tierNumber) ? `\uff08T${tierNumber}\uff09` : "";
   const normalizedEffect = effect.trim().replace(/([%\uff05])\s+(?=\p{Script=Han})/gu, "$1");
-  return `${normalizedEffect}${suffix}`;
+  return normalizedEffect;
+}
+
+export function equipmentTooltipAffixGroup(gen: unknown): "base" | "explicit" {
+  return gen === "base" ? "base" : "explicit";
 }
 
 export function frontendDamageComponentTooltipLines(
@@ -108,14 +111,10 @@ export function frontendEquipmentGrantedTooltipLines(
 }
 
 export function frontendDamageTypeLabel(damageType: string) {
-  if (damageType === "generic") return "\u4f24\u5bb3";
-  if (damageType === "physical") return "\u7269\u7406\u4f24\u5bb3";
-  if (damageType === "fire") return "\u706b\u7130\u4f24\u5bb3";
-  if (damageType === "cold") return "\u51b0\u971c\u4f24\u5bb3";
-  if (damageType === "lightning") return "\u95ea\u7535\u4f24\u5bb3";
-  if (damageType === "chaos") return "\u6df7\u6c8c\u4f24\u5bb3";
-  if (damageType === "true") return "\u771f\u5b9e\u4f24\u5bb3";
-  return `${damageType}\u4f24\u5bb3`;
+  if (damageType === "generic") return localize("ui.tooltip.damage.generic");
+  if (damageType === "true") return localize("ui.tooltip.damage.true");
+  const damageTypeName = localize(`damage_type.${damageType}.name`, damageType);
+  return `${damageTypeName}${localize("ui.tooltip.damage.suffix")}`;
 }
 
 export function formatPreviewNumber(value: number) {
@@ -132,13 +131,7 @@ export function formatModifierValue(stat: string, value: number) {
 }
 
 export function damageTypeText(damageType: string) {
-  const text: Record<string, string> = {
-    fire: "\u706b\u7130",
-    cold: "\u51b0\u971c",
-    lightning: "\u95ea\u7535",
-    physical: "\u7269\u7406"
-  };
-  return text[damageType] ?? "\u6280\u80fd";
+  return localize(`damage_type.${damageType}.name`, localize("ui.tooltip.damage.generic"));
 }
 
 export function frontendGuardTooltipLines(
@@ -191,55 +184,56 @@ export function frontendSupportModifierTooltipLines(
 
 function frontendSupportStatText(statId: string, fallback: string) {
   if (fallback && !fallback.startsWith("未配置文案")) return fallback;
-  return FRONTEND_SUPPORT_STAT_TEXT[statId] ?? statId;
+  const key = FRONTEND_SUPPORT_STAT_LOCALIZATION_KEYS[statId];
+  return key ? localize(key, statId) : statId;
 }
 
-const FRONTEND_SUPPORT_STAT_TEXT: Record<string, string> = {
-  added_chaos_damage: "附加混沌伤害",
-  added_cold_damage: "附加冰霜伤害",
-  added_fire_damage: "附加火焰伤害",
-  added_fire_damage_from_physical_percent: "物理额外火焰伤害",
-  added_lightning_damage: "附加闪电伤害",
-  ailment_damage_add_percent: "异常伤害提高",
-  area_add_percent: "范围扩大",
-  area_damage_add_percent: "范围伤害提高",
-  attack_speed_add_percent: "攻击速度提高",
-  bounce_count_add: "弹射次数",
-  cast_speed_add_percent: "施法速度提高",
-  channel_min_stacks_add: "引导最低层数",
-  cold_damage_add_percent: "冰霜伤害提高",
-  continuous_attack_chance_percent: "连续攻击概率",
-  continuous_attack_damage_step_percent: "连续攻击伤害递增",
-  conversion_lightning_to_cold_percent: "闪电转冰霜",
-  conversion_physical_to_fire_percent: "物理转火焰",
-  cooldown_recovery_add_percent: "冷却回复速度提高",
-  crit_damage_add_percent: "暴击伤害提高",
-  crit_rating: "暴击值",
-  damage_final_percent: "最终伤害修正",
-  deterioration_chance_add_percent: "恶化概率",
-  deterioration_extra_stack_chance_percent: "额外恶化层数概率",
-  dot_damage_add_percent: "持续伤害提高",
-  duration_add_percent: "持续时间提高",
-  elemental_damage_add_percent: "元素伤害提高",
-  energy_blessing_damage_per_stack_percent: "每层能量祝福伤害",
-  guard_internal_cooldown_ms: "守护内置冷却",
-  guard_trigger_count: "守护触发次数",
-  ignite_chance_add_percent: "点燃概率提高",
-  ignite_damage_bonus_max_percent: "点燃伤害上限提高",
-  ignite_damage_bonus_per_stack_percent: "每层点燃伤害提高",
-  ignite_stacks_add: "点燃层数",
-  knockback_chance_percent: "击退概率",
-  knockback_distance_add_percent: "击退距离提高",
-  lightning_damage_add_percent: "闪电伤害提高",
-  melee_damage_add_percent: "近战伤害提高",
-  physical_damage_add_percent: "物理伤害提高",
-  prevent_elemental_ailments: "免疫元素异常",
-  projectile_count_add: "投射物数量",
-  projectile_speed_add_percent: "投射物速度提高",
-  slash_chance_add_percent: "斩击概率",
-  split_projectile_chance_percent: "投射物分裂概率",
-  split_projectile_count_add: "分裂投射物数量",
-  status_chance_add_percent: "状态施加概率提高",
+const FRONTEND_SUPPORT_STAT_LOCALIZATION_KEYS: Record<string, string> = {
+  added_chaos_damage: "stat.added_chaos_damage.name",
+  added_cold_damage: "stat.added_cold_damage.name",
+  added_fire_damage: "stat.added_fire_damage.name",
+  added_fire_damage_from_physical_percent: "stat.added_fire_damage_from_physical_percent.name",
+  added_lightning_damage: "stat.added_lightning_damage.name",
+  ailment_damage_add_percent: "stat.ailment_damage_add_percent.name",
+  area_add_percent: "stat.area_add_percent.name",
+  area_damage_add_percent: "stat.area_damage_add_percent.name",
+  attack_speed_add_percent: "stat.attack_speed_add_percent.name",
+  bounce_count_add: "stat.bounce_count_add.name",
+  cast_speed_add_percent: "stat.cast_speed_add_percent.name",
+  channel_min_stacks_add: "stat.channel_min_stacks_add.name",
+  cold_damage_add_percent: "stat.cold_damage_add_percent.name",
+  continuous_attack_chance_percent: "stat.continuous_attack_chance_percent.name",
+  continuous_attack_damage_step_percent: "stat.continuous_attack_damage_step_percent.name",
+  conversion_lightning_to_cold_percent: "stat.conversion_lightning_to_cold_percent.name",
+  conversion_physical_to_fire_percent: "stat.conversion_physical_to_fire_percent.name",
+  cooldown_recovery_add_percent: "stat.cooldown_recovery_add_percent.name",
+  crit_damage_add_percent: "stat.crit_damage_add_percent.name",
+  crit_rating: "stat.crit_rating.name",
+  damage_final_percent: "stat.damage_final_percent.name",
+  deterioration_chance_add_percent: "stat.deterioration_chance_add_percent.name",
+  deterioration_extra_stack_chance_percent: "stat.deterioration_extra_stack_chance_percent.name",
+  dot_damage_add_percent: "stat.dot_damage_add_percent.name",
+  duration_add_percent: "stat.duration_add_percent.name",
+  elemental_damage_add_percent: "stat.elemental_damage_add_percent.name",
+  energy_blessing_damage_per_stack_percent: "stat.energy_blessing_damage_per_stack_percent.name",
+  guard_internal_cooldown_ms: "stat.guard_internal_cooldown_ms.name",
+  guard_trigger_count: "stat.guard_trigger_count.name",
+  ignite_chance_add_percent: "stat.ignite_chance_add_percent.name",
+  ignite_damage_bonus_max_percent: "stat.ignite_damage_bonus_max_percent.name",
+  ignite_damage_bonus_per_stack_percent: "stat.ignite_damage_bonus_per_stack_percent.name",
+  ignite_stacks_add: "stat.ignite_stacks_add.name",
+  knockback_chance_percent: "stat.knockback_chance_percent.name",
+  knockback_distance_add_percent: "stat.knockback_distance_add_percent.name",
+  lightning_damage_add_percent: "stat.lightning_damage_add_percent.name",
+  melee_damage_add_percent: "stat.melee_damage_add_percent.name",
+  physical_damage_add_percent: "stat.physical_damage_add_percent.name",
+  prevent_elemental_ailments: "stat.prevent_elemental_ailments.name",
+  projectile_count_add: "stat.projectile_count_add.name",
+  projectile_speed_add_percent: "stat.projectile_speed_add_percent.name",
+  slash_chance_add_percent: "stat.slash_chance_add_percent.name",
+  split_projectile_chance_percent: "stat.split_projectile_chance_percent.name",
+  split_projectile_count_add: "stat.split_projectile_count_add.name",
+  status_chance_add_percent: "stat.status_chance_add_percent.name",
 };
 
 export function mergeFrontendSkillPreviewBonusLines(lines: string[], bonusLines: string[]) {
@@ -417,7 +411,7 @@ export function ensureReleaseIntervalStatLine(
   const tagIds = new Set((gem.tags ?? []).map((tag) => tag.id ?? tag.text));
   if (!tagIds.has("attack") && !tagIds.has("spell")) return lines;
   const line = {
-    label_text: tagIds.has("spell") ? "施法时间" : "攻击间隔",
+    label_text: tagIds.has("spell") ? localize("ui.tooltip.release.cast_time") : localize("ui.tooltip.release.attack_interval"),
     value_text: `${formatPreviewNumber(releaseIntervalMs)} 毫秒`,
   };
   const insertAfter = Math.max(

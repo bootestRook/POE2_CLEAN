@@ -110,6 +110,36 @@ def test_frontend_split_projectiles_keep_runtime_direction_and_damage_payload() 
     assert "damage_components: damagePayloadComponents(skill, amount, damageType, skill.hit as Record<string, unknown>)" in helper
 
 
+def test_corrosive_shot_module_chain_uses_projectile_hit_damage_path() -> None:
+    builder_source = _read(WEBAPP / "runtime" / "frontendPlayableSkillEventBuilders.ts")
+    runtime_source = _read(WEBAPP / "frontendPlayableSkillRuntime.ts")
+    helper = builder_source.split("export function buildFrontendModuleChainSkillEvents", 1)[1].split("export function buildFrontendDamageZoneSkillEvents", 1)[0]
+
+    assert '"projectile_hit"' in runtime_source
+    assert '"projectile_impact"' not in runtime_source.split('family: "module_chain"', 1)[1].split("}", 1)[0]
+    assert 'deps.frontendSkillEvent(skill, "projectile_hit", target, impact, direction, Number(skill.final_damage ?? 0)' in helper
+    assert "projectile_continues: false" in helper
+    assert "events.push(...deps.frontendDamageEventsForTarget(skill, target, impact, direction, skill.final_damage" in helper
+    assert "}, impactDelayMs));" in helper
+
+
+def test_corrosive_shot_level_one_seed_and_level_twenty_dot_are_distinct() -> None:
+    data_source = _read(WEBAPP / "frontendGameData.ts")
+    table_source = _read(WEBAPP / "frontendSkillLevelTables.ts")
+    corrosive_block = data_source.split('"skill_corrosive_shot":', 1)[1].split('"skill_burning_shot":', 1)[0]
+    corrosive_table = table_source.split('"active_corrosive_shot":', 1)[1].split("\n  },", 1)[0]
+
+    assert '"base_damage": 9.5' in corrosive_block
+    assert '"physical": 9.5' in corrosive_block
+    assert '"base_damage_per_second": 0.57' in corrosive_block
+    assert '"damage_amount": 0.741' in corrosive_block
+    assert '"20": {' in corrosive_table
+    level_twenty = corrosive_table.split('"20": {', 1)[1].split("}", 1)[0]
+    assert '"hit_damage_component_physical": 95' in level_twenty
+    assert '"hit_ailment_wilt_base_damage_per_second": 5.7' in level_twenty
+    assert '"module_corrosive_ground_damage_amount": 7.41' in level_twenty
+
+
 def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
     source = _read(WEBAPP / "App.tsx")
 

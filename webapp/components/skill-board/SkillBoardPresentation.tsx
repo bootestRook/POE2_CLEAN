@@ -45,6 +45,7 @@ export function BoardCell<TGem extends SkillBoardGem>({
   previewCell,
   previewAffectedCell,
   previewInvalidReason,
+  interactionDisabled,
   renderGem,
   onHoverCell,
   onDropGem,
@@ -66,6 +67,7 @@ export function BoardCell<TGem extends SkillBoardGem>({
   previewCell: string | null;
   previewAffectedCell: { types: PreviewRelationType[] } | null;
   previewInvalidReason: string | null;
+  interactionDisabled: boolean;
   renderGem: (gem: TGem) => ReactNode;
   onHoverCell: (cellKey: string | null) => void;
   onDropGem: (instanceId: string, row: number, column: number) => Promise<boolean>;
@@ -90,7 +92,7 @@ export function BoardCell<TGem extends SkillBoardGem>({
   const boxBoundaryClasses = boardBoxBoundaryClasses(cell.row, cell.column);
   return (
     <button
-      className={`board-cell ${boxBoundaryClasses} ${placementModeClass} ${hoverClass} ${legalClass} ${invalidClass} ${previewTargetClass} ${affectedCellClass} ${boardHoverClassName}`}
+      className={`board-cell ${boxBoundaryClasses} ${placementModeClass} ${hoverClass} ${legalClass} ${invalidClass} ${previewTargetClass} ${affectedCellClass} ${boardHoverClassName}${interactionDisabled ? " inventory-disabled-cell" : ""}`}
       data-board-row={cell.row}
       data-board-column={cell.column}
       data-box-boundary={boxBoundaryClasses}
@@ -98,25 +100,47 @@ export function BoardCell<TGem extends SkillBoardGem>({
       data-preview-relations={previewAffectedCell?.types.map(previewRelationLabel).join(" / ")}
       data-preview-invalid-reason={previewInvalidReason ?? undefined}
       title={previewInvalidReason ?? undefined}
-      onMouseEnter={() => onHoverCell(currentCellKey)}
-      onMouseLeave={() => onHoverCell(null)}
-      onDragOver={(event) => event.preventDefault()}
+      onMouseEnter={() => {
+        if (!interactionDisabled) onHoverCell(currentCellKey);
+      }}
+      onMouseLeave={() => {
+        if (!interactionDisabled) onHoverCell(null);
+      }}
+      onDragOver={(event) => {
+        if (!interactionDisabled) event.preventDefault();
+      }}
       onDrop={(event) => {
         event.preventDefault();
+        if (interactionDisabled) return;
         const instanceId = event.dataTransfer.getData("text/plain");
         if (instanceId) onDropGem(instanceId, cell.row, cell.column);
       }}
-      onDoubleClick={() => gem && !isGhost && onUnmountGem(gem.instance_id)}
+      onDoubleClick={() => {
+        if (!interactionDisabled && gem && !isGhost) onUnmountGem(gem.instance_id);
+      }}
     >
       {gem && !isGhost ? (
         <span
           className="board-gem-drag-target"
           draggable={false}
           onDragStart={onDragGem}
-          onMouseDown={(event) => onPointerDragGem(event, gem, origin)}
-          onMouseEnter={(event) => onHoverGem(event, gem, "board")}
-          onMouseMove={(event) => onHoverGem(event, gem, "board")}
-          onMouseLeave={onLeaveGem}
+          onMouseDown={(event) => {
+            if (interactionDisabled) {
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+            }
+            onPointerDragGem(event, gem, origin);
+          }}
+          onMouseEnter={(event) => {
+            if (!interactionDisabled) onHoverGem(event, gem, "board");
+          }}
+          onMouseMove={(event) => {
+            if (!interactionDisabled) onHoverGem(event, gem, "board");
+          }}
+          onMouseLeave={() => {
+            if (!interactionDisabled) onLeaveGem();
+          }}
         >
           {renderGem(gem)}
         </span>

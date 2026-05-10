@@ -452,10 +452,14 @@ export function buildFrontendModuleChainSkillEvents(
       arc_height: Number(projectileParams.arc_height ?? 0),
       lifetime_ms: Number(projectileParams.travel_time_ms ?? 520)
     }, Number(projectileParams.travel_time_ms ?? 520)),
-    deps.frontendSkillEvent(skill, "projectile_impact", target, impact, direction, null, skill.damage_type, {
+    deps.frontendSkillEvent(skill, "projectile_hit", target, impact, direction, Number(skill.final_damage ?? 0), skill.damage_type, {
       vfx_key: projectileParams.vfx_key ?? deps.frontendSkillVfxKey(skill, "hit"),
       projectile_id: projectileId,
+      projectile_continues: false,
       marker_id: projectileParams.impact_marker_id ?? "corrosive_impact",
+      hit_marker_id: projectileParams.impact_marker_id ?? "corrosive_impact",
+      hit_world_position: impact,
+      target_world_position: impact,
       impact_radius: Number(projectileParams.impact_radius ?? params.impact_radius ?? skill.hit?.hit_radius ?? 24) * skill.area_multiplier,
       area_scale: skill.area_multiplier,
       impact_position: impact

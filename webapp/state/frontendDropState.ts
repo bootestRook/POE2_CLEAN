@@ -13,6 +13,7 @@ import { equipmentTooltipAffixLine, equipmentRarityTone } from "../components/to
 import { createFrontendItemTooltipView, type TooltipView } from "../components/tooltips/tooltipViewModel";
 import { frontendEquipmentSourceSlotIdFromText, isTwoHandedEquipmentSource } from "../components/inventory/equipmentRules";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "../frontendSkillLevelTables";
+import { localize, localizeTemplate } from "../localization";
 import { clamp } from "../utils/math2d";
 import type { Enemy } from "../types/enemyTypes";
 
@@ -218,7 +219,7 @@ export function createFrontendDrop(enemy: Enemy, index: number, options: CreateF
   const level = Math.round(clamp(stage.gem_level_min + frontendDropRoll(enemy, index + 29, elapsedSeconds) * (stage.gem_level_max - stage.gem_level_min), stage.gem_level_min, stage.gem_level_max));
   const equipmentLevel = frontendRandomMapLevel(stage, enemy, index + 83, elapsedSeconds);
   let lootKind = frontendDropKind(stage, kindRoll, Boolean(mapEntryStage), dropRule.drop_pool_id);
-  let nameText = `Lv${equipmentLevel} 瑁呭`;
+  let nameText = `Lv${equipmentLevel} ${localize("ui.drop.equipment")}`;
   let equipmentRarity = frontendEquipmentDropRarity(stage, enemy, frontendDropRoll(enemy, index + 97, elapsedSeconds));
   let rarityText = frontendEquipmentRarityText(equipmentRarity);
   let targetStageId: string | undefined;
@@ -226,18 +227,18 @@ export function createFrontendDrop(enemy: Enemy, index: number, options: CreateF
   let equipmentSource = chooseFrontendEquipmentSource(Math.floor(frontendDropRoll(enemy, index + 53, elapsedSeconds) * 1000000000));
   let equipmentAffixes: FrontendEquipmentAffixRoll[] | undefined;
   let equipmentStatModifiers: FrontendEquipmentStatModifier[] | undefined;
-  let statusText = "鐐瑰嚮鎷惧彇";
+  let statusText = localize("ui.drop.click_pickup");
   if (lootKind === "map_entry" && mapEntryStage) {
     lootKind = "map_entry";
-    nameText = `${mapEntryStage.display_name} 闂ㄧエ`;
-    rarityText = "鍦板浘";
+    nameText = localizeTemplate("ui.drop.map_ticket", { stage: mapEntryStage.display_name });
+    rarityText = localize("ui.drop.map");
     targetStageId = mapEntryStage.id;
   } else if (lootKind === "gem") {
     lootKind = "gem";
     const gemOption = chooseFrontendGemDropOption(gmGems, enemy, index + 41, elapsedSeconds);
     baseGemInstanceId = gemOption?.id ?? fallbackBaseGemInstanceId;
-    nameText = gemOption ? `Lv${level} ${gemOption.name_text}` : `Lv${level} 鎶€鑳藉疂鐭?`;
-    rarityText = "瀹濈煶";
+    nameText = gemOption ? `Lv${level} ${gemOption.name_text}` : `Lv${level} ${localize("ui.drop.skill_gem")}`;
+    rarityText = localize("ui.drop.gem");
   } else {
     const seed = enemy.id * 1000003 + index * 9176 + Math.floor(frontendDropRoll(enemy, index + 71, elapsedSeconds) * 1000000);
     const generated = generateFrontendEquipment(equipmentSource, equipmentLevel, equipmentRarity, seed);
@@ -248,7 +249,7 @@ export function createFrontendDrop(enemy: Enemy, index: number, options: CreateF
     rarityText = frontendEquipmentRarityText(generated.rarity);
     equipmentRarity = generated.rarity;
     equipmentSource = generated.source;
-    statusText = affixTexts.join("銆?");
+    statusText = affixTexts.join(localize("ui.drop.affix_separator"));
   }
   return {
     drop_id: `frontend_drop_${nextDropId()}`,
@@ -274,10 +275,10 @@ export function createGuaranteedNextMapEntryDrop(enemy: Enemy, stage: FrontendMa
   return {
     drop_id: `frontend_drop_${nextDropId()}`,
     loot_kind: "map_entry",
-    name_text: `${targetStage.display_name} 闂ㄧエ`,
-    rarity_text: "鍦板浘",
+    name_text: localizeTemplate("ui.drop.map_ticket", { stage: targetStage.display_name }),
+    rarity_text: localize("ui.drop.map"),
     picked_up: false,
-    status_text: "鐐瑰嚮鎷惧彇",
+    status_text: localize("ui.drop.click_pickup"),
     position: { x: enemy.x + 28 + (index % 2) * 12, y: enemy.y },
     level: stage.gem_level_max,
     target_stage_id: targetStage.id

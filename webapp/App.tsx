@@ -261,7 +261,7 @@ import type { TooltipTargetLine, TooltipView } from "./components/tooltips/toolt
 import { StashPanel } from "./components/inventory/StashPanel";
 import { InventoryOverlay } from "./components/inventory/InventoryOverlay";
 import { EquipmentPanel } from "./components/inventory/EquipmentPanel";
-import { InventoryBagPanel } from "./components/inventory/InventoryBagPanel";
+import { InventoryBagPanel, type InventoryBagTab } from "./components/inventory/InventoryBagPanel";
 import { InventorySkillBoardPanel } from "./components/inventory/InventorySkillBoardPanel";
 import { isFloatingOrigin, isInventoryDropBlockedByInterface, resolveDropTarget, type DropTarget, type FloatingOrigin } from "./components/inventory/inventoryDragTargets";
 import { bagCellClass as resolveBagCellClass, bagEmptyCellClass, equipmentCellClass as resolveEquipmentCellClass, equipmentEmptyCellClass } from "./components/inventory/inventoryCellClasses";
@@ -269,6 +269,7 @@ import { canPlaceItemInEquipmentSlot, comparisonGemForInventoryEquipment, equipm
 import { FloatingGemView } from "./components/inventory/FloatingGemView";
 import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveItemToEquipmentSlotState, moveItemToInventorySlot as moveItemToInventorySlotState, normalizeEquipmentSlots as normalizeEquipmentSlotsState, optimisticPlaceItemOnBoard, optimisticUnmountBoardItem, reconcileInventorySlots, removeItemsFromEquipmentSlots } from "./components/inventory/placementState";
 import { createStashStateHelpers } from "./components/inventory/stashState";
+import { isInventoryItemLockedByRarity, type InventoryLockRarity } from "./components/inventory/inventoryLocking";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { EntryTitleScreen } from "./components/layout/EntryTitleScreen";
 import { AppTopHud } from "./components/layout/AppTopHud";
@@ -985,12 +986,18 @@ function GameApp() {
   const [itemDiscardPrompt, setItemDiscardPrompt] = useState<ItemDiscardPrompt | null>(null);
   const [skipItemDiscardConfirmToday, setSkipItemDiscardConfirmToday] = useState(loadItemDiscardSkipConfirmPreference);
   const [showPersistentSupportLines, setShowPersistentSupportLines] = useState(true);
+  const [inventoryLockMode, setInventoryLockMode] = useState(false);
+  const [manualLockedItemIds, setManualLockedItemIds] = useState<Set<string>>(() => new Set());
+  const [manualUnlockedItemIds, setManualUnlockedItemIds] = useState<Set<string>>(() => new Set());
+  const [activeLockRarities, setActiveLockRarities] = useState<Set<InventoryLockRarity>>(() => new Set());
   const [gmOpen, setGmOpen] = useState(false);
   const [gmOptions, setGmOptions] = useState<GmOptions | null>(null);
   const [gmAffixes, setGmAffixes] = useState<GmEquipmentAffixResponse | null>(null);
   const monsterTestOptions = useMemo(() => monsterTestMonsterOptions(), []);
   const [selectedMonsterTestMonsterId, setSelectedMonsterTestMonsterId] = useState(() => monsterTestOptions[0]?.id ?? "");
-  const [inventorySlots, setInventorySlots] = useState<(string | null)[]>(() => Array(INVENTORY_SLOT_COUNT).fill(null));
+  const [activeInventoryBagTab, setActiveInventoryBagTab] = useState<InventoryBagTab>("equipment");
+  const [equipmentInventorySlots, setEquipmentInventorySlots] = useState<(string | null)[]>(() => Array(INVENTORY_SLOT_COUNT).fill(null));
+  const [gemInventorySlots, setGemInventorySlots] = useState<(string | null)[]>(() => Array(INVENTORY_SLOT_COUNT).fill(null));
   const [equipmentSlots, setEquipmentSlots] = useState<(string | null)[]>(() => Array(EQUIPMENT_SLOT_COUNT).fill(null));
   const [stashPageIndex, setStashPageIndex] = useState(0);
   const keys = useRef(new Set<string>());
@@ -1389,7 +1396,10 @@ function GameApp() {
     if (!state) return;
     const equippedIds = new Set(equipmentSlots.filter(Boolean) as string[]);
     const stashIds = stashItemIds(state.stash_pages);
-    setInventorySlots((current) => reconcileInventorySlots(current, state, floatingGemRef.current?.gem.instance_id ?? null, new Set([...equippedIds, ...stashIds]), INVENTORY_SLOT_COUNT));
+    const reservedIds = new Set([...equippedIds, ...stashIds]);
+    const floatingItemId = floatingGemRef.current?.gem.instance_id ?? null;
+    setEquipmentInventorySlots((current) => reconcileInventorySlots(current, state, floatingItemId, reservedIds, INVENTORY_SLOT_COUNT, (item) => !isGemItem(item)));
+    setGemInventorySlots((current) => reconcileInventorySlots(current, state, floatingItemId, reservedIds, INVENTORY_SLOT_COUNT, isGemItem));
   }, [state, floatingGem?.gem.instance_id, equipmentSlots]);
 
   useEffect(() => {
@@ -1582,7 +1592,7 @@ function GameApp() {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [state, inventorySlots, equipmentSlots]);
+  }, [state, activeInventoryBagTab, equipmentInventorySlots, gemInventorySlots, equipmentSlots]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -4828,8 +4838,12 @@ function frontendDamageEventsForTarget(
 
 async function placeFloatingItem(current: FloatingGem, target: DropTarget, event: globalThis.MouseEvent): Promise<PlacementResult> {
     if (target.kind === "invalid") return { type: "reject" };
-    if (isDropBackToOrigin(current, target, state, inventorySlots, equipmentSlots, normalizeStashPages(state?.stash_pages))) return { type: "place" };
+    if (isDropBackToOrigin(current, target, state, inventorySlotsForItem(current.gem), equipmentSlots, normalizeStashPages(state?.stash_pages))) return { type: "place" };
     if (target.kind === "map") {
+      if (isInventoryItemLocked(current.gem.instance_id)) {
+        showPlacementPrompt("物品已锁定，不能丢弃。", event.clientX, event.clientY);
+        return { type: "reject" };
+      }
       const prompt = {
         item: current.gem,
         origin: current.origin,
@@ -4857,9 +4871,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       setNotice("没有找到这颗宝石。");
       return { type: "reject" };
     }
-    const targetItem = inventoryItemById(state, inventorySlots[slotIndex]);
+    const targetItem = inventoryItemById(state, inventorySlotsForItem(dragged)[slotIndex]);
     setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
-    setInventorySlots((slots) => moveItemToInventorySlotState(slots, instanceId, slotIndex, INVENTORY_SLOT_COUNT));
+    moveItemToBagSlot(dragged, slotIndex);
+    setActiveInventoryBagTab(inventoryBagTabForItem(dragged));
     if (!dragged.board_position) {
       applyFrontendState((currentState) => ({
         ...currentState,
@@ -4889,7 +4904,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const safePageIndex = clamp(Math.floor(pageIndex), 0, STASH_PAGE_COUNT - 1);
     const safeSlotIndex = clamp(Math.floor(slotIndex), 0, STASH_PAGE_SLOT_COUNT - 1);
     const targetItem = inventoryItemById(state, normalizedPages[safePageIndex]?.[safeSlotIndex]);
-    setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
+    removeItemsFromBagSlots([instanceId, targetItem?.instance_id ?? ""]);
     setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
     applyFrontendState((currentState) => {
       const unmountedState = dragged.board_position ? optimisticUnmountBoardItem(currentState, instanceId) : currentState;
@@ -4930,10 +4945,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const targetOriginIndex = targetItem ? equipmentSlots.findIndex((id) => id === targetItem.instance_id) : slotIndex;
     const targetOriginSlot = EQUIPMENT_SLOT_SPECS[targetOriginIndex >= 0 ? targetOriginIndex : slotIndex] ?? slot;
     const previousState = state;
-    const previousInventorySlots = inventorySlots;
+    const previousInventorySlots = activeInventorySlots;
     const previousEquipmentSlots = equipmentSlots;
     setEquipmentSlots((slots) => moveItemToEquipmentSlotState(removeItemsFromEquipmentSlots(slots, displacedIds), instanceId, targetIndices, EQUIPMENT_SLOT_COUNT));
-    setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
+    removeItemsFromBagSlots([instanceId, targetItem?.instance_id ?? ""]);
     applyFrontendState((currentState) => ({
       ...currentState,
       stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId]),
@@ -4968,13 +4983,13 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     if (!canPlaceGemOnBoard(state, dragged, row, column, new Set([instanceId, targetItem?.instance_id ?? ""]))) return { type: "reject" };
 
     const previousState = state;
-    const previousInventorySlots = inventorySlots;
+    const previousInventorySlots = activeInventorySlots;
     const previousEquipmentSlots = equipmentSlots;
     applyFrontendState((currentState) => ({
       ...optimisticPlaceItemOnBoard(currentState, instanceId, row, column, targetItem?.instance_id),
       stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId, targetItem?.instance_id ?? ""])
     }));
-    setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId, targetItem?.instance_id ?? ""]));
+    removeItemsFromBagSlots([instanceId, targetItem?.instance_id ?? ""]);
     setNotice(`已将${dragged.name_text}放入第${row + 1}行第${column + 1}列。`);
     return targetItem ? { type: "swap", nextFloatingItem: targetItem, origin: { kind: "board", row, column } } : { type: "place" };
   }
@@ -5003,10 +5018,14 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   function discardItem(prompt: ItemDiscardPrompt) {
     if (!state) return;
     const instanceId = prompt.item.instance_id;
+    if (isInventoryItemLocked(instanceId)) {
+      setNotice("物品已锁定，不能丢弃。");
+      return;
+    }
     const drop = createDiscardDrop(prompt.item, prompt.position);
     dropDisplayPositions.current.set(drop.drop_id, prompt.position);
     knownDropIds.current.add(drop.drop_id);
-    setInventorySlots((slots) => removeItemsFromInventorySlots(slots, [instanceId]));
+    removeItemsFromBagSlots([instanceId]);
     setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, [instanceId]));
     applyFrontendState((current) => {
       const withoutItem = removeInventoryItemFromState(current, instanceId);
@@ -5563,6 +5582,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function beginPointerDrag(event: MouseEvent, gem: Gem, origin: FloatingOrigin) {
     if (event.button !== 0) return;
+    if (inventoryLockMode) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (floatingGemRef.current || dropInProgressRef.current) return;
     event.preventDefault();
     event.stopPropagation();
@@ -5588,6 +5612,17 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     for (const gem of state?.inventory ?? []) result.set(gem.instance_id, gem);
     return result;
   }, [state]);
+  const lockedItemIds = useMemo(() => {
+    const result = new Set<string>();
+    for (const item of state?.inventory ?? []) {
+      const rarityLocked = isInventoryItemLockedByRarity(item, activeLockRarities);
+      if ((rarityLocked && !manualUnlockedItemIds.has(item.instance_id)) || manualLockedItemIds.has(item.instance_id)) {
+        result.add(item.instance_id);
+      }
+    }
+    return result;
+  }, [activeLockRarities, manualLockedItemIds, manualUnlockedItemIds, state]);
+  const isInventoryItemLocked = (instanceId: string) => lockedItemIds.has(instanceId);
   const hoveredBoardGemId = hoveredGemId && fullGemById.get(hoveredGemId)?.board_position ? hoveredGemId : null;
   const legalDropCells = useLegalDropCells(state, floatingGem && isGemItem(floatingGem.gem) ? floatingGem.gem : null);
   const selectedGemInstanceId = floatingGem?.gem.instance_id ?? null;
@@ -5603,10 +5638,67 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const activeTargetLines = useActiveTargetLines(persistentSupportLines, fullGemById, hoveredGemId, floatingGem);
   const passiveVisualEffects = useMountedPassiveVisualEffects(state, fullGemById, isPassiveGem);
   const gmGemOptionsById = useMemo(() => new Map((gmOptions?.gems ?? []).map((gem) => [gem.id, gem])), [gmOptions]);
-  const bagSlots = inventorySlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
+  const activeInventorySlots = activeInventoryBagTab === "gem" ? gemInventorySlots : equipmentInventorySlots;
+  const bagSlots = activeInventorySlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
   const equippedItems = equipmentSlots.map((instanceId) => (instanceId ? fullGemById.get(instanceId) ?? null : null));
   const stashPages = normalizeStashPages(state?.stash_pages, state ?? undefined);
   const activeStashSlots = stashPages[stashPageIndex] ?? [];
+
+  function inventoryBagTabForItem(item: Gem): InventoryBagTab {
+    return isGemItem(item) ? "gem" : "equipment";
+  }
+
+  function inventorySlotsForItem(item: Gem) {
+    return inventoryBagTabForItem(item) === "gem" ? gemInventorySlots : equipmentInventorySlots;
+  }
+
+  function removeItemsFromBagSlots(instanceIds: string[]) {
+    setEquipmentInventorySlots((slots) => removeItemsFromInventorySlots(slots, instanceIds));
+    setGemInventorySlots((slots) => removeItemsFromInventorySlots(slots, instanceIds));
+  }
+
+  function moveItemToBagSlot(item: Gem, slotIndex: number) {
+    const setSlots = isGemItem(item) ? setGemInventorySlots : setEquipmentInventorySlots;
+    setSlots((slots) => moveItemToInventorySlotState(slots, item.instance_id, slotIndex, INVENTORY_SLOT_COUNT));
+  }
+
+  function changeInventoryBagTab(tab: InventoryBagTab) {
+    setActiveInventoryBagTab(tab);
+    setHoveredBagSlot(null);
+    setHoveredGemId(null);
+    setTooltip(null);
+  }
+
+  function toggleInventoryLockMode() {
+    clearFloatingGem();
+    clearDragHoverState();
+    setInventoryLockMode((current) => !current);
+  }
+
+  function toggleInventoryItemLock(instanceId: string) {
+    const currentlyLocked = isInventoryItemLocked(instanceId);
+    setManualLockedItemIds((current) => {
+      const next = new Set(current);
+      if (currentlyLocked) next.delete(instanceId);
+      else next.add(instanceId);
+      return next;
+    });
+    setManualUnlockedItemIds((current) => {
+      const next = new Set(current);
+      if (currentlyLocked) next.add(instanceId);
+      else next.delete(instanceId);
+      return next;
+    });
+  }
+
+  function toggleInventoryLockRarity(rarity: InventoryLockRarity) {
+    setActiveLockRarities((current) => {
+      const next = new Set(current);
+      if (next.has(rarity)) next.delete(rarity);
+      else next.add(rarity);
+      return next;
+    });
+  }
 
   async function loadGmEquipmentAffixes(source: string, level: number) {
     const affixes = await requestGmEquipmentAffixes(source, level);
@@ -6122,6 +6214,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               hoveredEquipmentSlot={hoveredEquipmentSlot}
               hoveredGemId={hoveredGemId}
               floatingGem={floatingGem}
+              lockModeActive={inventoryLockMode}
+              activeLockRarities={activeLockRarities}
               isTwoHandedWeapon={isTwoHandedWeapon}
               isFloatingOrigin={isFloatingOrigin}
               itemCellClassName={resolveEquipmentCellClass}
@@ -6130,6 +6224,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               renderGhost={() => <GemGhost />}
               onBeginDrag={beginDrag}
               onPointerDrag={beginPointerDrag}
+              onToggleLockRarity={toggleInventoryLockRarity}
               onHoverGem={onGemHover}
               onHoverEquipmentSlot={setHoveredEquipmentSlot}
               onLeaveEquipmentSlot={() => setHoveredEquipmentSlot(null)}
@@ -6156,6 +6251,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               activeTargetLines={activeTargetLines}
               showPersistentSupportLines={showPersistentSupportLines}
               placementPreview={placementPreview}
+              interactionDisabled={inventoryLockMode}
               renderGem={(gem) => <GemOrb gem={gem} />}
               onHoverCell={setHoveredBoardCell}
               onDropGem={dropGemOnCell}
@@ -6171,17 +6267,23 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             />
 
             <InventoryBagPanel
+              activeTab={activeInventoryBagTab}
               slots={bagSlots}
               floatingGem={floatingGem}
               hoveredBagSlot={hoveredBagSlot}
               hoveredGemId={hoveredGemId}
+              lockModeActive={inventoryLockMode}
+              lockedItemIds={lockedItemIds}
               cellClassName={resolveBagCellClass}
               emptyCellClassName={bagEmptyCellClass}
               isFloatingOrigin={isFloatingOrigin}
               renderGem={(gem) => <GemOrb gem={gem} />}
               renderGhost={() => <GemGhost />}
+              onTabChange={changeInventoryBagTab}
               onBeginDrag={beginDrag}
               onPointerDrag={beginPointerDrag}
+              onToggleLockMode={toggleInventoryLockMode}
+              onToggleItemLock={toggleInventoryItemLock}
               onHoverSlot={setHoveredBagSlot}
               onHoverGem={onGemHover}
               onLeaveSlot={() => setHoveredBagSlot(null)}

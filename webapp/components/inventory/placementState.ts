@@ -76,9 +76,10 @@ export function reconcileInventorySlots<TState extends { inventory: TItem[] }, T
   state: TState,
   floatingItemId: string | null,
   reservedIds: Set<string> = new Set(),
-  slotCount: number
+  slotCount: number,
+  includeItem: (item: TItem) => boolean = () => true
 ) {
-  const unmountedIds = new Set(state.inventory.filter((item) => !item.board_position).map((item) => item.instance_id));
+  const unmountedIds = new Set(state.inventory.filter((item) => !item.board_position && includeItem(item)).map((item) => item.instance_id));
   const next = Array(slotCount).fill(null) as (string | null)[];
   const used = new Set<string>();
 
@@ -90,6 +91,7 @@ export function reconcileInventorySlots<TState extends { inventory: TItem[] }, T
   });
 
   for (const item of state.inventory) {
+    if (!includeItem(item)) continue;
     if (item.board_position || item.instance_id === floatingItemId || reservedIds.has(item.instance_id) || used.has(item.instance_id)) continue;
     const emptyIndex = next.findIndex((instanceId) => instanceId === null);
     if (emptyIndex >= 0) {

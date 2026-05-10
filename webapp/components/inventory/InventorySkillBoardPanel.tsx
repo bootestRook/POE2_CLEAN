@@ -40,6 +40,7 @@ export function InventorySkillBoardPanel<TGem extends BoardPanelGem>({
   activeTargetLines,
   showPersistentSupportLines,
   placementPreview,
+  interactionDisabled,
   renderGem,
   onHoverCell,
   onDropGem,
@@ -66,6 +67,7 @@ export function InventorySkillBoardPanel<TGem extends BoardPanelGem>({
   activeTargetLines: SupportLine[] | null;
   showPersistentSupportLines: boolean;
   placementPreview: PlacementPreviewSummary | null;
+  interactionDisabled: boolean;
   renderGem: (gem: TGem) => ReactNode;
   onHoverCell: (cellKey: string | null) => void;
   onDropGem: (instanceId: string, row: number, column: number) => Promise<boolean>;
@@ -77,7 +79,7 @@ export function InventorySkillBoardPanel<TGem extends BoardPanelGem>({
   onTogglePersistentSupportLines: (checked: boolean) => void;
 }) {
   return (
-    <section className="board-panel">
+    <section className={`board-panel${interactionDisabled ? " inventory-lock-mode-panel" : ""}`}>
       <div className="board-grid">
         {cells.flat().map((cell) => (
           <BoardCell
@@ -94,6 +96,7 @@ export function InventorySkillBoardPanel<TGem extends BoardPanelGem>({
             previewCell={previewCell}
             previewAffectedCell={previewAffectedCells.get(cellKey(cell.row, cell.column)) ?? null}
             previewInvalidReason={hoveredBoardCell === cellKey(cell.row, cell.column) ? previewInvalidReason : null}
+            interactionDisabled={interactionDisabled}
             onHoverCell={onHoverCell}
             onDropGem={onDropGem}
             onDragGem={onDragGem}

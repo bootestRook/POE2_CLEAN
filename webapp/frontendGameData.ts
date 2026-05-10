@@ -12867,7 +12867,7 @@ export const FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG = {
       "damage_basis": "weapon_attack",
       "weapon_attack_percent": 9.5,
       "damage_components": {
-        "physical": 95
+        "physical": 9.5
       },
       "damage_conversions": [
         {
@@ -12882,7 +12882,7 @@ export const FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG = {
           "source_damage_type": "chaos",
           "chance_percent": 30,
           "duration_ms": 2000,
-          "base_damage_per_second": 5.7,
+          "base_damage_per_second": 0.57,
           "max_stacks": 30
         }
       ],
@@ -12965,7 +12965,7 @@ export const FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG = {
             "tick_interval_ms": 1000,
             "max_hits": 160,
             "max_hits_per_target": 20,
-            "damage_amount": 7.41,
+            "damage_amount": 0.741,
             "emit_hit_vfx": false,
             "ring_width": 48,
             "vfx_key": "skill_event.corrosive_shot.vfx"

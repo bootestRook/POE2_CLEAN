@@ -239,7 +239,7 @@ const placeItemInStashBody = functionBody(app, "placeItemInStash");
 for (const requiredStashTransferCode of [
   "moveItemToStashSlot",
   "removeItemsFromEquipmentSlots",
-  "removeItemsFromInventorySlots",
+  "removeItemsFromBagSlots",
   "stash_pages"
 ]) {
   if (!placeItemInStashBody.includes(requiredStashTransferCode)) {
@@ -1443,7 +1443,8 @@ const bakedMapChecks = [
   [bakedMapLoader, "debugWarnings", "missing map debug warnings"],
   [bakedMapLoader, "resolveWalkableMove", "missing walkable movement resolver"],
   [webappSourceText, "MapSelectionPanel", "missing map selection panel"],
-  [webappSourceText, "\u9009\u62e9\u6218\u6597\u5730\u56fe", "missing Chinese map selection title"],
+  [webappSourceText, "ui.map_selection.header", "missing localized map selection title key"],
+  [localization, "\"ui.map_selection.header\" = \"\u9009\u62e9\u6218\u6597\u5730\u56fe\"", "missing Chinese map selection title"],
   [webappSourceText, "\u5730\u56fe\u8c03\u8bd5", "missing map debug toggle"],
   [webappSourceText, "BakedMapBackground", "missing baked map background renderer"],
   [webappSourceText, "MapDebugOverlay", "missing map debug overlay"],

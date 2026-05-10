@@ -1,3 +1,5 @@
+import { localize } from "../../localization";
+
 export function AppTopHud({
   title,
   notice,
@@ -17,7 +19,7 @@ export function AppTopHud({
       </div>
       {skillEditorMode && (
         <button className="hud-button" type="button" onClick={onOpenSkillEditor}>
-          鎶€鑳界紪杈戝櫒
+          {localize("ui.skill_editor.button")}
         </button>
       )}
     </header>

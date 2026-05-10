@@ -1,5 +1,6 @@
 import type { DragEvent, MouseEvent, ReactNode } from "react";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./EquipmentCells";
+import { inventoryLockRarityOptions, type InventoryLockRarity } from "./inventoryLocking";
 
 type EquipmentPanelItem = {
   instance_id: string;
@@ -26,6 +27,8 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   hoveredEquipmentSlot,
   hoveredGemId,
   floatingGem,
+  lockModeActive,
+  activeLockRarities,
   isTwoHandedWeapon,
   isFloatingOrigin,
   itemCellClassName,
@@ -34,6 +37,7 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   renderGhost,
   onBeginDrag,
   onPointerDrag,
+  onToggleLockRarity,
   onHoverGem,
   onHoverEquipmentSlot,
   onLeaveEquipmentSlot,
@@ -47,6 +51,8 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   hoveredEquipmentSlot: number | null;
   hoveredGemId: string | null;
   floatingGem: TFloatingGem | null;
+  lockModeActive: boolean;
+  activeLockRarities: Set<InventoryLockRarity>;
   isTwoHandedWeapon: (item: TItem) => boolean;
   isFloatingOrigin: (floatingGem: TFloatingGem | null, origin: EquipmentOrigin) => boolean;
   itemCellClassName: (
@@ -69,13 +75,29 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   renderGhost: () => ReactNode;
   onBeginDrag: (event: DragEvent) => void;
   onPointerDrag: (event: MouseEvent, gem: TItem, origin: EquipmentOrigin) => void;
+  onToggleLockRarity: (rarity: InventoryLockRarity) => void;
   onHoverGem: (event: MouseEvent, gem: TItem, source: "equipment", slotIndex: number) => void;
   onHoverEquipmentSlot: (slotIndex: number) => void;
   onLeaveEquipmentSlot: () => void;
   onLeaveGem: () => void;
 }) {
   return (
-    <section className="equipment-panel" aria-label="装备栏">
+    <section className={`equipment-panel${lockModeActive ? " inventory-lock-mode-panel" : ""}`} aria-label="装备栏">
+      {lockModeActive && (
+        <div className="inventory-rarity-lock-column" aria-label="按稀有度锁定装备">
+          {inventoryLockRarityOptions.map((option) => (
+            <button
+              key={option.id}
+              className={`inventory-rarity-lock-button rarity-${option.id}${activeLockRarities.has(option.id) ? " active" : ""}`}
+              type="button"
+              aria-label={`锁定${option.label}装备`}
+              aria-pressed={activeLockRarities.has(option.id)}
+              title={option.label}
+              onClick={() => onToggleLockRarity(option.id)}
+            />
+          ))}
+        </div>
+      )}
       <div className="equipment-grid" data-equipment-drop-target="true">
         {slotSpecs.map((slot, slotIndex) => {
           const item = equippedItems[slotIndex];
@@ -94,13 +116,17 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
             return (
               <div
                 key={slot.id}
-                className="equipment-blocked-cell"
+                className={`equipment-blocked-cell${lockModeActive ? " inventory-disabled-cell" : ""}`}
                 data-equipment-drop-target="true"
                 data-equipment-slot-index={slotIndex}
                 data-equipment-slot-id={slot.id}
                 title="双手武器占用，禁止摆放"
-                onMouseEnter={() => onHoverEquipmentSlot(slotIndex)}
-                onMouseLeave={onLeaveEquipmentSlot}
+                onMouseEnter={() => {
+                  if (!lockModeActive) onHoverEquipmentSlot(slotIndex);
+                }}
+                onMouseLeave={() => {
+                  if (!lockModeActive) onLeaveEquipmentSlot();
+                }}
               >
                 <span className="equipment-slot-label">{slot.label}</span>
                 <span className="equipment-blocked-mark" aria-hidden="true">X</span>
@@ -118,6 +144,7 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
               slotIndex={slotIndex}
               item={item}
               isGhost={isGhost}
+              interactionDisabled={lockModeActive}
               className={itemCellClassName(slotIndex, hoveredEquipmentSlot, item, hoveredGemId, floatingGem, slot, isFloatingOrigin, spansBothWeaponSlots)}
               renderGem={renderGem}
               renderGhost={renderGhost}
@@ -139,6 +166,7 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
               slot={slot}
               slotIndex={slotIndex}
               className={emptyCellClassName(slotIndex, hoveredEquipmentSlot, floatingGem, slot)}
+              interactionDisabled={lockModeActive}
               onHover={() => onHoverEquipmentSlot(slotIndex)}
               onLeave={onLeaveEquipmentSlot}
             />

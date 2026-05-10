@@ -197,6 +197,7 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
     const deadProjectileHits = new Set<string>();
     const acceptedProjectileDamageTicks = new Set<string>();
     const acceptedDamageDisplayKeys = new Set<string>();
+    const acceptedDamageDisplayTargetKeys = new Set<string>();
     const completedProjectileHits = new Map<string, { x: number; y: number }>();
 
     for (const event of events) {
@@ -507,6 +508,7 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
             acceptedProjectileDamageTicks.add(projectileFollowupKey(event));
           }
           acceptedDamageDisplayKeys.add(damageDisplayKey(event));
+          acceptedDamageDisplayTargetKeys.add(damageDisplayTargetKey(event));
           projectedEnemyHp.set(targetId, nextHp);
         }
         damageEvents.push(event);
@@ -565,9 +567,13 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
         if (projectileId && shouldSuppressProjectileFollowup(event, projectedEnemyHp, liveProjectileHits, deadProjectileHits, acceptedProjectileDamageTicks)) continue;
         const targetId = Number(event.target_entity);
         const displayKey = damageDisplayKey(event);
-        const hasAcceptedDamage = acceptedDamageDisplayKeys.has(displayKey);
+        const displayTargetKey = damageDisplayTargetKey(event);
+        const hasAcceptedDamage = acceptedDamageDisplayKeys.has(displayKey) || acceptedDamageDisplayTargetKeys.has(displayTargetKey);
         if (Number.isFinite(targetId) && (projectedEnemyHp.get(targetId) ?? 0) <= 0 && !hasAcceptedDamage) continue;
-        if (hasAcceptedDamage) acceptedDamageDisplayKeys.delete(displayKey);
+        if (hasAcceptedDamage) {
+          acceptedDamageDisplayKeys.delete(displayKey);
+          acceptedDamageDisplayTargetKeys.delete(displayTargetKey);
+        }
         const targetEnemy = targetedEnemyForEvent(event, projectedEnemyById);
         const textPosition = targetEnemy ? { x: targetEnemy.x, y: targetEnemy.y - 28 } : event.position;
         const explicitText = typeof event.payload?.text === "string" ? event.payload.text : typeof event.payload?.floating_text === "string" ? event.payload.floating_text : "";
@@ -646,4 +652,11 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
     consumeSkillEvent,
     consumeSkillEventBatch
   };
+}
+
+function damageDisplayTargetKey(event: Pick<SkillEvent, "target_entity" | "skill_instance_id" | "payload">) {
+  return [
+    event.skill_instance_id,
+    String(event.target_entity ?? event.payload?.target_entity ?? "")
+  ].join("|");
 }
