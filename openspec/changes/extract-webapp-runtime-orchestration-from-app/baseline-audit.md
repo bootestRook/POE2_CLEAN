@@ -192,3 +192,9 @@
 ## 5.4 Audit Location
 
 - The frontend skill runtime audit for this change is recorded in sections 5.1, 5.2, and 5.3 of this baseline audit before event-builder or consumer code is moved.
+
+## 5.5 Frontend Skill Runtime Audit Verification
+
+- `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
+- `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
+- `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.

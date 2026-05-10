@@ -40,7 +40,7 @@
 - [x] 5.2 For each family, mark functions as pure event builder, deterministic helper, App-owned side effect, or intentionally deferred orchestration.
 - [x] 5.3 Identify current smoke/source checks for each family and whether the check should move to a new runtime owner.
 - [x] 5.4 Record the audit in this change's implementation notes or baseline audit before moving code.
-- [ ] 5.5 Run build, `npm test`, OpenSpec validation, and commit the frontend skill runtime audit.
+- [x] 5.5 Run build, `npm test`, OpenSpec validation, and commit the frontend skill runtime audit.
 
 ## 6. Projectile And Chain Event Builder Extraction
 
