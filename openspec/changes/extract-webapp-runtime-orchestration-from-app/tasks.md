@@ -38,7 +38,7 @@
 
 - [x] 5.1 Map current App-owned frontend playable skill functions by family: projectile, chain, module-chain, damage-zone, melee-arc, nova, channel, status, forced movement, kill-triggered, hit VFX, floating text, projectile follow-up suppression, and immediate/timeline consumption.
 - [x] 5.2 For each family, mark functions as pure event builder, deterministic helper, App-owned side effect, or intentionally deferred orchestration.
-- [ ] 5.3 Identify current smoke/source checks for each family and whether the check should move to a new runtime owner.
+- [x] 5.3 Identify current smoke/source checks for each family and whether the check should move to a new runtime owner.
 - [ ] 5.4 Record the audit in this change's implementation notes or baseline audit before moving code.
 - [ ] 5.5 Run build, `npm test`, OpenSpec validation, and commit the frontend skill runtime audit.
 
