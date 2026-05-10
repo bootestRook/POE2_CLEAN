@@ -59,9 +59,9 @@ export function equipmentRarityTone(rarity: unknown) {
   return "white";
 }
 
-export function equipmentTooltipAffixLine(effect: string, tier: unknown) {
+export function equipmentTooltipAffixLine(effect: string, tier: unknown, gen?: unknown) {
   const tierNumber = Number(tier);
-  const suffix = Number.isFinite(tierNumber) ? `\uff08T${tierNumber}\uff09` : "";
+  const suffix = gen === "base" ? "" : Number.isFinite(tierNumber) ? `\uff08T${tierNumber}\uff09` : "";
   const normalizedEffect = effect.trim().replace(/([%\uff05])\s+(?=\p{Script=Han})/gu, "$1");
   return `${normalizedEffect}${suffix}`;
 }
@@ -426,7 +426,7 @@ type EquipmentTooltipGem = {
   rarity_text?: string;
   category_text?: string;
   gem_type?: { display_text?: string };
-  equipment_affixes?: readonly { effect: string; tier: unknown }[];
+  equipment_affixes?: readonly { effect: string; tier: unknown; gen?: unknown }[];
 };
 
 export function buildEquipmentTooltipRarityTone(gem: EquipmentTooltipGem, view?: TooltipView) {
@@ -489,7 +489,7 @@ function equipmentTooltipSlotText(
 
 export function buildEquipmentTooltipBonusLines(gem: EquipmentTooltipGem, lines: string[]) {
   if (gem.equipment_affixes && gem.equipment_affixes.length > 0) {
-    return gem.equipment_affixes.map((affix) => equipmentTooltipAffixLine(affix.effect, affix.tier));
+    return gem.equipment_affixes.map((affix) => equipmentTooltipAffixLine(affix.effect, affix.tier, affix.gen));
   }
   return lines.map(normalizeEquipmentTooltipBonusLine);
 }

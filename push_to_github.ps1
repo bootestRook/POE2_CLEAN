@@ -1,6 +1,7 @@
 param(
   [string]$RepositoryUrl = "https://github.com/bootestRook/POE2_CLEAN.git",
-  [string]$Branch = ""
+  [string]$Branch = "",
+  [int]$RetryDelaySeconds = 10
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,7 +32,21 @@ try {
     throw "No current branch is checked out."
   }
 
-  Run-Git push $RepositoryUrl "HEAD:$Branch"
+  $attempt = 1
+  while ($true) {
+    try {
+      Write-Host ""
+      Write-Host "Push attempt $attempt..." -ForegroundColor Yellow
+      Run-Git push $RepositoryUrl "HEAD:$Branch"
+      break
+    } catch {
+      Write-Host ""
+      Write-Host $_.Exception.Message -ForegroundColor Red
+      Write-Host "Push failed. Retrying in $RetryDelaySeconds seconds. Press Ctrl+C to stop." -ForegroundColor Yellow
+      Start-Sleep -Seconds $RetryDelaySeconds
+      $attempt += 1
+    }
+  }
 
   Write-Host ""
   Write-Host "Push complete to $RepositoryUrl on branch $Branch." -ForegroundColor Green

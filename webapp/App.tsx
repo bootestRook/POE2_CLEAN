@@ -277,7 +277,7 @@ import { SaveSelectionPanel } from "./components/layout/SaveSelectionPanel";
 import { useMountedPassiveVisualEffects } from "./hooks/useMountedPassiveVisualEffects";
 import { GAME_RESOLUTION_STORAGE_KEY, useGameViewport, type GameResolutionMode, type GameResolutionPreset, type GameViewport } from "./hooks/useGameViewport";
 import { initialMapEditorMode, initialMonsterTestMode, initialSkillEditorMode, initialSkillEditorOpen, initialSpriteTestMode } from "./utils/appModeFlags";
-import { latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
+import { clearFrontendSaveSlot, latestFrontendSaveSlotId, loadActiveFrontendSaveSlotId, loadFrontendAutosaveResult, loadFrontendSaveSlotSummaries, saveActiveFrontendSaveSlotId, type FrontendSaveSlotSummary as FrontendSaveStorageSlotSummary } from "./utils/frontendSaveStorage";
 import { DEFAULT_PLAYER_NAME, formatFrontendSaveTime, normalizePlayerName } from "./utils/frontendSaveFormatting";
 import { clientToGameViewportPoint, currentGameViewportMetrics } from "./utils/gameViewportMetrics";
 import { playableMinimapCellKeyForPoint, playableMinimapRevealCells, playableMinimapUsesClientOnlyState } from "./utils/playableMinimapState";
