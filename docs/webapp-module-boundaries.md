@@ -26,6 +26,8 @@ When a WebApp feature does not fit the owner map below, the first task is archit
 - App-owned cross-domain React state or ref initialization;
 - viewport shell composition and launch/bootstrap flags;
 - importing focused modules and passing existing state/callbacks into them;
+- thin runtime-owner wiring for `webapp/runtime/skillEventConsumerRuntime.ts` and `webapp/runtime/damageApplicationRuntime.ts`;
+- intentionally documented battle-loop orchestration in `stepGame` while it still spans save/rest/map flow, movement, minimap, spawning, monster AI, player skills, projectile impacts, boss zones, active zones, and scheduled events;
 - unavoidable adapter calls that connect two focused modules without taking ownership of either module's behavior.
 
 If an App edit adds feature UI, runtime formulas, event payload construction, save/storage helpers, target selection, damage logic, or display formatting, the work belongs in a focused module first.
@@ -39,7 +41,7 @@ If an App edit adds feature UI, runtime formulas, event payload construction, sa
 - `webapp/features/playable-battle/`: playable battle scene composition and presentation wiring.
 - `webapp/components/rest-area/`: rest-area panels, NPC panels, stash/stage entry controls, and rest-area-only controls.
 - `webapp/components/layout/`: title/save shell presentation, non-gameplay app chrome, release debug panels, pause/failure/portal overlay composition, and help/combat-feed presentation.
-- `webapp/runtime/`: deterministic gameplay/runtime helpers such as monster skill presentation helpers, monster skill event builders, player damage formulas, projectile lifecycle helpers, and enemy runtime helpers. Runtime modules must not create alternate gameplay paths.
+- `webapp/runtime/`: deterministic gameplay/runtime helpers and focused runtime owners. `skillEventConsumerRuntime.ts` owns playable skill-event timeline/batch consumption, scheduled events, active damage-zone ticks, VFX/status/forced-movement routing, and damage-event routing. `damageApplicationRuntime.ts` owns playable damage-batch application, enemy HP/energy-shield mutation, kill/drop/log side effects, player on-hit recovery, and recursive on-kill event routing. Runtime modules must not create alternate gameplay paths, duplicate target selection, duplicate hit timing, recalculate projectile trajectory, recalculate damage-zone origin, or introduce backend coupling.
 - `webapp/monsterSkillRuntime.ts`: monster skill config validation, assignment lookup, candidate selection, timer readiness, and cooldown bookkeeping.
 - `webapp/state/`: frontend App state helpers, save payload helpers, deterministic drop/map-run helpers, and state recalculation adapters.
 - `webapp/hooks/`: reusable React hooks after the owning state and side effects are clear.
