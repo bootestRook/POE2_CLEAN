@@ -80,3 +80,9 @@
 - `cmd /c npm run build`: passed. Vite reported the existing large chunk warning.
 - `npm test`: passed. `webapp/smoke-test.mjs` reported `WebApp smoke test passed.`
 - `openspec validate extract-webapp-runtime-orchestration-from-app --strict`: passed.
+
+## 2.2 Runtime Owner Category Decision
+
+- No new focused runtime owner folder category is needed for this pass.
+- Existing owner categories cover the planned work: `webapp/runtime/` for deterministic runtime helpers and event builders, `webapp/types/` for behavior-free shared shapes, `webapp/state/` for frontend state/save/drop helpers, `webapp/components/battle/` for battle presentation, and `webapp/features/playable-battle/` for playable battle scene composition.
+- `docs/webapp-module-boundaries.md` already names these owners and does not need a new category for task 2.2.
