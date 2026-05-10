@@ -1,5 +1,6 @@
 import type { DragEvent, MouseEvent, ReactNode } from "react";
 import { BagGrid } from "./BagGrid";
+import { inventoryLockRarityOptions, type InventoryLockRarity } from "./inventoryLocking";
 
 type BagPanelItem = {
   instance_id: string;
@@ -21,6 +22,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   hoveredGemId,
   lockModeActive,
   lockedItemIds,
+  activeLockRarities,
   cellClassName,
   emptyCellClassName,
   isFloatingOrigin,
@@ -31,6 +33,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   onPointerDrag,
   onToggleLockMode,
   onToggleItemLock,
+  onToggleLockRarity,
   onOrganize,
   onHoverSlot,
   onHoverGem,
@@ -44,6 +47,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   hoveredGemId: string | null;
   lockModeActive: boolean;
   lockedItemIds: Set<string>;
+  activeLockRarities: Set<InventoryLockRarity>;
   cellClassName: (
     slotIndex: number,
     hoveredBagSlot: number | null,
@@ -61,6 +65,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   onPointerDrag: (event: MouseEvent, gem: TItem, origin: BagOrigin) => void;
   onToggleLockMode: () => void;
   onToggleItemLock: (instanceId: string) => void;
+  onToggleLockRarity: (rarity: InventoryLockRarity) => void;
   onOrganize: () => void;
   onHoverSlot: (slotIndex: number) => void;
   onHoverGem: (event: MouseEvent, gem: TItem, source: "inventory", slotIndex?: number) => void;
@@ -69,22 +74,39 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
 }) {
   return (
     <section className="bag-panel">
+      {lockModeActive && activeTab === "equipment" && (
+        <div className="inventory-rarity-lock-column" aria-label="按稀有度锁定装备">
+          {inventoryLockRarityOptions.map((option) => (
+            <button
+              key={option.id}
+              className={`inventory-rarity-lock-button rarity-${option.id}${activeLockRarities.has(option.id) ? " active" : ""}`}
+              type="button"
+              aria-label={`锁定${option.label}装备`}
+              aria-pressed={activeLockRarities.has(option.id)}
+              title={option.label}
+              onClick={() => onToggleLockRarity(option.id)}
+            />
+          ))}
+        </div>
+      )}
       <div className="bag-tab-row" aria-label="物品栏页签">
         <button
           className={`bag-tab-button${activeTab === "equipment" ? " active" : ""}`}
           type="button"
+          aria-label="装备"
           aria-pressed={activeTab === "equipment"}
           onClick={() => onTabChange("equipment")}
         >
-          装备
+          <span className="bag-tab-icon bag-tab-icon-equipment" aria-hidden="true" />
         </button>
         <button
           className={`bag-tab-button${activeTab === "gem" ? " active" : ""}`}
           type="button"
+          aria-label="宝石"
           aria-pressed={activeTab === "gem"}
           onClick={() => onTabChange("gem")}
         >
-          宝石
+          <span className="bag-tab-icon bag-tab-icon-gem" aria-hidden="true" />
         </button>
       </div>
       <BagGrid

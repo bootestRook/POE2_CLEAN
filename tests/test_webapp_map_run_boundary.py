@@ -5,10 +5,59 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+WEBAPP = ROOT / "webapp"
+
+
+WEBAPP_SOURCE_BUNDLE_FILES = [
+    "state/frontendAppState.ts",
+    "state/frontendDropState.ts",
+    "state/frontendSkillPreviewState.ts",
+    "utils/frontendSaveStorage.ts",
+    "utils/playableMinimapState.ts",
+    "runtime/runtimeTimingConstants.ts",
+    "runtime/monsterSkillPresentation.ts",
+    "runtime/monsterSkillEventBuilder.ts",
+    "runtime/frontendPlayableSkillEventBuilders.ts",
+    "runtime/playerDamageRuntime.ts",
+    "runtime/enemyDamageRuntime.ts",
+    "runtime/damageZoneLifecycleRuntime.ts",
+    "runtime/skillEventConsumerRuntime.ts",
+    "features/playable-battle/PlayableBattleScene.tsx",
+    "components/battle/BattleGroundVfxLayers.tsx",
+    "components/battle/PlayerOverheadResourceBars.tsx",
+    "components/battle/PlayableBattleMinimap.tsx",
+    "components/map-editor/MapEditorScene.tsx",
+    "components/tooltips/activeTooltipAdapters.ts",
+    "components/tooltips/tooltipGemTags.ts",
+    "components/tooltips/tooltipFormatting.ts",
+    "components/battle/projectileVfxPresentation.ts",
+    "frontendPlayableSkillRuntime.ts",
+    "frontendMonsterDropRules.ts",
+    "frontendEquipmentRuntime.ts",
+    "frontendGemDropData.ts",
+    "styles.css",
+]
 
 
 def _app_source() -> str:
-    return (ROOT / "webapp" / "App.tsx").read_text(encoding="utf-8")
+    module_sources = [
+        (WEBAPP / relative_path).read_text(encoding="utf-8")
+        for relative_path in WEBAPP_SOURCE_BUNDLE_FILES
+    ]
+    app_source = (WEBAPP / "App.tsx").read_text(encoding="utf-8")
+    return "\n".join([*module_sources, app_source, *module_sources])
+
+
+def _monster_projectile_builder_body(source: str) -> str:
+    return source.split("export function buildMonsterSkillProjectileEvents", 1)[1].split("export function buildMonsterSkillMeleeZoneEvents", 1)[0]
+
+
+def _monster_melee_builder_body(source: str) -> str:
+    return source.split("export function buildMonsterSkillMeleeZoneEvents", 1)[1].split("export function buildMonsterSupportDisplayEvents", 1)[0]
+
+
+def _monster_support_builder_body(source: str) -> str:
+    return source.split("export function buildMonsterSupportDisplayEvents", 1)[1].split("function guideDirection", 1)[0]
 
 
 def test_playable_map_run_stays_frontend_owned() -> None:
@@ -26,7 +75,7 @@ def test_playable_map_run_stays_frontend_owned() -> None:
     assert 'requestState("/api/map/start"' not in source
     assert 'requestState("/api/combat/tick"' not in source
     assert 'requestState("/api/pickup"' not in source
-    assert 'window.localStorage.setItem(FRONTEND_AUTOSAVE_STORAGE_KEY' in source
+    assert "storage.setItem(FRONTEND_AUTOSAVE_STORAGE_KEY" in source
     assert 'requestState("/api/save/continue"' not in source
     assert 'requestState("/api/save/restore", { save })' not in source
 
@@ -67,11 +116,12 @@ def test_player_resource_bars_render_from_single_runtime_player_state() -> None:
 
     assert "playerResources" not in source
     assert "normalizePlayerRuntimeResources(updater(playerStateRef.current))" in set_player_body
-    assert "<PlayerOverheadResourceBars player={player} camera={battleCamera} />" in source
-    assert "player: Pick<PlayerRuntimeState" in resource_bar_body
-    assert "const currentLife = clamp(player.hp, 0, maxLife)" in resource_bar_body
-    assert "const currentMana = clamp(player.currentMana, 0, maxMana)" in resource_bar_body
-    assert "const currentEnergyShield = clamp(player.currentEnergyShield, 0, maxEnergyShield)" in resource_bar_body
+    assert "<PlayerOverheadResourceBars player={player} projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)} />" in source
+    assert "type PlayerResourceView = {" in source
+    assert "player: PlayerResourceView" in source
+    assert "const currentLife = clampNumber(player.hp, 0, maxLife)" in resource_bar_body
+    assert "const currentMana = clampNumber(player.currentMana, 0, maxMana)" in resource_bar_body
+    assert "const currentEnergyShield = clampNumber(player.currentEnergyShield, 0, maxEnergyShield)" in resource_bar_body
     assert 'className="player-overhead-bar-energy-shield"' in resource_bar_body
     assert "transition:" not in resource_bar_style
     assert "transition:" not in resource_bar_life_style
@@ -122,8 +172,8 @@ def test_playable_minimap_renders_explored_runtime_map_cells() -> None:
     assert "renderPlayableMinimapCanvas(context, map, exploredCells)" in render_body
     assert "for (const key of exploredCells)" in render_body
     assert 'if (kind === "hidden") continue' in render_body
-    assert "isEditorRuntimeBattleMap(map)" in terrain_body
-    assert "map.editorTiles[gridY]?.[gridX]" in terrain_body
+    assert "const editorTiles = (map as EditorMinimapMap).editorTiles" in terrain_body
+    assert "editorTiles[gridY]?.[gridX]" in terrain_body
     assert "map.blockerGrid[gridY]?.[gridX]" in terrain_body
     assert "map.walkableGrid[gridY]?.[gridX]" in terrain_body
     assert "<PlayableBattleMinimap" in source
@@ -139,7 +189,8 @@ def test_playable_minimap_m_key_is_scoped_and_overlay_is_nonblocking() -> None:
 
     assert 'key === "m"' in key_body
     assert "playing && battleMap && !skillEditorMode && !monsterTestMode" in key_body
-    assert "entryStep" not in key_body
+    minimap_key_branch = key_body.split('key === "m"', 1)[1].split('key === "Escape"', 1)[0]
+    assert "entryStep" not in minimap_key_branch
     assert "isPlayableBattleTypingTarget(event.target)" in key_body
     assert 'current === "expanded" ? "compact" : "expanded"' in key_body
     assert "playing" not in expanded_style
@@ -149,7 +200,7 @@ def test_playable_minimap_m_key_is_scoped_and_overlay_is_nonblocking() -> None:
     assert ".playable-minimap-expanded" in styles
     assert "opacity: 0.68" in expanded_style
     assert "aspect-ratio: var(--playable-minimap-aspect-ratio, 1 / 1)" in expanded_style
-    assert "calc(92vh * var(--playable-minimap-aspect-number, 1))" in expanded_style
+    assert "calc(calc(var(--game-viewport-height, 100vh) * 92 / 100) * var(--playable-minimap-aspect-number, 1))" in expanded_style
     assert "background: transparent" in expanded_style
     assert "box-shadow: none" in expanded_style
 
@@ -185,7 +236,7 @@ def test_frontend_equipment_drop_level_rolls_inside_stage_map_level_range() -> N
     assert "function frontendRandomMapLevel" in source
     assert "stage.map_level_min" in source
     assert "stage.map_level_max" in source
-    assert "const equipmentLevel = frontendRandomMapLevel(stage, enemy, index + 83)" in create_drop_body
+    assert "const equipmentLevel = frontendRandomMapLevel(stage, enemy, index + 83, elapsedSeconds)" in create_drop_body
     assert "generateFrontendEquipment(equipmentSource, equipmentLevel, equipmentRarity, seed)" in create_drop_body
     assert 'level: lootKind === "equipment" ? equipmentLevel : level' in create_drop_body
     assert "generateFrontendEquipment(equipmentSource, stage.monster_level" not in create_drop_body
@@ -199,7 +250,7 @@ def test_frontend_equipment_rarity_uses_weights_with_normal_as_largest_share() -
     frontend_data = (ROOT / "webapp" / "frontendGameData.ts").read_text(encoding="utf-8")
 
     assert "stage.equipment_rarity_weights" in rarity_body
-    assert "resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss)" in rarity_body
+    assert "resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, Boolean(enemy.boss))" in rarity_body
     assert "scaleFrontendDropRarityWeights(" in rarity_body
     assert 'if (enemy.boss) return "purple"' not in rarity_body
     assert "kindRoll > 0.88" not in create_drop_body
@@ -233,17 +284,17 @@ def test_frontend_monster_drop_rules_use_rarity_type_pool_and_currency_fields() 
     rules_source = (ROOT / "webapp" / "frontendMonsterDropRules.ts").read_text(encoding="utf-8")
     rules_config = (ROOT / "configs" / "loot" / "monster_drop_rules.toml").read_text(encoding="utf-8")
 
-    assert "resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, enemy.boss)" in app_source
+    assert "resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, Boolean(enemy.boss))" in app_source
     assert "drop_quantity_multiplier" in rules_source
     assert "drop_rarity_multiplier" in rules_source
     assert "drop_pool_id" in rules_source
     assert "currency_drop_weight" in rules_source
-    assert "DROP_POOLS" in rules_source
+    assert "DROP_POOL_LOOT_KINDS" in rules_source
     assert "allowedFrontendLootKindsForPool" in rules_source
     assert "MONSTER_TYPE_DROP_RULES" in rules_source
     assert "RARITY_DROP_RULES" in rules_source
-    assert "[drop_pool.map_default]" in rules_config
-    assert 'allowed_loot_kinds = ["equipment", "gem", "map_entry"]' in rules_config
+    assert 'default_drop_pool_id = "map_default"' in rules_config
+    assert '"equipment", "gem", "map_entry"' in rules_source
     assert "[monster_type.minion]" in rules_config
     assert "[rarity.magic]" in rules_config
     assert "currency_drop_weight = 0" in rules_config
@@ -256,9 +307,9 @@ def test_frontend_quantity_multiplier_creates_multiple_drop_attempts() -> None:
 
     assert "Math.floor(quantityMultiplier)" in attempts_body
     assert "fractionalAttempt" in attempts_body
-    assert "frontendDropRoll(enemy, salt + 191) < fractionalAttempt" in attempts_body
+    assert "frontendDropRoll(enemy, salt + 191, elapsedSeconds) < fractionalAttempt" in attempts_body
     assert ".flatMap((enemy, index) =>" in spawn_body
-    assert "const attempts = frontendMonsterDropAttempts(enemy, index)" in spawn_body
+    assert "const attempts = frontendMonsterDropAttempts(enemy, index, elapsedRef.current)" in spawn_body
     assert "Array.from({ length: attempts }" in spawn_body
 
 
@@ -287,7 +338,7 @@ def test_frontend_map_entry_uses_original_current_or_next_rule_except_major_fina
     assert "return stage" in target_body
     assert "...(stage.order > 1 ? [stage] : [])" in target_body
     assert "candidate.order === stage.order + 1" in target_body
-    assert "frontendMapEntryTargetStage(stage, stages, enemy, index + 109)" in create_drop_body
+    assert "frontendMapEntryTargetStage(stage, stages, enemy, index + 109, elapsedSeconds)" in create_drop_body
 
 
 def test_major_final_non_timemark_boss_guarantees_next_stage_ticket() -> None:
@@ -303,7 +354,7 @@ def test_major_final_non_timemark_boss_guarantees_next_stage_ticket() -> None:
     assert 'loot_kind: "map_entry"' in guaranteed_body
     assert "target_stage_id: targetStage.id" in guaranteed_body
     assert "const guaranteedDrops = killedEnemies" in spawn_body
-    assert "createGuaranteedNextMapEntryDrop(enemy, stage, stages, index)" in spawn_body
+    assert "createGuaranteedNextMapEntryDrop(enemy, stage, stages, index, () => frontendDropId.current++)" in spawn_body
     assert "const allDrops = [...guaranteedDrops, ...drops]" in spawn_body
 
 
@@ -314,7 +365,7 @@ def test_frontend_gem_drop_penalizes_active_skill_and_sudoku_nine() -> None:
     assert "if (Number(gem.sudoku_digit) === 9) return weight * 0.35" in gem_weight_body
     assert 'if (gem.kind === "active_skill") return weight * 0.35' in gem_weight_body
     assert 'if (gem.kind === "active_skill") weight *= 0.35' not in gem_weight_body
-    assert "chooseFrontendGemDropOption(gemOptions, enemy, index + 41)" in source
+    assert "chooseFrontendGemDropOption(gmGems, enemy, index + 41, elapsedSeconds)" in source
 
 
 def test_frontend_skill_preview_recalculates_template_damage_for_gem_level() -> None:
@@ -363,7 +414,7 @@ def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
     assert 'rich_lines: [[{ text: `使${relationText}连接的技能等级提高。`, tone: "body" }]]' in source
     assert '`技能等级 ${formatModifierValue("active_gem_level_add", Number(skillLevelAdd))}`' in source
     assert "frontendSupportEffectiveLevel(gem, 0)" in source
-    assert "ensureGemLevelStatLine(gem, view.sections.stats.lines)" in active_normalizer_body
+    assert "ensureGemLevelStatLine(gem, leveledView.sections.stats.lines)" in active_normalizer_body
     assert "if (isEffectiveSkillLevelValue(line.value_text)) return line" in level_line_body
     assert "return { ...line, value_text: levelText }" in level_line_body
     assert 'return [{ label_text: "\\u7b49\\u7ea7", value_text: levelText }, ...nextLines]' in level_line_body
@@ -378,8 +429,8 @@ def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
     assert 'if (view.variant === "support") return normalizeSupportTooltipView(gem, view)' in view_model_body
     assert ".map((tag) => frontendDisplayGemKindTag(gem, tag))" in active_normalizer_body
     assert "summary_lines: replaceGemTagRichLines(gem, view.summary_lines)" in support_normalizer_body
-    assert "conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions)" in support_normalizer_body
-    assert 'if (isActiveGem(gem)) return "\\u4e3b\\u52a8\\u6280\\u80fd"' in support_normalizer_body
+    assert "conditions: normalizeSupportConditionRichLineSection(gem, view.sections.conditions, frontendRecord)" in support_normalizer_body
+    assert 'if (isActiveGem(gem)) return "\\u4e3b\\u52a8\\u6280\\u80fd"' in source
     assert 'if (isPassiveGem(gem)) return "\\u88ab\\u52a8\\u6280\\u80fd"' in support_normalizer_body
     assert 'if (isSupportGem(gem)) return "\\u8f85\\u52a9\\u6280\\u80fd"' in support_normalizer_body
     assert 'tag.text !== "\\u5b9d\\u77f3"' in support_normalizer_body
@@ -387,9 +438,9 @@ def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
     assert '(tag.id ?? "").startsWith("gem_type_")' in support_normalizer_body
     assert "isGemTypeTagText(gem, segment.text)" in support_normalizer_body
     assert 'targetTexts.length > 0 ? targetTexts.join("\\u3001") : "\\u6240\\u6709\\u7c7b\\u578b"' in support_normalizer_body
-    assert "frontendTagTextEntries(canAffect.tags_any)" in support_normalizer_body
-    assert "frontendTagTextEntries(canAffect.tags_all)" in support_normalizer_body
-    assert 'tag.id === "support_gem"' in support_normalizer_body
+    assert "frontendTagTextEntries(canAffect.tags_any, readRecord)" in source
+    assert "frontendTagTextEntries(canAffect.tags_all, readRecord)" in source
+    assert 'tag.id === "support_gem"' in source
 
 
 def test_frontend_stoneskin_tooltip_shows_guard_absorb_values() -> None:
@@ -397,9 +448,9 @@ def test_frontend_stoneskin_tooltip_shows_guard_absorb_values() -> None:
     active_tooltip_body = source.split("function gemWithFrontendSkillPreviewTooltip", 1)[1].split("function frontendSupportModifierTooltipLines", 1)[0]
     guard_tooltip_body = source.split("function frontendGuardTooltipLines", 1)[1].split("function frontendSupportModifierTooltipLines", 1)[0]
 
-    assert "const guardLines = frontendGuardTooltipLines(skill)" in active_tooltip_body
+    assert "const guardLines = frontendGuardTooltipLines(skill, formatPreviewNumber)" in active_tooltip_body
     assert "...guardLines" in active_tooltip_body
-    assert "guardLines.length === 0" in active_tooltip_body
+    assert "...guardLines" in active_tooltip_body
     assert "guard_absorb_percent" in guard_tooltip_body
     assert "guard_absorb_amount" in guard_tooltip_body
     assert 'label_text: "\\u5438\\u6536\\u4f24\\u5bb3\\u6bd4\\u4f8b"' in guard_tooltip_body
@@ -412,12 +463,12 @@ def test_frontend_non_damaging_passive_tooltips_hide_damage_tags() -> None:
     source = _app_source()
     tooltip_normalizer_body = source.split("const HIDDEN_ACTIVE_TOOLTIP_TAG_IDS", 1)[1].split("function normalizeSupportTooltipView", 1)[0]
 
-    assert ".filter((tag) => shouldShowTooltipTagForGem(gem, tag))" in tooltip_normalizer_body
+    assert ".filter((tag) => shouldShowTooltipTagForGem(gem, tag, deps))" in tooltip_normalizer_body
     assert "NON_DAMAGE_PASSIVE_HIDDEN_TOOLTIP_TAG_IDS" in tooltip_normalizer_body
     assert '"attack"' in tooltip_normalizer_body
     assert '"physical"' in tooltip_normalizer_body
-    assert "passiveGemCanDealDamage(gem)" in tooltip_normalizer_body
-    assert "frontendRecord(frontendRecord(gem).base_effect)" in tooltip_normalizer_body
+    assert "passiveGemCanDealDamage(gem, deps)" in tooltip_normalizer_body
+    assert "deps.frontendRecord(deps.frontendRecord(gem).base_effect)" in tooltip_normalizer_body
     assert "frontendDamageMapTotal(value.damage_components)" in tooltip_normalizer_body
 
 
@@ -432,12 +483,11 @@ def test_frontend_passive_tooltip_stats_show_target_tags_not_effect_details() ->
     assert 'value_text: targetTexts.join("\\u3001")' in tooltip_normalizer_body
     assert 'String(modifier.target_text ?? "").includes("\\u5f71\\u54cd\\u4e3b\\u52a8\\u6280\\u80fd")' in tooltip_normalizer_body
     assert "if (targetTexts.length === 0) return nextLines" in tooltip_normalizer_body
-    assert "frontendPassiveTargetTagTexts(gem)" in tooltip_normalizer_body
-    assert "return frontendTargetTagTexts(gem)" in tooltip_normalizer_body
+    assert "frontendTargetTagTexts(gem, deps.frontendRecord)" in tooltip_normalizer_body
 
 
 def test_frontend_passive_skill_modifiers_are_board_wide_tag_matched() -> None:
-    source = _app_source()
+    source = (ROOT / "webapp" / "state" / "frontendSkillPreviewState.ts").read_text(encoding="utf-8")
     modifier_body = source.split("function frontendSupportSkillModifiersForTarget", 1)[1].split("function frontendSkillPreviewForGemLevel", 1)[0]
     relation_body = source.split("function frontendModifierRelation", 1)[1].split("function frontendSkillPreviewForGemLevel", 1)[0]
 
@@ -451,6 +501,27 @@ def test_frontend_passive_skill_modifiers_are_board_wide_tag_matched() -> None:
     assert 'if (isPassiveGem(sourceGem)) return "\\u88ab\\u52a8\\u6280\\u80fd\\u6548\\u679c"' in relation_body
     assert "function frontendSkillTargetModifiers" in relation_body
     assert 'String(modifier.target_text ?? "").includes("\\u5f71\\u54cd\\u4e3b\\u52a8\\u6280\\u80fd")' in relation_body
+
+
+def test_frontend_type_two_blue_gem_effects_scale_with_aura_effect() -> None:
+    source = (ROOT / "webapp" / "state" / "frontendSkillPreviewState.ts").read_text(encoding="utf-8")
+    aura_helper_body = source.split("function isFrontendAuraEffectGem", 1)[1].split("function frontendAuraEffectMultiplier", 1)[0]
+    support_body = source.split("function frontendSupportSkillModifiersForTarget", 1)[1].split("function frontendModifierRelation", 1)[0]
+    self_stat_body = source.split("function frontendMountedPassiveSelfStatModifiers", 1)[1].split("export function recalculateFrontendSkillPreview", 1)[0]
+    equipment_body = source.split("export function recalculateFrontendEquipmentState", 1)[1].split("function recalculateFrontendCharacterPanel", 1)[0]
+
+    assert 'modifier.stat === "aura_effect_add_percent"' in source
+    assert "Number(gem.sudoku_digit ?? gemType.number) === 2" in aura_helper_body
+    assert 'String(gemType.id ?? "") === "gem_type_2"' in aura_helper_body
+    assert 'String(gemType.color_key ?? "") === "blue"' in aura_helper_body
+    assert 'tags.includes("aura")' in aura_helper_body
+    assert "const auraEffectAddPercent = frontendAuraEffectAddPercent(equipmentSkillModifiers)" in support_body
+    assert "const auraMultiplier = frontendAuraEffectMultiplier(sourceGem, auraEffectAddPercent)" in support_body
+    assert "frontendSupportModifierAppliedValue(stat, value, relation) * auraMultiplier" in support_body
+    assert "const auraMultiplier = frontendAuraEffectMultiplier(gem, auraEffectAddPercent)" in self_stat_body
+    assert "value: value * auraMultiplier" in self_stat_body
+    assert "const equipmentModifiers = frontendEquippedEquipmentModifiers(state, equipmentSlotCount)" in equipment_body
+    assert "frontendMountedPassiveSelfStatModifiers(state, auraEffectAddPercent)" in equipment_body
 
 
 def test_frontend_passive_skill_gems_use_type_two_identity() -> None:
@@ -509,12 +580,12 @@ def test_frontend_knockback_pushes_away_from_player_with_visible_base_distance()
     active_zone_body = source.split("function activeDamageZoneRuntimeTickEvents", 1)[1].split("function updateActiveDamageZones", 1)[0]
     forced_movement_body = source.split("function applyForcedMovementEvent", 1)[1].split("function mergeBackendInventoryState", 1)[0]
 
-    assert "const FRONTEND_BASE_KNOCKBACK_DISTANCE = 250" in source
+    assert "export const FRONTEND_BASE_KNOCKBACK_DISTANCE = 250" in source
     assert "const knockbackOrigin = playerStateRef.current" in knockback_body
     assert "origin_world_position: knockbackOrigin" in knockback_body
     assert "const knockbackDirection = guideDirection(knockbackOrigin, target)" in knockback_body
-    assert "const knockbackOrigin = playerStateRef.current" in active_zone_body
-    assert "origin_world_position: knockbackOrigin" in active_zone_body
+    assert "const knockbackOrigin = deps.player" in source
+    assert "origin_world_position: knockbackOrigin" in source
     assert "const pushDirection = origin ? guideDirection(origin, enemy) : normalizedWorldDirection(event.direction)" in forced_movement_body
 
 
@@ -529,7 +600,7 @@ def test_frontend_damage_zone_pull_events_survive_dynamic_tick_runtime() -> None
 
 def test_monster_melee_arcs_use_monster_visual_contract() -> None:
     source = _app_source()
-    release_body = source.split("function releaseMonsterSkillMeleeZone", 1)[1].split("function clampMonsterSkillZoneCenter", 1)[0]
+    release_body = _monster_melee_builder_body(source)
     vfx_body = source.split("function monsterSkillVfxKey", 1)[1].split("function updateBossSkillRuntime", 1)[0]
     renderer_source = (ROOT / "webapp" / "battleGeometryRenderer.ts").read_text(encoding="utf-8")
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
@@ -539,7 +610,7 @@ def test_monster_melee_arcs_use_monster_visual_contract() -> None:
     ]
     melee_arc_ids = [skill["id"] for skill in all_monster_skills if skill.get("module") == "monster_melee_arc"]
 
-    assert 'const directionTarget = skill.module === "monster_melee_arc" ? playerNow : center' in release_body
+    assert 'const directionTarget = skill.module === "monster_melee_arc" ? target : center' in release_body
     assert "const direction = guideDirection(enemy, directionTarget)" in release_body
     assert "arc_radius: radius" in release_body
     assert "suppress_hit_vfx: monsterSkillSuppressHitVfx(skill)" in release_body
@@ -565,7 +636,7 @@ def test_damaging_guard_counters_warn_and_cast_inside_hit_radius() -> None:
     source = _app_source()
     runtime_source = (ROOT / "webapp" / "monsterSkillRuntime.ts").read_text(encoding="utf-8")
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
-    release_body = source.split("function releaseMonsterSkillMeleeZone", 1)[1].split("function clampMonsterSkillZoneCenter", 1)[0]
+    release_body = _monster_melee_builder_body(source)
     suppress_body = source.split("function monsterSkillSuppressHitVfx", 1)[1].split("function updateBossSkillRuntime", 1)[0]
     all_monster_skills = [
         *(monster_skill_config["skills"]),
@@ -596,7 +667,7 @@ def test_damaging_guard_counters_warn_and_cast_inside_hit_radius() -> None:
 
 def test_monster_warning_damage_zones_release_when_warning_ends() -> None:
     source = _app_source()
-    release_body = source.split("function releaseMonsterSkillMeleeZoneInstance", 1)[1].split("function monsterSkillProjectileSpreadAngles", 1)[0]
+    release_body = _monster_melee_builder_body(source)
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
     all_monster_skills = [
         *(monster_skill_config["skills"]),
@@ -618,8 +689,8 @@ def test_monster_warning_damage_zones_release_when_warning_ends() -> None:
 
 def test_all_monster_skill_hits_suppress_hit_vfx() -> None:
     source = _app_source()
-    projectile_body = source.split("function releaseMonsterSkillProjectiles", 1)[1].split("function releaseMonsterSkillMeleeZone", 1)[0]
-    melee_body = source.split("function releaseMonsterSkillMeleeZone", 1)[1].split("function monsterSkillZoneCenter", 1)[0]
+    projectile_body = _monster_projectile_builder_body(source)
+    melee_body = _monster_melee_builder_body(source)
     suppress_body = source.split("function monsterSkillSuppressHitVfx", 1)[1].split("function monsterSkillProjectileAimPolicy", 1)[0]
     hit_body = source.split("function applyBossSkillHitToPlayer", 1)[1].split("setTexts((items) =>", 1)[0]
 
@@ -692,7 +763,7 @@ def test_blood_mark_guard_has_active_damage_counter() -> None:
     runtime_source = (ROOT / "webapp" / "monsterSkillRuntime.ts").read_text(encoding="utf-8")
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
     release_body = source.split("function releaseMonsterSkill", 1)[1].split("function moveMonsterBySkill", 1)[0]
-    melee_body = source.split("function releaseMonsterSkillMeleeZone", 1)[1].split("function clampMonsterSkillZoneCenter", 1)[0]
+    melee_body = _monster_melee_builder_body(source)
     monster_skills = {skill["id"]: skill for skill in monster_skill_config["skills"]}
     monster_assignments = {
         assignment["monster_id"]: assignment["skill_id"]
@@ -709,8 +780,8 @@ def test_blood_mark_guard_has_active_damage_counter() -> None:
     assert blood_mark["warning_ms"] > 0
     assert blood_mark["guard_damage_reduction_percent"] > 0
     assert "releaseMonsterSkillMeleeZone(updatedEnemy, skill, sequence, nowMs)" in release_body
-    assert "damage_amount: monsterOutgoingDamage(enemy) * Math.max(0, Number(skill.damage_multiplier ?? 1))" in melee_body
-    assert "pendingBossDamageZoneHits.current.push" in melee_body
+    assert "damage_amount: damageAmount * Math.max(0, Number(skill.damage_multiplier ?? 1))" in melee_body
+    assert "pendingBossDamageZoneHits.current.push(built.pendingDamageZoneHit)" in source
     assert "monsterSkillEffectiveCastRange(skill)" in runtime_source
 
 
@@ -719,7 +790,7 @@ def test_mirror_amplify_is_active_monster_projectile() -> None:
     renderer_source = (ROOT / "webapp" / "battleGeometryRenderer.ts").read_text(encoding="utf-8")
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
     release_body = source.split("function releaseMonsterSkill", 1)[1].split("function moveMonsterBySkill", 1)[0]
-    projectile_body = source.split("function releaseMonsterSkillProjectiles", 1)[1].split("function releaseMonsterSkillMeleeZone", 1)[0]
+    projectile_body = _monster_projectile_builder_body(source)
     vfx_body = source.split("function monsterSkillVfxKey", 1)[1].split("function monsterSkillSuppressHitVfx", 1)[0]
     monster_skills = {skill["id"]: skill for skill in monster_skill_config["skills"]}
     monster_assignments = {
@@ -748,6 +819,7 @@ def test_star_hunter_mark_is_ally_heal_support() -> None:
     visual_tokens_source = (ROOT / "webapp" / "visualTokens.ts").read_text(encoding="utf-8")
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
     release_body = source.split("function releaseMonsterSkill", 1)[1].split("function moveMonsterBySkill", 1)[0]
+    support_display_body = _monster_support_builder_body(source)
     monster_skills = {skill["id"]: skill for skill in monster_skill_config["skills"]}
     monster_assignments = {
         assignment["monster_id"]: assignment["skill_id"]
@@ -767,8 +839,8 @@ def test_star_hunter_mark_is_ally_heal_support() -> None:
     assert "supportedTargets += 1" in release_body
     assert "ally.maxHp * healPercent / 100" in release_body
     assert "hp: nextHp" in release_body
-    assert 'damageType: "heal"' in release_body
-    assert 'vfxKey: "monster_heal_pulse"' in release_body
+    assert 'damageType: "heal"' in support_display_body
+    assert 'vfxKey: "monster_heal_pulse"' in support_display_body
     assert "setCombatLogs((logs) => [" in release_body
     assert "token.includes(\"heal\")" in visual_tokens_source
 
@@ -948,7 +1020,7 @@ def test_twilight_sentry_bolt_uses_monster_projectile_contract() -> None:
     source = _app_source()
     renderer_source = (ROOT / "webapp" / "battleGeometryRenderer.ts").read_text(encoding="utf-8")
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
-    release_body = source.split("function releaseMonsterSkillProjectiles", 1)[1].split("function releaseMonsterSkillMeleeZone", 1)[0]
+    release_body = _monster_projectile_builder_body(source)
     vfx_body = source.split("function monsterSkillVfxKey", 1)[1].split("function updateBossSkillRuntime", 1)[0]
     projectile_spawn_body = source.split('if (event.type === "projectile_spawn")', 1)[1].split('if (event.type === "projectile_hit")', 1)[0]
     impact_body = source.split("function processBossProjectilePlayerImpacts", 1)[1].split("function processPendingBossDamageZoneHits", 1)[0]
@@ -978,7 +1050,7 @@ def test_twilight_sentry_bolt_uses_monster_projectile_contract() -> None:
 def test_frost_crystal_slow_bolt_reaims_on_projectile_spawn() -> None:
     source = _app_source()
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
-    release_body = source.split("function releaseMonsterSkillProjectiles", 1)[1].split("function releaseMonsterSkillMeleeZone", 1)[0]
+    release_body = _monster_projectile_builder_body(source)
     aim_policy_body = source.split("function monsterSkillProjectileAimPolicy", 1)[1].split("function updateBossSkillRuntime", 1)[0]
     spawn_position_body = source.split("function projectileSpawnPositionForEvent", 1)[1].split("function liveOrbitCenter", 1)[0]
     projectile_spawn_body = source.split('if (event.type === "projectile_spawn")', 1)[1].split('if (event.type === "projectile_hit")', 1)[0]
@@ -1011,7 +1083,8 @@ def test_frost_crystal_slow_bolt_reaims_on_projectile_spawn() -> None:
 def test_poison_weave_mist_locks_zone_to_player_position() -> None:
     source = _app_source()
     monster_skill_config = json.loads((ROOT / "configs" / "monsters" / "monster_skills.json").read_text(encoding="utf-8"))
-    release_body = source.split("function releaseMonsterSkillMeleeZone", 1)[1].split("function clampMonsterSkillZoneCenter", 1)[0]
+    release_body = _monster_melee_builder_body(source)
+    presentation_body = source.split("export function monsterSkillZoneCenter", 1)[1].split("export function clampMonsterSkillZoneCenter", 1)[0]
     monster_skills = {skill["id"]: skill for skill in monster_skill_config["skills"]}
     monster_assignments = {
         assignment["monster_id"]: assignment["skill_id"]
@@ -1023,9 +1096,9 @@ def test_poison_weave_mist_locks_zone_to_player_position() -> None:
     assert monster_assignments["mon_200104"] == "mon_skill_poison_weave_mist"
     assert poison_mist["module"] == "monster_damage_zone"
     assert poison_mist["range"]["cast_range"] > poison_mist["range"]["effect_range"]
-    assert "const centers = monsterSkillZoneCenters(enemy, playerNow, skill, repeatIndex)" in release_body
-    assert 'skill.id === "mon_skill_poison_weave_mist"' in release_body
-    assert "return { x: target.x, y: target.y }" in release_body
+    assert "const centers = monsterSkillZoneCenters(enemy, target, skill, repeatIndex)" in release_body
+    assert 'skill.id === "mon_skill_poison_weave_mist"' in presentation_body
+    assert "return { x: target.x, y: target.y }" in presentation_body
     assert "origin_world_position: center" in release_body
     assert "position: center" in release_body
     assert "zones: centers.length === 1 ? [{ ...center, radius }] : centers.map((center) => ({ ...center, radius }))" in release_body
@@ -1037,9 +1110,10 @@ def test_frontend_gem_drop_pool_is_not_seed_inventory() -> None:
     pickup_body = source.split("function createFrontendInventoryItem", 1)[1].split("function applyFrontendPickup", 1)[0]
     drop_pool_source = (ROOT / "webapp" / "frontendGemDropData.ts").read_text(encoding="utf-8")
 
-    assert "FRONTEND_GEM_DROP_POOL" in options_body
+    assert "frontendGemDropPool().map" in options_body
     assert "FRONTEND_INITIAL_APP_STATE.inventory" not in options_body
-    assert "FRONTEND_GEM_DROP_POOL" in pickup_body
+    assert "frontendGemDropPool().find" in pickup_body
+    assert "FRONTEND_GEM_DROP_POOL" in source
     assert '"sudoku_digit": 9' in drop_pool_source
     assert '"gem_type_9"' in drop_pool_source
     assert drop_pool_source.count('"base_gem_id"') >= 60

@@ -136,12 +136,33 @@ function frontendEquipmentModifiersForInventoryItem(item: FrontendPreviewGem | u
   return frontendEquipmentStatModifiers(equipmentItem);
 }
 
-function frontendMountedPassiveSelfStatModifiers(state: FrontendPreviewState): FrontendEquipmentStatModifier[] {
+function frontendAuraEffectAddPercent(modifiers: readonly FrontendEquipmentStatModifier[]) {
+  return modifiers
+    .filter((modifier) => modifier.kind !== "runtime_hook" && modifier.stat === "aura_effect_add_percent")
+    .reduce((total, modifier) => total + modifier.value, 0);
+}
+
+function isFrontendAuraEffectGem(gem: FrontendPreviewGem) {
+  const gemType = frontendRecord(gem.gem_type);
+  const tags = gem.tags.map((tag) => tag.id ?? tag.text);
+  return Number(gem.sudoku_digit ?? gemType.number) === 2
+    || String(gemType.id ?? "") === "gem_type_2"
+    || String(gemType.color_key ?? "") === "blue"
+    || tags.includes("gem_type_2")
+    || tags.includes("aura");
+}
+
+function frontendAuraEffectMultiplier(gem: FrontendPreviewGem, auraEffectAddPercent: number) {
+  return isFrontendAuraEffectGem(gem) ? Math.max(0, 1 + auraEffectAddPercent / 100) : 1;
+}
+
+function frontendMountedPassiveSelfStatModifiers(state: FrontendPreviewState, auraEffectAddPercent = 0): FrontendEquipmentStatModifier[] {
   const itemById = new Map(state.inventory.map((item) => [item.instance_id, item]));
   const modifiers: FrontendEquipmentStatModifier[] = [];
   for (const cell of state.board.cells.flat()) {
     const gem = cell.gem ? itemById.get(cell.gem.instance_id) ?? cell.gem : null;
     if (!gem || !isPassiveGem(gem)) continue;
+    const auraMultiplier = frontendAuraEffectMultiplier(gem, auraEffectAddPercent);
     const baseGemId = String(gem.base_gem_id ?? gem.instance_id);
     const level = Math.max(1, Math.floor(Number(gem.level ?? 1)));
     for (const effect of frontendPassiveSelfStatEffects(gem)) {
@@ -154,7 +175,7 @@ function frontendMountedPassiveSelfStatModifiers(state: FrontendPreviewState): F
         source_modifier_id: `${gem.instance_id}:self_stat:${stat}`,
         kind: "player_stat",
         stat,
-        value,
+        value: value * auraMultiplier,
         reason_key: "modifier.passive_self_stat",
       });
     }
@@ -199,6 +220,7 @@ function frontendSupportSkillModifiersForTarget(
   const modifiers: FrontendEquipmentStatModifier[] = [];
   const appliedModifiers: SkillAppliedModifier[] = [];
   const targetTags = new Set(targetGem.tags.map((tag) => tag.id ?? tag.text));
+  const auraEffectAddPercent = frontendAuraEffectAddPercent(equipmentSkillModifiers);
   const supportLevelAdd = Math.max(0, Math.floor(equipmentSkillModifiers
     .filter((modifier) => modifier.kind !== "runtime_hook" && modifier.stat === "support_gem_level_add")
     .reduce((total, modifier) => total + modifier.value, 0)));
@@ -211,6 +233,7 @@ function frontendSupportSkillModifiersForTarget(
     if (!frontendConduitCanUseTarget(sourceGem, targetGem)) continue;
     if (!frontendSupportCanAffect(sourceGem, targetTags)) continue;
     const sourceLevel = frontendModifierSourceLevel(sourceGem, supportLevelAdd);
+    const auraMultiplier = frontendAuraEffectMultiplier(sourceGem, auraEffectAddPercent);
     for (const modifier of frontendSkillTargetModifiers(sourceGem, sourceLevel)) {
       const modifierStat = frontendRecord(modifier.stat);
       const stat = String(modifierStat.id ?? "");
@@ -219,7 +242,7 @@ function frontendSupportSkillModifiersForTarget(
       const tableKey = String(modifier.table_key ?? stat);
       const value = frontendSkillLevelTableValueById(frontendSupportLevelTableId(sourceGem), sourceLevel, tableKey) ?? baseValue;
       if (!Number.isFinite(value) || value === 0) continue;
-      const appliedValue = frontendSupportModifierAppliedValue(stat, value, relation);
+      const appliedValue = frontendSupportModifierAppliedValue(stat, value, relation) * auraMultiplier;
       modifiers.push({
         source_modifier_id: `${sourceGem.instance_id}:${targetGem.instance_id}:${stat}`,
         kind: "skill_stat",
@@ -1210,9 +1233,11 @@ export function frontendExpectedCritMultiplier(skill: SkillPreview, skillStats: 
 
 export function recalculateFrontendEquipmentState<TState extends FrontendPreviewState>(state: TState, equipmentSlotCount: number): TState {
   const baseStats = cloneFrontendData(FRONTEND_INITIAL_APP_STATE.player_stats ?? {}) as Record<string, FrontendPreviewPlayerStatView>;
+  const equipmentModifiers = frontendEquippedEquipmentModifiers(state, equipmentSlotCount);
+  const auraEffectAddPercent = frontendAuraEffectAddPercent(equipmentModifiers);
   const modifiers = [
-    ...frontendEquippedEquipmentModifiers(state, equipmentSlotCount),
-    ...frontendMountedPassiveSelfStatModifiers(state),
+    ...equipmentModifiers,
+    ...frontendMountedPassiveSelfStatModifiers(state, auraEffectAddPercent),
   ];
   const playerStats = applyFrontendEquipmentStatModifiers(baseStats, modifiers);
   return {

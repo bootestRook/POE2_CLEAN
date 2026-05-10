@@ -3099,8 +3099,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "base_damage": 9.5,
           "weapon_attack_percent": 9.5,
           "hit_damage_component_physical": 9.5,
-          "hit_ailment_wilt_base_damage_per_second": 0.57,
-          "module_corrosive_ground_damage_amount": 0.741,
+          "hit_ailment_wilt_base_damage_per_second": 5.7,
+          "module_corrosive_ground_damage_amount": 7.41,
           "mana_cost": 5,
           "release_interval_ms": 1000
         },
@@ -3201,7 +3201,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
           "tlidb_level": {
             "title_text": "等级表",
             "lines": [
-              "base_damage=9.5, hit_ailment_wilt_base_damage_per_second=0.57, hit_damage_component_physical=9.5, mana_cost=5, module_corrosive_ground_damage_amount=0.741, release_interval_ms=1000, weapon_attack_percent=9.5"
+              "base_damage=9.5, hit_ailment_wilt_base_damage_per_second=5.7, hit_damage_component_physical=9.5, mana_cost=5, module_corrosive_ground_damage_amount=7.41, release_interval_ms=1000, weapon_attack_percent=9.5"
             ]
           },
           "auto_release": {
@@ -12882,8 +12882,9 @@ export const FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG = {
           "source_damage_type": "chaos",
           "chance_percent": 30,
           "duration_ms": 2000,
-          "base_damage_per_second": 0.57,
-          "max_stacks": 30
+          "base_damage_per_second": 5.7,
+          "max_stacks": 30,
+          "stack_mode": "independent"
         }
       ],
       "can_crit": true,
@@ -12965,7 +12966,7 @@ export const FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG = {
             "tick_interval_ms": 1000,
             "max_hits": 160,
             "max_hits_per_target": 20,
-            "damage_amount": 0.741,
+            "damage_amount": 7.41,
             "emit_hit_vfx": false,
             "ring_width": 48,
             "vfx_key": "skill_event.corrosive_shot.vfx"

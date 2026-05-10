@@ -1301,18 +1301,32 @@ function GameApp() {
       const activeBuffs = enemy.activeBuffs
         .map((buff) => {
           const elapsed = Math.min(Math.max(0, buff.remaining), dt);
-          const dps = Math.max(0, buff.baseDamagePerSecond ?? 0);
+          const nextStackDurations = frontendEnemyBuffNextStackDurations(buff, dt);
+          const dps = Math.max(0, buff.baseDamagePerSecond ?? 0) * frontendEnemyBuffDamageStackCount(buff);
+          const damageElapsed = frontendEnemyBuffStackMode(buff) === "independent"
+            ? frontendEnemyBuffStackDurations(buff).reduce((total, remaining) => total + Math.min(Math.max(0, remaining), dt), 0)
+            : elapsed;
           let nextFloatingTextIn = buff.nextFloatingTextIn ?? DOT_FLOATING_TEXT_INTERVAL_SECONDS;
-          if (dps > 0 && elapsed > 0) {
-            damageOverTime += dps * elapsed;
-            nextFloatingTextIn -= elapsed;
+          if (dps > 0 && damageElapsed > 0) {
+            damageOverTime += frontendEnemyBuffStackMode(buff) === "independent"
+              ? Math.max(0, buff.baseDamagePerSecond ?? 0) * damageElapsed
+              : dps * damageElapsed;
+            nextFloatingTextIn -= dt;
             if (nextFloatingTextIn <= 0) {
               floatingTextDamage += dps * DOT_FLOATING_TEXT_INTERVAL_SECONDS;
               floatingTextDamageType = buff.damageType ?? floatingTextDamageType;
               while (nextFloatingTextIn <= 0) nextFloatingTextIn += DOT_FLOATING_TEXT_INTERVAL_SECONDS;
             }
           }
-          return { ...buff, remaining: buff.remaining - dt, nextFloatingTextIn };
+          return {
+            ...buff,
+            remaining: frontendEnemyBuffStackMode(buff) === "independent"
+              ? Math.max(0, ...nextStackDurations)
+              : buff.remaining - dt,
+            stackCount: frontendEnemyBuffStackMode(buff) === "independent" ? nextStackDurations.length : buff.stackCount,
+            stackDurations: frontendEnemyBuffStackMode(buff) === "independent" ? nextStackDurations : buff.stackDurations,
+            nextFloatingTextIn
+          };
         })
         .filter((buff) => buff.remaining > 0);
       const hp = damageOverTime > 0 ? enemy.hp - damageOverTime : enemy.hp;
@@ -3282,6 +3296,9 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         valuePercent: Math.max(0, Number(ailment.effect_per_stack ?? ailment.base_value ?? 0)),
         baseValue: Math.max(0, Number(ailment.base_value ?? 0)),
         baseDamagePerSecond: Math.max(0, Number(ailment.base_damage_per_second ?? 0) * frontendSkillAilmentDamageMultiplier(skill)),
+        stackMode: frontendEnemyBuffStackModeFromValue(ailment.stack_mode),
+        stackCount: 1,
+        maxStacks: Math.max(1, Math.round(Number(ailment.max_stacks ?? 1))),
         damageType: String(ailment.source_damage_type ?? skill.damage_type),
         nextFloatingTextIn: DOT_FLOATING_TEXT_INTERVAL_SECONDS,
         sourceSkillId: skill.skill_package_id ?? skill.skill_template_id
@@ -3295,14 +3312,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     let activeBuffs = [...(enemy.activeBuffs ?? [])];
     for (const buff of buffs) {
       const existing = activeBuffs.find((item) => item.statusType === buff.statusType && item.sourceSkillId === buff.sourceSkillId);
-      const merged = existing
-        ? {
-            ...buff,
-            remaining: Math.max(existing.remaining, buff.remaining),
-            baseValue: (existing.baseValue ?? 0) + (buff.baseValue ?? 0),
-            baseDamagePerSecond: Math.max(existing.baseDamagePerSecond ?? 0, buff.baseDamagePerSecond ?? 0)
-          }
-        : buff;
+      const merged = mergeFrontendEnemyStatusBuff(existing, buff);
       activeBuffs = [
         ...activeBuffs.filter((item) => !(item.statusType === buff.statusType && item.sourceSkillId === buff.sourceSkillId)),
         merged
@@ -3646,6 +3656,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         base_value: Number(ailment.base_value ?? 0),
         effect_per_stack: Number(ailment.effect_per_stack ?? ailment.base_value ?? 0),
         base_damage_per_second: Number(ailment.base_damage_per_second ?? 0),
+        stack_mode: frontendEnemyBuffStackModeFromValue(ailment.stack_mode),
         damage_over_time_more_percent: Number(ailment.damage_over_time_more_percent ?? 0),
         dot_damage_add_percent: Number(skill.runtime_params?.dot_damage_add_percent ?? 0),
         ailment_damage_add_percent: Number(skill.runtime_params?.ailment_damage_add_percent ?? 0),
@@ -3653,6 +3664,112 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         max_stacks: Number(ailment.max_stacks ?? 1)
       }, durationMs, delayMs)];
     });
+  }
+
+  function frontendEnemyBuffStackCount(buff: EnemyBuff) {
+    return Math.max(1, Math.round(Number(buff.stackCount ?? 1)));
+  }
+
+  function frontendEnemyBuffStackModeFromValue(value: unknown): EnemyBuff["stackMode"] {
+    if (value === "independent" || value === "stack_value" || value === "refresh_duration") return value;
+    return "refresh_duration";
+  }
+
+  function frontendEnemyBuffStackMode(buff: EnemyBuff): NonNullable<EnemyBuff["stackMode"]> {
+    return frontendEnemyBuffStackModeFromValue(buff.stackMode);
+  }
+
+  function frontendEnemyBuffMaxStacks(buff: EnemyBuff) {
+    return Math.max(1, Math.round(Number(buff.maxStacks ?? buff.stackCount ?? 1)));
+  }
+
+  function frontendEnemyBuffStackDurations(buff: EnemyBuff) {
+    if (frontendEnemyBuffStackMode(buff) !== "independent") return [];
+    const durations = Array.isArray(buff.stackDurations)
+      ? buff.stackDurations.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0)
+      : [];
+    if (durations.length > 0) return durations;
+    return Array.from({ length: frontendEnemyBuffStackCount(buff) }, () => Math.max(0, buff.remaining));
+  }
+
+  function frontendEnemyBuffNextStackDurations(buff: EnemyBuff, dt: number) {
+    if (frontendEnemyBuffStackMode(buff) !== "independent") return [];
+    return frontendEnemyBuffStackDurations(buff)
+      .map((remaining) => remaining - dt)
+      .filter((remaining) => remaining > 0);
+  }
+
+  function frontendEnemyBuffDamageStackCount(buff: EnemyBuff) {
+    if (frontendEnemyBuffStackMode(buff) === "independent") return frontendEnemyBuffStackDurations(buff).length;
+    if (frontendEnemyBuffStackMode(buff) === "stack_value") return frontendEnemyBuffStackCount(buff);
+    return 1;
+  }
+
+  function mergeFrontendEnemyStatusBuff(existing: EnemyBuff | undefined, nextBuff: EnemyBuff): EnemyBuff {
+    const maxStacks = Math.max(frontendEnemyBuffMaxStacks(nextBuff), existing ? frontendEnemyBuffMaxStacks(existing) : 1);
+    const stackMode = frontendEnemyBuffStackModeFromValue(nextBuff.stackMode ?? existing?.stackMode);
+    if (!existing) {
+      if (stackMode === "independent") {
+        const stackDurations = Array.from({ length: frontendEnemyBuffStackCount(nextBuff) }, () => Math.max(0, nextBuff.remaining))
+          .slice(0, maxStacks);
+        return {
+          ...nextBuff,
+          stackMode,
+          remaining: Math.max(0, ...stackDurations),
+          stackCount: stackDurations.length,
+          stackDurations,
+          maxStacks
+        };
+      }
+      return {
+        ...nextBuff,
+        stackMode,
+        stackCount: stackMode === "stack_value" ? Math.min(maxStacks, frontendEnemyBuffStackCount(nextBuff)) : 1,
+        maxStacks
+      };
+    }
+    if (stackMode === "independent") {
+      const stackDurations = [
+        ...frontendEnemyBuffStackDurations(existing),
+        ...Array.from({ length: frontendEnemyBuffStackCount(nextBuff) }, () => Math.max(0, nextBuff.remaining))
+      ]
+        .sort((left, right) => right - left)
+        .slice(0, maxStacks);
+      return {
+        ...nextBuff,
+        stackMode,
+        remaining: Math.max(0, ...stackDurations),
+        duration: Math.max(existing.duration, nextBuff.duration),
+        baseValue: Math.max(existing.baseValue ?? 0, nextBuff.baseValue ?? 0),
+        baseDamagePerSecond: Math.max(existing.baseDamagePerSecond ?? 0, nextBuff.baseDamagePerSecond ?? 0),
+        stackCount: stackDurations.length,
+        stackDurations,
+        maxStacks
+      };
+    }
+    if (stackMode === "refresh_duration") {
+      return {
+        ...nextBuff,
+        stackMode,
+        remaining: Math.max(existing.remaining, nextBuff.remaining),
+        duration: Math.max(existing.duration, nextBuff.duration),
+        baseValue: Math.max(existing.baseValue ?? 0, nextBuff.baseValue ?? 0),
+        baseDamagePerSecond: Math.max(existing.baseDamagePerSecond ?? 0, nextBuff.baseDamagePerSecond ?? 0),
+        stackCount: 1,
+        maxStacks
+      };
+    }
+    const stackCount = Math.min(maxStacks, frontendEnemyBuffStackCount(existing) + frontendEnemyBuffStackCount(nextBuff));
+    return {
+      ...nextBuff,
+      stackMode,
+      remaining: Math.max(existing.remaining, nextBuff.remaining),
+      duration: Math.max(existing.duration, nextBuff.duration),
+      baseValue: Math.max(existing.baseValue ?? 0, nextBuff.baseValue ?? 0),
+      baseDamagePerSecond: Math.max(existing.baseDamagePerSecond ?? 0, nextBuff.baseDamagePerSecond ?? 0),
+      stackCount,
+      maxStacks
+    };
   }
 
 function frontendDamageEventsForTarget(
@@ -4721,6 +4838,9 @@ function frontendDamageEventsForTarget(
       valuePercent,
       baseValue,
       baseDamagePerSecond,
+      stackMode: frontendEnemyBuffStackModeFromValue(payload.stack_mode),
+      stackCount: 1,
+      maxStacks: Math.max(1, Math.round(Number(payload.max_stacks ?? 1))),
       damageType: event.damage_type,
       nextFloatingTextIn: DOT_FLOATING_TEXT_INTERVAL_SECONDS,
       sourceSkillId
@@ -4728,14 +4848,7 @@ function frontendDamageEventsForTarget(
     const next = enemiesStateRef.current.map((enemy) => {
       if (enemy.id !== targetId || enemy.hp <= 0) return enemy;
       const existing = (enemy.activeBuffs ?? []).find((buff) => buff.statusType === nextBuff.statusType && buff.sourceSkillId === nextBuff.sourceSkillId);
-      const mergedBuff = existing
-        ? {
-            ...nextBuff,
-            remaining: Math.max(existing.remaining, nextBuff.remaining),
-            baseValue: (existing.baseValue ?? 0) + (nextBuff.baseValue ?? 0),
-            baseDamagePerSecond: Math.max(existing.baseDamagePerSecond ?? 0, nextBuff.baseDamagePerSecond ?? 0)
-          }
-        : nextBuff;
+      const mergedBuff = mergeFrontendEnemyStatusBuff(existing, nextBuff);
       const activeBuffs = [
         ...(enemy.activeBuffs ?? []).filter((buff) => !(buff.statusType === nextBuff.statusType && buff.sourceSkillId === nextBuff.sourceSkillId)),
         mergedBuff
@@ -6234,7 +6347,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               hoveredGemId={hoveredGemId}
               floatingGem={floatingGem}
               lockModeActive={inventoryLockMode}
-              activeLockRarities={activeLockRarities}
               isTwoHandedWeapon={isTwoHandedWeapon}
               isFloatingOrigin={isFloatingOrigin}
               itemCellClassName={resolveEquipmentCellClass}
@@ -6243,7 +6355,6 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               renderGhost={() => <GemGhost />}
               onBeginDrag={beginDrag}
               onPointerDrag={beginPointerDrag}
-              onToggleLockRarity={toggleInventoryLockRarity}
               onHoverGem={onGemHover}
               onHoverEquipmentSlot={setHoveredEquipmentSlot}
               onLeaveEquipmentSlot={() => setHoveredEquipmentSlot(null)}
@@ -6293,6 +6404,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               hoveredGemId={hoveredGemId}
               lockModeActive={inventoryLockMode}
               lockedItemIds={lockedItemIds}
+              activeLockRarities={activeLockRarities}
               cellClassName={resolveBagCellClass}
               emptyCellClassName={bagEmptyCellClass}
               isFloatingOrigin={isFloatingOrigin}
@@ -6303,6 +6415,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               onPointerDrag={beginPointerDrag}
               onToggleLockMode={toggleInventoryLockMode}
               onToggleItemLock={toggleInventoryItemLock}
+              onToggleLockRarity={toggleInventoryLockRarity}
               onOrganize={organizeActiveInventoryTab}
               onHoverSlot={setHoveredBagSlot}
               onHoverGem={onGemHover}

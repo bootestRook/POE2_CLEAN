@@ -14,6 +14,10 @@ export type EnemyBuff = {
   valuePercent: number;
   baseValue?: number;
   baseDamagePerSecond?: number;
+  stackMode?: "refresh_duration" | "independent" | "stack_value";
+  stackCount?: number;
+  maxStacks?: number;
+  stackDurations?: number[];
   damageType?: string;
   nextFloatingTextIn?: number;
   sourceSkillId: string;

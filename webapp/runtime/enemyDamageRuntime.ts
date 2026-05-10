@@ -61,7 +61,7 @@ export function damageOverTimeAggravationMultiplier(event: SkillEvent, enemy: En
   if (bonusPer10 <= 0) return 1;
   const bonusPercent = (enemy.activeBuffs ?? [])
     .filter((buff) => buff.statusType === "aggravation" && buff.remaining > 0)
-    .reduce((total, buff) => total + ((buff.baseValue ?? 0) / 10) * buff.valuePercent, 0);
+    .reduce((total, buff) => total + ((buff.baseValue ?? 0) / 10) * buff.valuePercent * enemyBuffStackCount(buff), 0);
   return 1 + bonusPercent / 100;
 }
 
@@ -99,7 +99,7 @@ export function scaledDamageAgainstEnemy(
       && buff.remaining > 0
       && statusIncreasesDamageTakenFrom(buff.statusType, damageType)
     ))
-    .reduce((total, buff) => total + buff.valuePercent, 0);
+    .reduce((total, buff) => total + buff.valuePercent * enemyBuffStackCount(buff), 0);
   return scaledAmount * (1 + takenIncrease / 100);
 }
 
@@ -154,4 +154,8 @@ export function statusIncreasesDamageTakenFrom(statusType: string, damageType: s
   if (statusType === "numbed") return damageType === "lightning";
   if (statusType === "damage_taken_increase") return true;
   return false;
+}
+
+function enemyBuffStackCount(buff: { stackCount?: number }) {
+  return Math.max(1, Math.round(Number(buff.stackCount ?? 1)));
 }

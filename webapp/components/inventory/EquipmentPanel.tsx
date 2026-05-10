@@ -1,6 +1,5 @@
 import type { DragEvent, MouseEvent, ReactNode } from "react";
 import { EquipmentEmptyCell, EquipmentItemCell } from "./EquipmentCells";
-import { inventoryLockRarityOptions, type InventoryLockRarity } from "./inventoryLocking";
 
 type EquipmentPanelItem = {
   instance_id: string;
@@ -28,7 +27,6 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   hoveredGemId,
   floatingGem,
   lockModeActive,
-  activeLockRarities,
   isTwoHandedWeapon,
   isFloatingOrigin,
   itemCellClassName,
@@ -37,7 +35,6 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   renderGhost,
   onBeginDrag,
   onPointerDrag,
-  onToggleLockRarity,
   onHoverGem,
   onHoverEquipmentSlot,
   onLeaveEquipmentSlot,
@@ -52,7 +49,6 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   hoveredGemId: string | null;
   floatingGem: TFloatingGem | null;
   lockModeActive: boolean;
-  activeLockRarities: Set<InventoryLockRarity>;
   isTwoHandedWeapon: (item: TItem) => boolean;
   isFloatingOrigin: (floatingGem: TFloatingGem | null, origin: EquipmentOrigin) => boolean;
   itemCellClassName: (
@@ -75,7 +71,6 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   renderGhost: () => ReactNode;
   onBeginDrag: (event: DragEvent) => void;
   onPointerDrag: (event: MouseEvent, gem: TItem, origin: EquipmentOrigin) => void;
-  onToggleLockRarity: (rarity: InventoryLockRarity) => void;
   onHoverGem: (event: MouseEvent, gem: TItem, source: "equipment", slotIndex: number) => void;
   onHoverEquipmentSlot: (slotIndex: number) => void;
   onLeaveEquipmentSlot: () => void;
@@ -83,21 +78,6 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
 }) {
   return (
     <section className={`equipment-panel${lockModeActive ? " inventory-lock-mode-panel" : ""}`} aria-label="装备栏">
-      {lockModeActive && (
-        <div className="inventory-rarity-lock-column" aria-label="按稀有度锁定装备">
-          {inventoryLockRarityOptions.map((option) => (
-            <button
-              key={option.id}
-              className={`inventory-rarity-lock-button rarity-${option.id}${activeLockRarities.has(option.id) ? " active" : ""}`}
-              type="button"
-              aria-label={`锁定${option.label}装备`}
-              aria-pressed={activeLockRarities.has(option.id)}
-              title={option.label}
-              onClick={() => onToggleLockRarity(option.id)}
-            />
-          ))}
-        </div>
-      )}
       <div className="equipment-grid" data-equipment-drop-target="true">
         {slotSpecs.map((slot, slotIndex) => {
           const item = equippedItems[slotIndex];

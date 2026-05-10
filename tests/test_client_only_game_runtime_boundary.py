@@ -8,9 +8,42 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WEBAPP = ROOT / "webapp"
 
+WEBAPP_SOURCE_BUNDLE_FILES = [
+    "App.tsx",
+    "state/frontendAppState.ts",
+    "state/frontendDropState.ts",
+    "state/frontendSkillPreviewState.ts",
+    "utils/frontendSaveStorage.ts",
+    "utils/playableMinimapState.ts",
+    "runtime/runtimeTimingConstants.ts",
+    "runtime/monsterSkillPresentation.ts",
+    "runtime/monsterSkillEventBuilder.ts",
+    "runtime/frontendPlayableSkillEventBuilders.ts",
+    "runtime/playerDamageRuntime.ts",
+    "runtime/enemyDamageRuntime.ts",
+    "runtime/skillEventConsumerRuntime.ts",
+    "components/battle/PlayerOverheadResourceBars.tsx",
+    "components/battle/PlayableBattleMinimap.tsx",
+    "components/inventory/EquipmentPanel.tsx",
+    "components/inventory/InventoryBagPanel.tsx",
+    "components/inventory/equipmentRules.ts",
+    "components/tooltips/activeTooltipAdapters.ts",
+    "components/tooltips/tooltipFormatting.ts",
+    "components/battle/projectileVfxPresentation.ts",
+    "frontendPlayableSkillRuntime.ts",
+    "frontendEquipmentRuntime.ts",
+    "frontendMonsterDropRules.ts",
+    "frontendGameData.ts",
+    "localization/zh_cn.json",
+]
+
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _webapp_source_bundle() -> str:
+    return "\n".join((WEBAPP / relative_path).read_text(encoding="utf-8") for relative_path in WEBAPP_SOURCE_BUNDLE_FILES)
 
 
 def test_playable_webapp_has_no_backend_gameplay_api_calls() -> None:
@@ -37,7 +70,7 @@ def test_playable_webapp_has_no_backend_gameplay_api_calls() -> None:
 
 
 def test_playable_frontend_skill_runtime_uses_playable_names() -> None:
-    app_source = _read(WEBAPP / "App.tsx")
+    app_source = _webapp_source_bundle()
     runtime_source = _read(WEBAPP / "frontendPlayableSkillRuntime.ts")
 
     assert "function releaseFrontendPlayableSkill" in app_source
@@ -87,7 +120,7 @@ def test_frontend_flame_slash_search_range_matches_arc_radius() -> None:
 
 
 def test_frontend_chromatic_shot_preserves_forced_element_damage_payload() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
     helper = source.split("function frontendDamageEventsForTarget(", 1)[1].split("function frontendFloatingDamageComponentPayload", 1)[0]
 
     assert "payload.forced_element_type" in helper
@@ -97,7 +130,7 @@ def test_frontend_chromatic_shot_preserves_forced_element_damage_payload() -> No
 
 
 def test_frontend_split_projectiles_keep_runtime_direction_and_damage_payload() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
     helper = source.split("function buildFrontendSplitProjectileEvents(", 1)[1].split("function buildFrontendIgnitedHitExplosionEvents", 1)[0]
 
     assert "const claimedTargetIds = new Set<number>();" in helper
@@ -131,17 +164,53 @@ def test_corrosive_shot_level_one_seed_and_level_twenty_dot_are_distinct() -> No
 
     assert '"base_damage": 9.5' in corrosive_block
     assert '"physical": 9.5' in corrosive_block
-    assert '"base_damage_per_second": 0.57' in corrosive_block
-    assert '"damage_amount": 0.741' in corrosive_block
+    assert '"base_damage_per_second": 5.7' in corrosive_block
+    assert '"damage_amount": 7.41' in corrosive_block
     assert '"20": {' in corrosive_table
     level_twenty = corrosive_table.split('"20": {', 1)[1].split("}", 1)[0]
     assert '"hit_damage_component_physical": 95' in level_twenty
-    assert '"hit_ailment_wilt_base_damage_per_second": 5.7' in level_twenty
-    assert '"module_corrosive_ground_damage_amount": 7.41' in level_twenty
+    assert '"hit_ailment_wilt_base_damage_per_second": 57' in level_twenty
+    assert '"module_corrosive_ground_damage_amount": 74.1' in level_twenty
+
+
+def test_enemy_status_dot_uses_ailment_scaling_and_stacks() -> None:
+    source = _read(WEBAPP / "App.tsx")
+    enemy_damage_runtime = _read(WEBAPP / "runtime" / "enemyDamageRuntime.ts")
+    status_event_body = source.split("function frontendStatusEventsForTarget", 1)[1].split("function frontendEnemyBuffStackCount", 1)[0]
+    merge_body = source.split("function mergeFrontendEnemyStatusBuff", 1)[1].split("function frontendDamageEventsForTarget", 1)[0]
+    apply_body = source.split("function applyEnemyStatusBuff", 1)[1].split("function frontendPlayerStatusPreventionReason", 1)[0]
+    tick_body = source.split("function advanceEnemyBuffs", 1)[1].split("function updatePlayerWarIntent", 1)[0]
+
+    assert "dot_damage_add_percent" in status_event_body
+    assert "ailment_damage_add_percent" in status_event_body
+    assert "ailment_damage_deepen_percent" in status_event_body
+    assert "damage_over_time_more_percent" in status_event_body
+    assert "statusDamageAddPercent" in apply_body
+    assert "baseDamagePerSecond = Math.max(0, Number(payload.base_damage_per_second ?? 0))" in apply_body
+    assert "maxStacks: Math.max(1, Math.round(Number(payload.max_stacks ?? 1)))" in apply_body
+    assert 'if (value === "independent" || value === "stack_value" || value === "refresh_duration") return value' in source
+    assert 'if (stackMode === "independent")' in merge_body
+    assert 'if (stackMode === "refresh_duration")' in merge_body
+    assert "frontendEnemyBuffStackCount(existing) + frontendEnemyBuffStackCount(nextBuff)" in merge_body
+    assert "stackDurations" in merge_body
+    assert "const dps = Math.max(0, buff.baseDamagePerSecond ?? 0) * frontendEnemyBuffDamageStackCount(buff)" in tick_body
+    assert "frontendEnemyBuffStackDurations(buff).reduce" in tick_body
+    assert "buff.valuePercent * enemyBuffStackCount(buff)" in enemy_damage_runtime
+
+
+def test_corrosive_shot_wilt_uses_independent_stacks() -> None:
+    config_source = _read(ROOT / "configs" / "skills" / "active" / "active_corrosive_shot" / "skill.yaml")
+    data_source = _read(WEBAPP / "frontendGameData.ts")
+    corrosive_block = data_source.split('"skill_corrosive_shot":', 1)[1].split('"skill_burning_shot":', 1)[0]
+
+    assert '"type": "wilt"' in corrosive_block
+    assert '"max_stacks": 30' in corrosive_block
+    assert '"stack_mode": "independent"' in corrosive_block
+    assert '"stack_mode": "independent"' in config_source
 
 
 def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
 
     assert "createFrontendInitialAppState" in source
     assert "recalculateFrontendSkillPreview" in source
@@ -152,7 +221,7 @@ def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
 
 
 def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
     runtime = _read(WEBAPP / "frontendEquipmentRuntime.ts")
     data = _read(WEBAPP / "data" / "equipment" / "frontendEquipmentData.json")
 
@@ -169,15 +238,15 @@ def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
     assert "tooltip_view: createFrontendItemTooltipView" in source
     assert 'loot_kind: "equipment"' in source
     assert 'action === "gm-add-equipment"' in source
-    assert 'if (source.includes("盾牌")) return "weapon";' in source
+    assert 'if (source.includes("\\u76fe\\u724c")) return "weapon";' in source
     assert 'if (sourceSlot === "weapon") return isWeaponSlot(slot);' in source
-    assert '? WEAPON_SLOT_INDICES' in source
+    assert "equipmentTargetSlotIndices(dragged, slotIndex, EQUIPMENT_SLOT_SPECS, WEAPON_SLOT_INDICES)" in source
     gm_panel = _read(WEBAPP / "components" / "layout" / "GmToolPanel.tsx")
     assert 'setMessage("已添加到物品栏。");\n      onClose();' not in gm_panel
     assert 'selectedGemSudokuDigit' in gm_panel
     assert '<option value="all">全部</option>' in gm_panel
-    assert 'const baseAffixes = affixes?.affixes.filter((affix) => affix.library === "base") ?? []' in gm_panel
-    assert 'const ordinaryAffixes = affixes?.affixes.filter((affix) => affix.library !== "base") ?? []' in gm_panel
+    assert 'const baseAffixes = activeAffixes.filter((affix) => affix.library === "base")' in gm_panel
+    assert 'const ordinaryAffixes = activeAffixes.filter((affix) => affix.library !== "base")' in gm_panel
     assert "setGmOpen((current) => bagOpen ? !current : true)" in source
     assert "craftFrontendEquipmentAffix" in runtime
     assert "prefixSuffixCapacity" in runtime
@@ -193,10 +262,10 @@ def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
 
 
 def test_equipped_player_stats_feed_actual_frontend_combat_runtime() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
     gem_data = _read(WEBAPP / "frontendGemDropData.ts")
 
-    assert "frontendMountedPassiveSelfStatModifiers(state)" in source
+    assert "frontendMountedPassiveSelfStatModifiers(state, auraEffectAddPercent)" in source
     assert "frontendPassiveSelfStatEffects(gem)" in source
     assert 'String(effect.target ?? "") === "self_stat"' in source
     assert "FRONTEND_PASSIVE_SELF_STAT_IDS_BY_GEM" not in source
@@ -204,7 +273,7 @@ def test_equipped_player_stats_feed_actual_frontend_combat_runtime() -> None:
     assert '"target": "self_stat"' in gem_data
     assert '"stat": "life_regen_flat"' in gem_data
     assert 'reason_key: "modifier.passive_self_stat"' in source
-    assert "recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(legacyState as AppState)))" in source
+    assert "recalculateFrontendSkillPreview(recalculateFrontendEquipmentState(sanitizeFrontendStorageState(candidate)))" in source
     assert "const playerStats = applyFrontendEquipmentStatModifiers(baseStats, modifiers)" in source
     assert "player_stats: playerStats" in source
     assert "character_panel: recalculateFrontendCharacterPanel(playerStats)" in source
@@ -235,7 +304,7 @@ def test_equipped_player_stats_feed_actual_frontend_combat_runtime() -> None:
 
 
 def test_frontend_equipment_runtime_consumes_recent_affix_effects() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
     equipment_source = _read(WEBAPP / "frontendEquipmentRuntime.ts")
     level_tables_source = _read(WEBAPP / "frontendSkillLevelTables.ts")
 
@@ -398,7 +467,7 @@ def test_frontend_support_conversion_stats_feed_damage_components() -> None:
 
 
 def test_frontend_equipment_modifiers_recover_rolled_values_from_saved_affix_text() -> None:
-    app_source = _read(WEBAPP / "App.tsx")
+    app_source = _webapp_source_bundle()
     equipment_source = _read(WEBAPP / "frontendEquipmentRuntime.ts")
 
     assert "function frontendEquipmentModifiersForInventoryItem" in app_source
@@ -407,14 +476,14 @@ def test_frontend_equipment_modifiers_recover_rolled_values_from_saved_affix_tex
     assert "return frontendEquipmentStatModifiers(equipmentItem)" in app_source
     assert "const normalizedItem = normalizeFrontendEquipmentItem(item)" in equipment_source
     assert "...localFrontendEquipmentStatModifiers(normalizedItem)" in equipment_source
-    assert "rolledValuesFromRenderedSourceText(effect, operation.source_text)" in equipment_source
+    assert "rolledValuesFromRenderedSourceText(effect, nextOperation.source_text)" in equipment_source
     assert "pattern += \"\\\\(?(-?\\\\d+(?:\\\\.\\\\d+)?)\\\\)?\"" in equipment_source
     assert "value: values[0], value_min: values[0], value_max: values[0]" in equipment_source
     assert "value: (minimum + maximum) / 2, value_min: minimum, value_max: maximum" in equipment_source
 
 
 def test_every_seed_skill_family_has_frontend_runtime_branch() -> None:
-    app_source = _read(WEBAPP / "App.tsx")
+    app_source = _webapp_source_bundle()
     data_source = _read(WEBAPP / "frontendGameData.ts")
     expected_families = {
         "projectile": "releaseFrontendProjectileSkill",
@@ -459,7 +528,7 @@ def test_frontend_seed_matrix_contains_skill_gem_and_equipment_outputs() -> None
 
 
 def test_frontend_spawn_monster_loot_pickup_and_progress_paths_are_seeded() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
 
     for token in [
         "createProceduralSpawnPlanEnemies",
@@ -480,7 +549,7 @@ def test_frontend_spawn_monster_loot_pickup_and_progress_paths_are_seeded() -> N
 
 
 def test_frontend_save_has_version_and_chinese_recovery_messages() -> None:
-    source = _read(WEBAPP / "App.tsx")
+    source = _webapp_source_bundle()
 
     assert "FRONTEND_SAVE_VERSION" in source
     assert "loadFrontendAutosaveResult" in source
