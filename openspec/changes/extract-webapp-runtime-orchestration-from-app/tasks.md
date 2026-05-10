@@ -13,7 +13,7 @@
 - [x] 2.2 Update `docs/webapp-module-boundaries.md` only if a new focused runtime owner folder/module category is needed beyond existing `webapp/runtime/`, `webapp/types/`, `webapp/state/`, `webapp/components/battle/`, and `webapp/features/playable-battle/`.
 - [x] 2.3 Define the final target for this pass: App keeps mode routing, cross-domain state/ref initialization, save/rest/map flow wiring, callback adapters, and only intentionally deferred runtime refs.
 - [x] 2.4 Define the defer list for runtime ownership that remains too risky for this pass, including any target selection, hit timing, damage application, or battle loop mutation not moved.
-- [ ] 2.5 Run build, smoke, and OpenSpec validation, then commit the documentation/ownership-map batch.
+- [x] 2.5 Run build, smoke, and OpenSpec validation, then commit the documentation/ownership-map batch.
 
 ## 3. Type-Only Runtime Shape Extraction
 
