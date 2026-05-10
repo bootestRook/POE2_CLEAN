@@ -21,7 +21,7 @@
 - [x] 3.2 Create or extend thin `webapp/types/` modules for only the shapes needed by the next runtime modules.
 - [x] 3.3 Move selected type definitions without changing field names, literal values, optionality, or semantic shape.
 - [x] 3.4 Ensure new type modules do not import `webapp/App.tsx`, React state/runtime, generated data, browser APIs, storage helpers, backend calls, or gameplay mutation code.
-- [ ] 3.5 Rewire `webapp/App.tsx` and existing extracted modules to import moved types from type-only modules or local generic props.
+- [x] 3.5 Rewire `webapp/App.tsx` and existing extracted modules to import moved types from type-only modules or local generic props.
 - [ ] 3.6 Update smoke/source-boundary tests to fail if new type modules import from App or contain runtime behavior tokens.
 - [ ] 3.7 Run build, `npm test`, focused type/source checks, and OpenSpec validation, then commit the type-only extraction batch.
 

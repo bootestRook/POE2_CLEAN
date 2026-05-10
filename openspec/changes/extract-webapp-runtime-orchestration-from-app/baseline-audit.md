@@ -106,3 +106,10 @@
 - `webapp/types/combatRuntimeTypes.ts` imports type-only dependencies from `unitAssets`, `monsterSkillRuntime`, `types/enemyTypes`, and `state/frontendSkillPreviewState`.
 - Checked for forbidden tokens: `App.tsx`, `../App`, React runtime/state hooks, browser storage, `fetch`, `/api/`, skill editor panel, setter-like mutation names, `window`, and `document`.
 - Result: no forbidden dependency tokens found in `webapp/types/combatRuntimeTypes.ts`.
+
+## 3.5 Type Rewire Check
+
+- `webapp/App.tsx` now imports moved combat runtime shapes from `webapp/types/combatRuntimeTypes.ts`.
+- Checked for old local type definitions in `webapp/App.tsx`: moved combat runtime type definitions are no longer defined there.
+- Checked WebApp imports from App: only `webapp/main.tsx` imports the `App` entrypoint; extracted modules do not import moved combat runtime types from `App.tsx`.
+- Existing battle/map-editor/disabled-editor files with similarly named local view/tooling types were left unchanged because they are local props/tooling shapes, not the moved App runtime owner definitions.
