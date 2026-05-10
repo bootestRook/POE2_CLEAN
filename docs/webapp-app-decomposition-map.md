@@ -25,6 +25,19 @@ Line numbers are temporary navigation notes. If the file changes, update the own
 - Lines 9246-9350: gem tooltip view-model enrichment, active tooltip normalization, support tooltip normalization, and conduit/support tooltip helpers.
 - Lines 9352-9817: skill pipeline classification, VFX scale/helpers, forced element selection, stable hash, hit target/projectile follow-up helpers, VFX anchoring, enemy creation, debug helpers, monster test factories, encounter palettes, and visual budget helpers.
 
+## Current Runtime Ownership Baseline
+
+After the first App architecture pass, the runtime code that still intentionally remains in `webapp/App.tsx` is grouped as follows:
+
+- App-local runtime/domain types and constants: `SkillEvent`, `AppState` slices, save payload, map-run slices, drop prompts, boss portals, GM views, player runtime state, battle VFX shapes, scheduled events, active damage-zone runtime, tooltip/floating item shapes, camera shapes, visual runtime shapes, boss skill defaults, runtime visual budgets, interaction radii, monster-test constants, and selected boss pack ids.
+- Playable skill event generation: `releaseFrontendPlayableSkill`, `buildFrontendPlayableSkillEvents`, projectile, split projectile, secondary hit, ignited hit explosion, chain, module-chain, damage-zone, melee-arc, nova, status, forced-movement, hit VFX, floating text, and kill-triggered event payload construction.
+- Skill event consumption and runtime queues: `consumeSkillEventTimeline`, `consumeImmediateSkillEvents`, scheduled skill events, `consumeSkillEvent`, `consumeSkillEventBatch`, active damage-zone tick queues, projectile impact queues, and damage event routing.
+- Damage application and status/resource helpers: `applyDamageEventBatch`, enemy damage projection, monster armor/resistance/block/avoidance/resource helpers, enemy status helpers, player resource regeneration, energy-shield recharge, incoming player hit adapters, and player mitigation/block recovery helpers.
+- Projectile lifecycle and VFX follow-up scheduling: projectile id extraction, follow-up suppression keys, projectile completion, projectile anchoring, hit VFX anchoring, projectile spread/direction helpers, visual budget capping, and runtime projectile visual state mutation.
+- Damage-zone lifecycle: active damage-zone refs, zone uniqueness, zone expiration, dynamic tick event creation, rectangle containment, repeated monster zone scheduling, and pending boss damage-zone hit queues.
+- Map-run and battle flow: map instance creation, procedural spawn plan installation, drop progression, pickup flow, boss portal flow, minimap exploration, battle reset, pause/failure/end-game flow, and rest/map transitions.
+- Final App wiring: top-level mode routing, cross-domain React state and refs, save/rest/map flow wiring, callback adapters, viewport shell composition, runtime queue refs, and state setters that extracted modules must receive explicitly if a later batch moves a narrow orchestration boundary.
+
 ## Target Ownership
 
 - `webapp/App.tsx`: top-level mode routing, App-owned cross-domain state/ref initialization, viewport shell composition, callback wiring, and intentional orchestration adapters.
