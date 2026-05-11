@@ -371,6 +371,7 @@ import type { RestAreaInteractionKind } from "./components/rest-area/RestAreaSce
 import { REST_AREA_INTERACTION_KINDS, restAreaInteractionOpensInventory, restAreaInteractionUsesForge } from "./components/rest-area/restAreaInteractionModel";
 import { restAreaApproachNotice, restAreaInteractionNotice } from "./components/rest-area/restAreaInteractionText";
 import { useForgePanelState } from "./components/rest-area/useForgePanelState";
+import { FORGE_CRAFT_SUCCESS_RATE, craftForgeEquipmentItem } from "./components/rest-area/forgeEquipmentCrafting";
 
 type Gem = {
   instance_id: string;
@@ -5747,6 +5748,35 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     onNotice: setNotice,
     onPlacementPrompt: showPlacementPrompt
   });
+
+  function craftForgeAffix(slotId: string, library: string) {
+    if (!forgeItem) {
+      setNotice("请先放入要打造的装备。");
+      return;
+    }
+    if (Math.random() > FORGE_CRAFT_SUCCESS_RATE) {
+      setNotice("打造失败，词缀未改变。");
+      return;
+    }
+
+    try {
+      const seed = Date.now() + Math.floor(Math.random() * 1000000);
+      const nextItem = craftForgeEquipmentItem(forgeItem, slotId, library, seed);
+      applyFrontendState((current) => {
+        let changed = false;
+        const inventory = current.inventory.map((item) => {
+          if (item.instance_id !== forgeItem.instance_id) return item;
+          changed = true;
+          return { ...item, ...nextItem };
+        });
+        return changed ? { ...current, inventory } : null;
+      });
+      setNotice("打造成功，词缀已更新。");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "打造失败。");
+    }
+  }
+
   const lockedItemIds = useMemo(() => {
     const result = new Set<string>();
     for (const item of state?.inventory ?? []) {
@@ -6341,6 +6371,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               selectedAffixSlots={selectedForgeAffixSlots}
               renderItem={(item) => <GemOrb gem={item} />}
               onToggleAffixSlot={toggleForgeAffixSlot}
+              onCraftAffix={craftForgeAffix}
             />
           )}
           {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "stash" && (

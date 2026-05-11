@@ -5465,6 +5465,8 @@ button {
 .forge-craft-list {
   display: grid;
   gap: 9px;
+  max-height: 310px;
+  overflow: hidden auto;
 }
 
 .forge-craft-row {
@@ -5486,6 +5488,43 @@ button {
 
 .forge-craft-row.disabled {
   opacity: 0.46;
+}
+
+.forge-craft-row b {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 800;
+}
+
+.forge-target-tier-select {
+  width: 72px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: linear-gradient(180deg, #f2f2f2, #9d9d9d);
+  color: #0a0a0a;
+  font-size: 16px;
+  font-weight: 900;
+  text-align: center;
+  cursor: pointer;
+}
+
+.forge-target-tier-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.forge-craft-empty {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .forge-info-icon {
@@ -5522,33 +5561,60 @@ button {
 
 .forge-auto-toggle {
   display: grid;
-  grid-template-columns: 34px 74px auto;
+  grid-template-columns: 74px auto;
   align-items: center;
   gap: 12px;
   color: rgba(255, 255, 255, 0.52);
+  cursor: pointer;
 }
 
 .forge-auto-toggle input {
-  width: 28px;
-  height: 28px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .forge-auto-toggle span {
+  position: relative;
   width: 68px;
   height: 32px;
   border-radius: 999px;
   background: #4a4a4a;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.58);
+  transition: background 160ms ease, box-shadow 160ms ease;
 }
 
 .forge-auto-toggle span::before {
   content: "";
   display: block;
+  position: absolute;
+  left: 0;
+  top: -2px;
   width: 36px;
   height: 36px;
-  margin-top: -2px;
   border-radius: 50%;
   background: linear-gradient(180deg, #dfdfdf, #8b8b8b);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.36);
+  transition: transform 160ms ease;
+}
+
+.forge-auto-toggle input:checked + span {
+  background: rgba(74, 163, 255, 0.78);
+  box-shadow: inset 0 0 10px rgba(4, 20, 42, 0.62), 0 0 14px rgba(74, 163, 255, 0.28);
+}
+
+.forge-auto-toggle input:checked + span::before {
+  transform: translateX(32px);
+}
+
+.forge-auto-toggle input:focus-visible + span {
+  outline: 2px solid rgba(139, 198, 255, 0.8);
+  outline-offset: 3px;
 }
 
 .forge-action-row strong {
@@ -5576,16 +5642,24 @@ button {
 
 /* Project-skin overrides: keep the reference structure without copying its visual style. */
 .forge-panel {
-  left: calc(var(--inventory-character-panel-width) + var(--inventory-center-width) / 2 - 42px);
-  grid-template-columns: minmax(180px, 0.88fr) minmax(200px, 1.12fr);
-  gap: 10px;
-  width: min(420px, calc(var(--inventory-center-width) - 28px));
-  min-width: 360px;
-  min-height: 470px;
+  left: clamp(
+    calc(var(--inventory-character-panel-width) + 8px),
+    calc(var(--inventory-stage-width) - var(--inventory-workbench-width) - 756px),
+    calc(var(--inventory-character-panel-width) + 155px)
+  );
+  right: calc(var(--inventory-workbench-width) + 8px);
+  top: 6px;
+  grid-template-columns: minmax(0, 0.44fr) minmax(0, 0.56fr);
+  align-items: start;
+  gap: 5px;
+  width: auto;
+  min-width: 0;
+  min-height: 752px;
+  transform: none;
 }
 
 .forge-panel.has-item {
-  grid-template-columns: minmax(200px, 0.92fr) minmax(210px, 1.08fr);
+  grid-template-columns: minmax(0, 0.44fr) minmax(0, 0.56fr);
 }
 
 .forge-empty-panel,
@@ -5602,8 +5676,10 @@ button {
 }
 
 .forge-empty-panel {
+  align-self: start;
   width: 100%;
-  height: 340px;
+  height: 474px;
+  margin-top: 162px;
 }
 
 .forge-empty-panel p {
@@ -5632,11 +5708,13 @@ button {
 }
 
 .forge-black-board {
-  min-height: 340px;
+  min-height: 752px;
 }
 
 .forge-item-card {
+  align-self: start;
   max-height: 560px;
+  margin-top: 162px;
   padding: 10px 10px 42px;
   overflow: hidden;
 }
@@ -5743,7 +5821,7 @@ button {
 }
 
 .forge-craft-board {
-  min-height: 520px;
+  min-height: 752px;
   padding: 46px 16px 20px;
 }
 
@@ -5754,6 +5832,7 @@ button {
 .forge-tier-tabs button {
   height: 38px;
   font-size: 13px;
+  cursor: pointer;
 }
 
 .forge-tier-tabs button.active {
@@ -5786,11 +5865,24 @@ button {
 
 .forge-craft-row {
   min-height: 48px;
+  grid-template-columns: 32px minmax(0, 1fr) 76px;
   border-color: rgba(244, 247, 248, 0.12);
   background:
     linear-gradient(90deg, rgba(71, 134, 76, 0.16), transparent 52%),
     rgba(18, 22, 26, 0.9);
   font-size: 13px;
+}
+
+.forge-target-tier-select {
+  width: 66px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.forge-craft-empty {
+  border-color: rgba(244, 247, 248, 0.12);
+  color: var(--geo-ui-muted);
+  background: rgba(4, 5, 6, 0.28);
 }
 
 .forge-info-icon {
@@ -5809,6 +5901,10 @@ button {
   background: rgba(244, 247, 248, 0.16);
 }
 
+.forge-auto-toggle input:checked + span {
+  background: rgba(74, 163, 255, 0.78);
+}
+
 .forge-action-row strong {
   color: #57e1dc;
   font-size: 17px;
@@ -5822,6 +5918,19 @@ button {
   font-size: 24px;
   text-align: center;
   padding-left: 0;
+}
+
+.forge-craft-button:not(:disabled):hover,
+.forge-craft-button:not(:disabled):focus-visible {
+  background: rgba(255, 138, 42, 0.34);
+  border-color: rgba(255, 190, 94, 0.9);
+  box-shadow: 0 0 14px rgba(255, 178, 66, 0.28);
+}
+
+.forge-craft-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
 }
 
 .stash-overlay {
@@ -7533,7 +7642,7 @@ button {
   position: absolute;
   top: 8px;
   left: calc(calc(var(--game-viewport-width, 100vw) * 50 / 100) + 24px);
-  z-index: 8;
+  z-index: 28;
 }
 
 .gm-tool-button {
@@ -7565,7 +7674,7 @@ button {
   min-width: 420px;
   max-height: min(620px, calc(calc(var(--game-viewport-height, 100vh) * 100 / 100) - 150px));
   transform: translateX(-50%);
-  z-index: 9;
+  z-index: 29;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   border: 1px solid rgba(255, 211, 92, 0.56);

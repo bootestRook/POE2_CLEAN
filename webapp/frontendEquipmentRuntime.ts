@@ -196,6 +196,12 @@ export function frontendEquipmentAffixOptions(source: string, level: number) {
     }));
 }
 
+export function frontendEquipmentSourceForAffixRoll(affix: Pick<FrontendEquipmentAffixRoll, "affix_id"> | null | undefined) {
+  if (!affix?.affix_id) return null;
+  if (!equipmentDataState) return null;
+  return frontendEquipmentDefinitionsById().get(affix.affix_id)?.source ?? null;
+}
+
 export function chooseFrontendEquipmentSource(seed: number) {
   const sourceOptions = frontendEquipmentSourceOptions();
   if (sourceOptions.length === 0) return "装备";
@@ -305,6 +311,42 @@ export function craftFrontendEquipmentAffix(item: FrontendEquipmentItem, library
   const candidates = affixCandidates(item.source, item.level, library, gen, item);
   if (candidates.length === 0) throw new Error("可用装备词缀候选不足。");
   return addAffixRoll(item, rollDefinition(weightedChoice(candidates, seedRandom(seed)), seedRandom(seed + 17)));
+}
+
+export function rerollFrontendEquipmentAffix(
+  item: FrontendEquipmentItem,
+  library: string,
+  gen: string,
+  index: number,
+  seed: number
+): FrontendEquipmentItem {
+  if (!["initial", "advanced", "pinnacle"].includes(library)) throw new Error(`不支持的装备词缀库：${library}`);
+  if (!["prefix", "suffix"].includes(gen)) throw new Error(`不支持的装备词缀类型：${gen}`);
+  if (!Number.isInteger(index) || index < 0) throw new Error("词缀位置不正确。");
+
+  const currentAffixes = gen === "prefix" ? item.prefix_affixes : item.suffix_affixes;
+  const currentAffix = currentAffixes[index];
+  if (!currentAffix) throw new Error("请先选择已有词缀的位置。");
+
+  const itemWithoutSelectedAffix: FrontendEquipmentItem = {
+    ...item,
+    prefix_affixes: gen === "prefix" ? item.prefix_affixes.filter((_, affixIndex) => affixIndex !== index) : [...item.prefix_affixes],
+    suffix_affixes: gen === "suffix" ? item.suffix_affixes.filter((_, affixIndex) => affixIndex !== index) : [...item.suffix_affixes],
+  };
+  validateCanReplace(itemWithoutSelectedAffix, library);
+
+  const candidates = affixCandidates(item.source, item.level, library, gen, itemWithoutSelectedAffix)
+    .filter((candidate) => candidate.family_id !== currentAffix.family_id);
+  if (candidates.length === 0) throw new Error("可用装备词缀候选不足。");
+
+  const nextAffix = rollDefinition(weightedChoice(candidates, seedRandom(seed)), seedRandom(seed + 17));
+  const replaceAt = (affixes: FrontendEquipmentAffixRoll[]) => affixes.map((affix, affixIndex) => (affixIndex === index ? nextAffix : affix));
+  return {
+    ...item,
+    rarity: frontendEquipmentRarityForAffixCount(item.prefix_affixes.length + item.suffix_affixes.length),
+    prefix_affixes: gen === "prefix" ? replaceAt(item.prefix_affixes) : item.prefix_affixes,
+    suffix_affixes: gen === "suffix" ? replaceAt(item.suffix_affixes) : item.suffix_affixes,
+  };
 }
 
 export function frontendEquipmentAffixTexts(item: FrontendEquipmentItem) {
@@ -614,6 +656,14 @@ function validateCanAdd(item: FrontendEquipmentItem, library: string, gen: strin
   if (library === "pinnacle") {
     if (item.level < 100) throw new Error("只有 100 级装备才能打造至臻词缀。");
     if (countLibrary(item, "pinnacle") >= 2) throw new Error("装备至臻词缀已达上限。");
+  }
+}
+
+function validateCanReplace(itemWithoutSelectedAffix: FrontendEquipmentItem, library: string) {
+  if (library === "advanced" && countLibrary(itemWithoutSelectedAffix, "advanced") >= 2) throw new Error("装备进阶词缀已达上限。");
+  if (library === "pinnacle") {
+    if (itemWithoutSelectedAffix.level < 100) throw new Error("只有 100 级装备才能打造至臻词缀。");
+    if (countLibrary(itemWithoutSelectedAffix, "pinnacle") >= 2) throw new Error("装备至臻词缀已达上限。");
   }
 }
 

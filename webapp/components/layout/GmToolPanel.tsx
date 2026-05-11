@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { clampNumber } from "../../utils/number";
+import { prefixSuffixCapacity } from "../../frontendEquipmentRuntime";
 
 type GmOptions = {
   gems: Array<{ id: string; name_text: string; kind: string; sudoku_digit: number | string }>;
@@ -136,6 +137,18 @@ export function GmToolPanel({
   const prefixCapacity = activeCapacity.prefix;
   const suffixCapacity = activeCapacity.suffix;
   const qualityPreview = equipmentQualityByAffixCount(selectedAffixes.length);
+  const randomRarityCapacity = prefixSuffixCapacity(equipmentLevel);
+  const randomRarityAffixCapacity = randomRarityCapacity.prefix + randomRarityCapacity.suffix;
+  const randomRarityOptions = useMemo(
+    () => (options?.equipment_rarities ?? []).filter((rarity) => canRandomRarityFitLevel(rarity.id, randomRarityAffixCapacity)),
+    [options, randomRarityAffixCapacity]
+  );
+
+  useEffect(() => {
+    if (randomRarityOptions.length === 0) return;
+    if (randomRarityOptions.some((rarity) => rarity.id === randomRarity)) return;
+    setRandomRarity(randomRarityOptions[randomRarityOptions.length - 1]?.id ?? "white");
+  }, [randomRarity, randomRarityOptions]);
 
   function isAffixDisabled(affix: { id: string; gen: string; family_id: string }) {
     if (selectedAffixIds.includes(affix.id)) return false;
@@ -248,7 +261,7 @@ export function GmToolPanel({
                 <label>
                   <span>品质</span>
                   <select value={randomRarity} onChange={(event) => setRandomRarity(event.currentTarget.value)}>
-                    {options.equipment_rarities.map((rarity) => (
+                    {randomRarityOptions.map((rarity) => (
                       <option key={rarity.id} value={rarity.id}>{rarity.name_text} · {rarity.affix_count}词缀</option>
                     ))}
                   </select>
@@ -323,4 +336,15 @@ function equipmentQualityByAffixCount(count: number) {
   if (count <= 2) return "蓝色";
   if (count <= 5) return "紫色";
   return "粉色";
+}
+
+function canRandomRarityFitLevel(rarityId: string, ordinaryAffixCapacity: number) {
+  return ordinaryAffixCapacity >= randomRarityMinimumAffixCount(rarityId);
+}
+
+function randomRarityMinimumAffixCount(rarityId: string) {
+  if (rarityId === "blue") return 1;
+  if (rarityId === "purple") return 3;
+  if (rarityId === "pink") return 6;
+  return 0;
 }

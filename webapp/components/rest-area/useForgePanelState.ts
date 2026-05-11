@@ -32,13 +32,8 @@ export function useForgePanelState<TItem extends ForgeStateItem>({
 
   function toggleForgeAffixSlot(slotId: string) {
     setSelectedForgeAffixSlots((current) => {
-      const next = new Set(current);
-      if (next.has(slotId)) {
-        next.delete(slotId);
-      } else {
-        next.add(slotId);
-      }
-      return next;
+      if (current.has(slotId)) return new Set();
+      return new Set([slotId]);
     });
   }
 
