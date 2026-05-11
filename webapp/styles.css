@@ -5336,6 +5336,10 @@ button {
   color: rgba(35, 35, 35, 0.46);
 }
 
+.forge-affix-row:disabled {
+  cursor: not-allowed;
+}
+
 .forge-affix-row.selected .forge-affix-check {
   background: #4be341;
 }
@@ -5469,6 +5473,10 @@ button {
   overflow: hidden auto;
 }
 
+.forge-craft-list.has-open-target-tier {
+  overflow: visible;
+}
+
 .forge-craft-row {
   display: grid;
   grid-template-columns: 38px 1fr 60px;
@@ -5496,23 +5504,82 @@ button {
   font-weight: 800;
 }
 
-.forge-target-tier-select {
+.forge-target-tier-dropdown {
+  position: relative;
+  justify-self: end;
   width: 72px;
+  z-index: 4;
+}
+
+.forge-target-tier-dropdown.open {
+  z-index: 30;
+}
+
+.forge-target-tier-button {
+  display: grid;
+  grid-template-columns: 1fr 16px;
+  align-items: center;
+  width: 100%;
   height: 32px;
-  border: 0;
-  border-radius: 999px;
-  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 0 9px 0 12px;
   background: linear-gradient(180deg, #f2f2f2, #9d9d9d);
   color: #0a0a0a;
   font-size: 16px;
   font-weight: 900;
-  text-align: center;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.forge-target-tier-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.forge-target-tier-arrow {
+  width: 0;
+  height: 0;
+  justify-self: center;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #090909;
+}
+
+.forge-target-tier-dropdown.open .forge-target-tier-arrow {
+  border-top: 0;
+  border-bottom: 8px solid #090909;
+}
+
+.forge-target-tier-menu {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  display: grid;
+  gap: 4px;
+  width: 112px;
+  padding: 7px;
+  border: 2px solid #f1c800;
+  border-radius: 8px;
+  background: rgba(250, 250, 250, 0.98);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.42);
+}
+
+.forge-target-tier-menu button {
+  height: 39px;
+  border: 1px solid #a8a8a8;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff, #e9e9e9);
+  color: #5c5c5c;
+  font-size: 17px;
+  font-weight: 900;
   cursor: pointer;
 }
 
-.forge-target-tier-select:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.forge-target-tier-menu button:hover,
+.forge-target-tier-menu button.active {
+  background: linear-gradient(180deg, #6d6d6d, #575757);
+  color: #ffffff;
 }
 
 .forge-craft-empty {
@@ -5873,10 +5940,17 @@ button {
   font-size: 13px;
 }
 
-.forge-target-tier-select {
+.forge-target-tier-dropdown {
   width: 66px;
+}
+
+.forge-target-tier-button {
   height: 28px;
   font-size: 14px;
+}
+
+.forge-target-tier-menu {
+  top: 32px;
 }
 
 .forge-craft-empty {

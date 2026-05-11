@@ -5752,13 +5752,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   function craftForgeAffix(slotId: string, library: string) {
     if (!forgeItem) {
       setNotice("请先放入要打造的装备。");
-      return;
+      return false;
     }
     if (Math.random() > FORGE_CRAFT_SUCCESS_RATE) {
       setNotice("打造失败，词缀未改变。");
-      return;
+      return false;
     }
-
     try {
       const seed = Date.now() + Math.floor(Math.random() * 1000000);
       const nextItem = craftForgeEquipmentItem(forgeItem, slotId, library, seed);
@@ -5772,8 +5771,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         return changed ? { ...current, inventory } : null;
       });
       setNotice("打造成功，词缀已更新。");
+      return true;
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "打造失败。");
+      return false;
     }
   }
 

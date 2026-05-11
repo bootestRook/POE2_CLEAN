@@ -335,8 +335,7 @@ export function rerollFrontendEquipmentAffix(
   };
   validateCanReplace(itemWithoutSelectedAffix, library);
 
-  const candidates = affixCandidates(item.source, item.level, library, gen, itemWithoutSelectedAffix)
-    .filter((candidate) => candidate.family_id !== currentAffix.family_id);
+  const candidates = affixCandidates(item.source, item.level, library, gen, itemWithoutSelectedAffix);
   if (candidates.length === 0) throw new Error("可用装备词缀候选不足。");
 
   const nextAffix = rollDefinition(weightedChoice(candidates, seedRandom(seed)), seedRandom(seed + 17));

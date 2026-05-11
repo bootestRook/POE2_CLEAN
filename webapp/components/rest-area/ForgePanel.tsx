@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { frontendEquipmentAffixOptions, frontendEquipmentSourceForAffixRoll } from "../../frontendEquipmentRuntime";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { frontendEquipmentAffixOptions, frontendEquipmentSourceForAffixRoll, preloadFrontendEquipmentData } from "../../frontendEquipmentRuntime";
 import { equipmentSourceSlotId } from "../inventory/equipmentRules";
 
 type ForgeAffix = {
@@ -41,12 +41,32 @@ export function ForgePanel<TItem extends ForgeItem>({
   selectedAffixSlots: Set<string>;
   renderItem: (item: TItem) => ReactNode;
   onToggleAffixSlot: (slotId: string) => void;
-  onCraftAffix: (slotId: string, library: ForgeLibrary) => void;
+  onCraftAffix: (slotId: string, library: ForgeLibrary) => boolean;
 }) {
   const [selectedLibrary, setSelectedLibrary] = useState<ForgeLibrary>("initial");
+  const [autoCrafting, setAutoCrafting] = useState(false);
+  const [equipmentDataReady, setEquipmentDataReady] = useState(false);
   const affixGroups = item ? forgeAffixGroups(item) : null;
   const hasSelectedAffix = selectedAffixSlots.size > 0;
   const selectedSlotId = Array.from(selectedAffixSlots)[0] ?? "";
+
+  useEffect(() => {
+    let cancelled = false;
+    preloadFrontendEquipmentData()
+      .then(() => {
+        if (!cancelled) setEquipmentDataReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setEquipmentDataReady(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!item) setAutoCrafting(false);
+  }, [item]);
 
   return (
     <section className={`forge-panel${item ? " has-item" : ""}`} aria-label="锻造台">
@@ -75,12 +95,14 @@ export function ForgePanel<TItem extends ForgeItem>({
               title={`前缀 (${affixGroups.prefix.filled.length}/${FORGE_PREFIX_CAPACITY})`}
               slots={affixGroups.prefix.slots}
               selectedAffixSlots={selectedAffixSlots}
+              selectionLocked={autoCrafting}
               onToggleAffixSlot={onToggleAffixSlot}
             />
             <ForgeAffixList
               title={`后缀 (${affixGroups.suffix.filled.length}/${FORGE_SUFFIX_CAPACITY})`}
               slots={affixGroups.suffix.slots}
               selectedAffixSlots={selectedAffixSlots}
+              selectionLocked={autoCrafting}
               onToggleAffixSlot={onToggleAffixSlot}
             />
             <button className="forge-affix-list-button" type="button">词缀列表</button>
@@ -102,7 +124,15 @@ export function ForgePanel<TItem extends ForgeItem>({
             {!hasSelectedAffix ? (
               <div className="forge-select-hint">请选中要打造的词缀位置</div>
             ) : (
-              <ForgeCraftOptions item={item} selectedSlotId={selectedSlotId} selectedLibrary={selectedLibrary} onCraftAffix={onCraftAffix} />
+              <ForgeCraftOptions
+                item={item}
+                selectedSlotId={selectedSlotId}
+                selectedLibrary={selectedLibrary}
+                equipmentDataReady={equipmentDataReady}
+                autoCrafting={autoCrafting}
+                setAutoCrafting={setAutoCrafting}
+                onCraftAffix={onCraftAffix}
+              />
             )}
           </div>
         </>
@@ -115,11 +145,13 @@ function ForgeAffixList({
   title,
   slots,
   selectedAffixSlots,
+  selectionLocked,
   onToggleAffixSlot
 }: {
   title: string;
   slots: ForgeAffixSlot[];
   selectedAffixSlots: Set<string>;
+  selectionLocked: boolean;
   onToggleAffixSlot: (slotId: string) => void;
 }) {
   return (
@@ -132,6 +164,7 @@ function ForgeAffixList({
             className={`forge-affix-row${selectedAffixSlots.has(slot.id) ? " selected" : ""}${slot.empty ? " empty" : ""}`}
             type="button"
             aria-pressed={selectedAffixSlots.has(slot.id)}
+            disabled={selectionLocked}
             onClick={() => onToggleAffixSlot(slot.id)}
           >
             <span className="forge-tier-badge">{slot.tierText}</span>
@@ -144,19 +177,23 @@ function ForgeAffixList({
   );
 }
 
-function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix }: {
+function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDataReady, autoCrafting, setAutoCrafting, onCraftAffix }: {
   item: ForgeItem;
   selectedSlotId: string;
   selectedLibrary: ForgeLibrary;
-  onCraftAffix: (slotId: string, library: ForgeLibrary) => void;
+  equipmentDataReady: boolean;
+  autoCrafting: boolean;
+  setAutoCrafting: Dispatch<SetStateAction<boolean>>;
+  onCraftAffix: (slotId: string, library: ForgeLibrary) => boolean;
 }) {
   const [autoCraftEnabled, setAutoCraftEnabled] = useState(false);
-  const [autoCrafting, setAutoCrafting] = useState(false);
   const [targetTiers, setTargetTiers] = useState<Record<string, number>>({});
+  const [openTargetFamilyId, setOpenTargetFamilyId] = useState<string | null>(null);
+  const onCraftAffixRef = useRef(onCraftAffix);
   const selectedGen = forgeSelectedSlotGen(selectedSlotId);
   const options = useMemo(
-    () => forgeCraftOptions(item, selectedLibrary, selectedGen),
-    [item, selectedGen, selectedLibrary]
+    () => equipmentDataReady ? forgeCraftOptions(item, selectedLibrary, selectedGen, selectedSlotId) : [],
+    [equipmentDataReady, item, selectedGen, selectedLibrary, selectedSlotId]
   );
   const canCraft = options.some((option) => !option.disabled);
   const selectedAffix = forgeSelectedAffix(item, selectedSlotId);
@@ -170,8 +207,17 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix
   const canStartAutoCraft = canCraft && hasAutoTarget && !targetMatched;
 
   useEffect(() => {
+    onCraftAffixRef.current = onCraftAffix;
+  }, [onCraftAffix]);
+
+  useEffect(() => {
     setAutoCrafting(false);
+    setOpenTargetFamilyId(null);
   }, [selectedLibrary, selectedSlotId]);
+
+  useEffect(() => {
+    if (autoCrafting) setOpenTargetFamilyId(null);
+  }, [autoCrafting]);
 
   useEffect(() => {
     if (!autoCrafting) return;
@@ -180,10 +226,11 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix
       return;
     }
     const timerId = window.setInterval(() => {
-      onCraftAffix(selectedSlotId, selectedLibrary);
-    }, 1500);
+      const crafted = onCraftAffixRef.current(selectedSlotId, selectedLibrary);
+      if (!crafted) setAutoCrafting(false);
+    }, 1000);
     return () => window.clearInterval(timerId);
-  }, [autoCraftEnabled, autoCrafting, canStartAutoCraft, onCraftAffix, selectedLibrary, selectedSlotId, targetMatched]);
+  }, [autoCraftEnabled, autoCrafting, canStartAutoCraft, selectedLibrary, selectedSlotId, targetMatched]);
 
   function setTargetTier(familyId: string, value: string) {
     setTargetTiers((current) => {
@@ -199,7 +246,12 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix
       onCraftAffix(selectedSlotId, selectedLibrary);
       return;
     }
-    setAutoCrafting((current) => !current);
+    if (autoCrafting) {
+      setAutoCrafting(false);
+      return;
+    }
+    const crafted = onCraftAffix(selectedSlotId, selectedLibrary);
+    if (crafted) setAutoCrafting(true);
   }
 
   function handleAutoCraftEnabled(checked: boolean) {
@@ -216,7 +268,7 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix
         <span>可能出现的词缀</span>
         <span>{autoCraftEnabled ? "目标T级" : "最高T级"}</span>
       </div>
-      <div className="forge-craft-list">
+      <div className={`forge-craft-list${openTargetFamilyId ? " has-open-target-tier" : ""}`}>
         {options.map((option) => (
           <div key={option.familyId} className={`forge-craft-row${option.disabled ? " disabled" : ""}`}>
             <span className="forge-info-icon">i</span>
@@ -225,18 +277,16 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix
               {option.disabled && <b>（已有同类型词缀）</b>}
             </span>
             {autoCraftEnabled ? (
-              <select
-                className="forge-target-tier-select"
+              <TargetTierDropdown
+                effect={option.effect}
+                familyId={option.familyId}
+                tiers={option.targetTiers}
                 value={targetTiers[option.familyId] ?? ""}
-                disabled={option.disabled}
-                aria-label={`${option.effect} 目标T级`}
-                onChange={(event) => setTargetTier(option.familyId, event.currentTarget.value)}
-              >
-                <option value="">无</option>
-                {forgeTargetTierOptions(option.tier).map((tier) => (
-                  <option key={tier} value={tier}>T{tier}</option>
-                ))}
-              </select>
+                disabled={option.disabled || autoCrafting}
+                open={openTargetFamilyId === option.familyId}
+                onOpenChange={(open) => setOpenTargetFamilyId(open ? option.familyId : null)}
+                onChange={(value) => setTargetTier(option.familyId, value)}
+              />
             ) : (
               <span className="forge-tier-outline">T{option.tier}</span>
             )}
@@ -272,6 +322,68 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, onCraftAffix
   );
 }
 
+function TargetTierDropdown({
+  effect,
+  familyId,
+  tiers,
+  value,
+  disabled,
+  open,
+  onOpenChange,
+  onChange
+}: {
+  effect: string;
+  familyId: string;
+  tiers: number[];
+  value: number | "";
+  disabled: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChange: (value: string) => void;
+}) {
+  const displayText = value ? `T${value}` : "无";
+  const menuId = `forge-target-tier-menu-${familyId}`;
+  const choices = [{ value: "", label: "无" }, ...tiers.map((tier) => ({ value: String(tier), label: `T${tier}` }))];
+
+  function choose(nextValue: string) {
+    onChange(nextValue);
+    onOpenChange(false);
+  }
+
+  return (
+    <div className={`forge-target-tier-dropdown${open ? " open" : ""}${disabled ? " disabled" : ""}`}>
+      <button
+        className="forge-target-tier-button"
+        type="button"
+        disabled={disabled}
+        aria-label={`${effect} 目标T级`}
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => onOpenChange(!open)}
+      >
+        <span>{displayText}</span>
+        <span className="forge-target-tier-arrow" aria-hidden="true" />
+      </button>
+      {open && !disabled && (
+        <div className="forge-target-tier-menu" id={menuId} role="listbox" aria-label={`${effect} 目标T级`}>
+          {choices.map((choice) => (
+            <button
+              key={choice.value || "none"}
+              className={String(value) === choice.value ? "active" : ""}
+              type="button"
+              role="option"
+              aria-selected={String(value) === choice.value}
+              onClick={() => choose(choice.value)}
+            >
+              {choice.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type ForgeAffixSlot = {
   id: string;
   text: string;
@@ -283,6 +395,7 @@ type ForgeCraftOption = {
   familyId: string;
   effect: string;
   tier: number;
+  targetTiers: number[];
   disabled: boolean;
 };
 
@@ -356,15 +469,16 @@ function forgeSelectedAffix(item: ForgeItem, slotId: string) {
   return kind === "suffix" ? affixGroups.suffix.filled[index] ?? null : affixGroups.prefix.filled[index] ?? null;
 }
 
-function forgeTargetTierOptions(highestTier: number) {
-  const normalizedTier = Math.max(1, Math.floor(Number(highestTier)));
-  return Array.from({ length: normalizedTier }, (_, index) => index + 1);
-}
-
-function forgeCraftOptions(item: ForgeItem, library: ForgeLibrary, gen: string): ForgeCraftOption[] {
+function forgeCraftOptions(item: ForgeItem, library: ForgeLibrary, gen: string, selectedSlotId: string): ForgeCraftOption[] {
   const source = forgeEquipmentSource(item);
   const level = Math.max(1, Math.floor(Number(item.level ?? 1)));
-  const existingFamilyIds = new Set((item.equipment_affixes ?? []).map((affix) => affix.family_id).filter(Boolean));
+  const selectedAffix = forgeSelectedAffix(item, selectedSlotId);
+  const existingFamilyIds = new Set(
+    (item.equipment_affixes ?? [])
+      .filter((affix) => affix !== selectedAffix)
+      .map((affix) => affix.family_id)
+      .filter(Boolean)
+  );
   const byFamily = new Map<string, ForgeCraftOption>();
   let affixOptions: ReturnType<typeof frontendEquipmentAffixOptions> = [];
   try {
@@ -375,22 +489,50 @@ function forgeCraftOptions(item: ForgeItem, library: ForgeLibrary, gen: string):
   for (const option of affixOptions) {
     if (option.library !== library || option.gen !== gen) continue;
     const current = byFamily.get(option.family_id);
-    if (current && current.tier <= option.tier) continue;
+    if (current) {
+      if (!current.targetTiers.includes(option.tier)) current.targetTiers.push(option.tier);
+      if (current.tier <= option.tier) continue;
+    }
     byFamily.set(option.family_id, {
       familyId: option.family_id,
       effect: option.effect_text,
       tier: option.tier,
+      targetTiers: current?.targetTiers ?? [option.tier],
       disabled: existingFamilyIds.has(option.family_id)
     });
   }
-  return Array.from(byFamily.values());
+  return Array.from(byFamily.values()).map((option) => ({
+    ...option,
+    targetTiers: option.targetTiers.sort((left, right) => left - right)
+  }));
 }
 
 function forgeEquipmentSource(item: ForgeItem) {
+  const level = Math.max(1, Math.floor(Number(item.level ?? 1)));
+  const nameSource = item.name_text.replace(/^Lv\d+\s+/, "");
+  const directSources = [
+    item.gem_type?.identity_text,
+    item.gem_type?.display_text,
+    nameSource,
+    item.category_text
+  ].filter((source): source is string => Boolean(source));
+
+  for (const source of directSources) {
+    if (forgeSourceHasAffixOptions(source, level)) return source;
+  }
+
   for (const affix of item.equipment_affixes ?? []) {
     const source = frontendEquipmentSourceForAffixRoll(affix);
     if (source) return source;
   }
-  const nameSource = item.name_text.replace(/^Lv\d+\s+/, "");
-  return item.gem_type?.identity_text || item.gem_type?.display_text || nameSource || item.category_text;
+
+  return directSources[0] ?? item.category_text;
+}
+
+function forgeSourceHasAffixOptions(source: string, level: number) {
+  try {
+    return frontendEquipmentAffixOptions(source, level).some((option) => option.library !== "base");
+  } catch {
+    return false;
+  }
 }

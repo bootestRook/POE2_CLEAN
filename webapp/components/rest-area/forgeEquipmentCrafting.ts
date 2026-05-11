@@ -1,5 +1,6 @@
 import {
   craftFrontendEquipmentAffix,
+  frontendEquipmentAffixOptions,
   frontendEquipmentRarityText,
   frontendEquipmentSourceForAffixRoll,
   frontendEquipmentStatModifiers,
@@ -46,10 +47,17 @@ function parseForgeAffixSlotId(slotId: string): { gen: "prefix" | "suffix"; inde
 function frontendEquipmentItemFromForgeItem(item: ForgeCraftItem): FrontendEquipmentItem | null {
   const affixes = item.equipment_affixes ?? [];
   const baseAffix = affixes.find((affix) => affix.gen === "base" || affix.library === "base") ?? affixes[0];
-  const affixSource = affixes.map(frontendEquipmentSourceForAffixRoll).find(Boolean);
   const nameSource = item.name_text.replace(/^Lv\d+\s+/, "");
-  const source = affixSource || item.gem_type?.identity_text || item.gem_type?.display_text || nameSource || item.category_text;
   const level = Math.max(1, Math.floor(Number(item.level ?? 1)));
+  const directSources = [
+    item.gem_type?.identity_text,
+    item.gem_type?.display_text,
+    nameSource,
+    item.category_text
+  ].filter((source): source is string => Boolean(source));
+  const directSource = directSources.find((source) => forgeSourceHasAffixOptions(source, level));
+  const affixSource = affixes.map(frontendEquipmentSourceForAffixRoll).find(Boolean);
+  const source = directSource || affixSource || directSources[0] || item.category_text;
   if (!baseAffix || !source || !Number.isFinite(level)) return null;
   return {
     source,
@@ -59,6 +67,14 @@ function frontendEquipmentItemFromForgeItem(item: ForgeCraftItem): FrontendEquip
     prefix_affixes: affixes.filter((affix) => affix.gen === "prefix"),
     suffix_affixes: affixes.filter((affix) => affix.gen === "suffix"),
   };
+}
+
+function forgeSourceHasAffixOptions(source: string, level: number) {
+  try {
+    return frontendEquipmentAffixOptions(source, level).some((option) => option.library !== "base");
+  } catch {
+    return false;
+  }
 }
 
 function forgeItemWithFrontendEquipmentItem<TItem extends ForgeCraftItem>(item: TItem, equipmentItem: FrontendEquipmentItem): TItem {
