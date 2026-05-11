@@ -1,6 +1,6 @@
 param(
   [string]$AppName = "",
-  [string]$Version = "V1.1",
+  [string]$Version = "V1.2",
   [string]$Runtime = "win-x64",
   [string]$OutputRoot = "artifacts/package",
   [switch]$NoZip,

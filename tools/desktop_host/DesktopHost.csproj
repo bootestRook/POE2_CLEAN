@@ -8,7 +8,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AssemblyName>数独刷宝</AssemblyName>
     <ProductName>数独刷宝</ProductName>
-    <ProductVersion>V1.1</ProductVersion>
+    <ProductVersion>V1.2</ProductVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>

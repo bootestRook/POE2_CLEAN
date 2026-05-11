@@ -411,7 +411,7 @@ type Cell = {
   gem: Gem | null;
 };
 
-const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "fullscreen";
+const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "original";
 const GAME_RESOLUTION_PRESETS: GameResolutionPreset[] = [
   { mode: "original", label: "原始尺寸", width: null, height: null },
   { mode: "fullscreen", label: "全屏", width: 1920, height: 1080 },
@@ -6040,12 +6040,9 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     setNotice("已回到休息区。");
   }
 
-  async function applyGameResolutionMode(mode: GameResolutionMode) {
+  function applyGameResolutionMode(mode: GameResolutionMode) {
     setGameResolutionMode(mode);
     saveGameResolutionMode(mode);
-    if (mode === "fullscreen" && typeof document !== "undefined" && !document.fullscreenElement) {
-      await document.documentElement.requestFullscreen?.().catch(() => undefined);
-    }
   }
 
   function closeInventorySurface() {

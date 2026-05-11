@@ -145,7 +145,7 @@ function functionBody(source, functionName) {
 }
 
 const requiredText = [
-  "\u6570\u72ec\u5237\u5b9d V1.1",
+  "\u6570\u72ec\u5237\u5b9d V1.2",
   "\u8fdb\u5165\u6218\u6597",
   "\u62d6\u62fd\uff1a\u653e\u7f6e\u5b9d\u77f3",
   "C\uff1a\u6253\u5f00/\u5173\u95ed\u80cc\u5305"

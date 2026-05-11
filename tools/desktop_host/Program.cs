@@ -17,17 +17,70 @@ internal static class Program
 internal sealed class GameHostForm : Form
 {
     private const string LocalAppHostName = "sudoku-loot.local";
+    private static readonly Size OriginalClientSize = new(1280, 800);
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
+    private bool isFullscreen;
 
     public GameHostForm()
     {
         Text = BuildWindowTitle();
         StartPosition = FormStartPosition.CenterScreen;
-        Width = 1280;
-        Height = 800;
+        ClientSize = OriginalClientSize;
         MinimumSize = new Size(960, 600);
+        KeyPreview = true;
         Controls.Add(webView);
         Load += OnLoad;
+        Shown += (_, _) => EnterFullscreen();
+        KeyDown += OnKeyDown;
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs eventArgs)
+    {
+        if (eventArgs.KeyCode == Keys.F11)
+        {
+            ToggleFullscreen();
+            eventArgs.Handled = true;
+        }
+        else if (eventArgs.KeyCode == Keys.Escape && isFullscreen)
+        {
+            ExitFullscreen();
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (isFullscreen)
+        {
+            ExitFullscreen();
+            return;
+        }
+
+        EnterFullscreen();
+    }
+
+    private void EnterFullscreen()
+    {
+        if (isFullscreen) return;
+
+        isFullscreen = true;
+        SuspendLayout();
+        FormBorderStyle = FormBorderStyle.Sizable;
+        WindowState = FormWindowState.Maximized;
+        ResumeLayout();
+    }
+
+    private void ExitFullscreen()
+    {
+        if (!isFullscreen) return;
+
+        isFullscreen = false;
+        SuspendLayout();
+        WindowState = FormWindowState.Normal;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        ClientSize = OriginalClientSize;
+        CenterToScreen();
+        ResumeLayout();
     }
 
     private async void OnLoad(object? sender, EventArgs eventArgs)
@@ -64,6 +117,22 @@ internal sealed class GameHostForm : Form
         }
     }
 
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData == Keys.F11)
+        {
+            ToggleFullscreen();
+            return true;
+        }
+        if (keyData == Keys.Escape && isFullscreen)
+        {
+            ExitFullscreen();
+            return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
     private static string ResolveWwwrootPath()
     {
         string appDirectory = AppContext.BaseDirectory;
@@ -90,7 +159,7 @@ internal sealed class GameHostForm : Form
     {
         Assembly assembly = Assembly.GetExecutingAssembly();
         string product = assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product ?? "数独刷宝";
-        string version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "V1.1";
+        string version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "V1.2";
         return $"{product} {version}";
     }
 }

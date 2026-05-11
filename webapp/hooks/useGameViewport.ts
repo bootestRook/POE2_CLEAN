@@ -19,7 +19,7 @@ export type GameViewport = {
 };
 
 export const GAME_RESOLUTION_STORAGE_KEY = "poe2.v1.game.resolution";
-export const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "fullscreen";
+export const DEFAULT_GAME_RESOLUTION_MODE: GameResolutionMode = "original";
 export const GAME_RESOLUTION_PRESETS: GameResolutionPreset[] = [
   { mode: "original", label: localize("ui.viewport.resolution.original"), width: null, height: null },
   { mode: "fullscreen", label: localize("ui.viewport.resolution.fullscreen"), width: 1920, height: 1080 },

@@ -25,7 +25,7 @@ if errorlevel 1 (
 
 echo.
 echo EXE package build completed.
-echo Output: artifacts\package\数独刷宝-V1.1-win-x64
+echo Output: artifacts\package\数独刷宝-V1.2-win-x64
 pause
 
 endlocal
