@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { frontendEquipmentAffixOptions, frontendEquipmentSourceForAffixRoll, preloadFrontendEquipmentData } from "../../frontendEquipmentRuntime";
 import { equipmentSourceSlotId } from "../inventory/equipmentRules";
+import { forgeMaterialCostFor, type ForgeMaterialCost, type ForgeMaterialInventoryItem, type ForgeMaterialLibrary } from "./forgeMaterialCosts";
 
 type ForgeAffix = {
   affix_id: string;
@@ -28,22 +29,23 @@ const FORGE_LIBRARIES = [
   { id: "advanced", label: "进阶词缀" },
   { id: "pinnacle", label: "至臻词缀" }
 ] as const;
-type ForgeLibrary = typeof FORGE_LIBRARIES[number]["id"];
 
 export function ForgePanel<TItem extends ForgeItem>({
   item,
+  inventoryItems,
   selectedAffixSlots,
   renderItem,
   onToggleAffixSlot,
   onCraftAffix
 }: {
   item: TItem | null;
+  inventoryItems: readonly ForgeMaterialInventoryItem[];
   selectedAffixSlots: Set<string>;
   renderItem: (item: TItem) => ReactNode;
   onToggleAffixSlot: (slotId: string) => void;
-  onCraftAffix: (slotId: string, library: ForgeLibrary) => boolean;
+  onCraftAffix: (slotId: string, library: ForgeMaterialLibrary) => boolean;
 }) {
-  const [selectedLibrary, setSelectedLibrary] = useState<ForgeLibrary>("initial");
+  const [selectedLibrary, setSelectedLibrary] = useState<ForgeMaterialLibrary>("initial");
   const [autoCrafting, setAutoCrafting] = useState(false);
   const [equipmentDataReady, setEquipmentDataReady] = useState(false);
   const affixGroups = item ? forgeAffixGroups(item) : null;
@@ -126,6 +128,7 @@ export function ForgePanel<TItem extends ForgeItem>({
             ) : (
               <ForgeCraftOptions
                 item={item}
+                inventoryItems={inventoryItems}
                 selectedSlotId={selectedSlotId}
                 selectedLibrary={selectedLibrary}
                 equipmentDataReady={equipmentDataReady}
@@ -177,14 +180,15 @@ function ForgeAffixList({
   );
 }
 
-function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDataReady, autoCrafting, setAutoCrafting, onCraftAffix }: {
+function ForgeCraftOptions({ item, inventoryItems, selectedSlotId, selectedLibrary, equipmentDataReady, autoCrafting, setAutoCrafting, onCraftAffix }: {
   item: ForgeItem;
+  inventoryItems: readonly ForgeMaterialInventoryItem[];
   selectedSlotId: string;
-  selectedLibrary: ForgeLibrary;
+  selectedLibrary: ForgeMaterialLibrary;
   equipmentDataReady: boolean;
   autoCrafting: boolean;
   setAutoCrafting: Dispatch<SetStateAction<boolean>>;
-  onCraftAffix: (slotId: string, library: ForgeLibrary) => boolean;
+  onCraftAffix: (slotId: string, library: ForgeMaterialLibrary) => boolean;
 }) {
   const [autoCraftEnabled, setAutoCraftEnabled] = useState(false);
   const [targetTiers, setTargetTiers] = useState<Record<string, number>>({});
@@ -196,6 +200,8 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDat
     [equipmentDataReady, item, selectedGen, selectedLibrary, selectedSlotId]
   );
   const canCraft = options.some((option) => !option.disabled);
+  const materialCost = forgeMaterialCostFor(item, selectedLibrary, inventoryItems);
+  const canPayMaterialCost = Boolean(materialCost?.enough);
   const selectedAffix = forgeSelectedAffix(item, selectedSlotId);
   const hasAutoTarget = options.some((option) => targetTiers[option.familyId] && !option.disabled);
   const targetMatched = Boolean(
@@ -204,7 +210,7 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDat
     && targetTiers[selectedAffix.family_id]
     && selectedAffix.tier <= targetTiers[selectedAffix.family_id]
   );
-  const canStartAutoCraft = canCraft && hasAutoTarget && !targetMatched;
+  const canStartAutoCraft = canCraft && canPayMaterialCost && hasAutoTarget && !targetMatched;
 
   useEffect(() => {
     onCraftAffixRef.current = onCraftAffix;
@@ -260,7 +266,7 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDat
   }
 
   const craftButtonText = autoCraftEnabled ? (autoCrafting ? "停止自动打造" : "开始自动打造") : "打造";
-  const craftButtonDisabled = autoCraftEnabled ? !canStartAutoCraft && !autoCrafting : !canCraft;
+  const craftButtonDisabled = autoCraftEnabled ? !canStartAutoCraft && !autoCrafting : !canCraft || !canPayMaterialCost;
   return (
     <div className="forge-craft-options">
       <p className="forge-craft-description">用1条随机词缀替换该位置的上的词缀</p>
@@ -296,7 +302,7 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDat
       </div>
       <div className="forge-cost-box">
         <h3>消耗</h3>
-        <div className="forge-cost-empty" aria-label="消耗物品栏暂空" />
+        <ForgeCostBox cost={materialCost} />
       </div>
       <div className="forge-action-row">
         <label className="forge-auto-toggle">
@@ -318,6 +324,27 @@ function ForgeCraftOptions({ item, selectedSlotId, selectedLibrary, equipmentDat
       >
         {craftButtonText}
       </button>
+    </div>
+  );
+}
+
+function ForgeCostBox({ cost }: { cost: ForgeMaterialCost | null }) {
+  if (!cost) {
+    return <div className="forge-cost-empty" aria-label="当前档位没有可用消耗材料">无可用材料</div>;
+  }
+  return (
+    <div className={`forge-cost-list${cost.enough ? "" : " insufficient"}`}>
+      {cost.entries.map((entry) => (
+        <div key={entry.itemId} className={`forge-cost-item${entry.enough ? "" : " insufficient"}`} title={entry.itemName}>
+          <span className="forge-cost-icon">
+            {entry.iconSprite ? <img src={entry.iconSprite} alt="" draggable={false} /> : <span>{entry.itemName.slice(0, 1)}</span>}
+          </span>
+          <span className="forge-cost-count">
+            <b>{entry.owned}</b>/<strong>{entry.required}</strong>
+          </span>
+        </div>
+      ))}
+      {!cost.enough && <span className="forge-cost-warning">材料不足</span>}
     </div>
   );
 }
@@ -469,7 +496,7 @@ function forgeSelectedAffix(item: ForgeItem, slotId: string) {
   return kind === "suffix" ? affixGroups.suffix.filled[index] ?? null : affixGroups.prefix.filled[index] ?? null;
 }
 
-function forgeCraftOptions(item: ForgeItem, library: ForgeLibrary, gen: string, selectedSlotId: string): ForgeCraftOption[] {
+function forgeCraftOptions(item: ForgeItem, library: ForgeMaterialLibrary, gen: string, selectedSlotId: string): ForgeCraftOption[] {
   const source = forgeEquipmentSource(item);
   const level = Math.max(1, Math.floor(Number(item.level ?? 1)));
   const selectedAffix = forgeSelectedAffix(item, selectedSlotId);

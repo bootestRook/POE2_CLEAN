@@ -220,6 +220,22 @@ def test_client_only_runtime_recalculates_without_backend_adapters() -> None:
     assert "applyFrontendPickup(dropId, current)" in source
 
 
+def test_forge_material_costs_are_client_configured_and_consumed() -> None:
+    cost_source = _read(WEBAPP / "components" / "rest-area" / "forgeMaterialCosts.ts")
+    app_source = _read(WEBAPP / "App.tsx")
+    panel_source = _read(WEBAPP / "components" / "rest-area" / "ForgePanel.tsx")
+
+    assert '{ library: "initial", costs: [{ itemId: "ash_fine", count: 10 }, { itemId: "stardust_sand", count: 10 }], maxItemLevel: 75 }' in cost_source
+    assert '{ library: "advanced", costs: [{ itemId: "ash_fine", count: 30 }, { itemId: "stardust_sand", count: 30 }], maxItemLevel: 75 }' in cost_source
+    assert '{ library: "initial", costs: [{ itemId: "ash_precious", count: 10 }, { itemId: "stardust_core", count: 1 }], minItemLevel: 76 }' in cost_source
+    assert '{ library: "advanced", costs: [{ itemId: "ash_peerless", count: 10 }, { itemId: "stardust_core", count: 3 }], minItemLevel: 76 }' in cost_source
+    assert '{ library: "pinnacle", costs: [{ itemId: "ash_supreme", count: 1 }, { itemId: "stardust_core", count: 30 }] }' in cost_source
+    assert "forgeMaterialCostFor(forgeItem, library, state?.inventory ?? [])" in app_source
+    assert "consumeForgeMaterialCost(craftedInventory, currentMaterialCost)" in app_source
+    assert "ForgeCostBox" in panel_source
+    assert "!canCraft || !canPayMaterialCost" in panel_source
+
+
 def test_frontend_equipment_affix_generation_and_gm_items_are_local() -> None:
     source = _webapp_source_bundle()
     runtime = _read(WEBAPP / "frontendEquipmentRuntime.ts")

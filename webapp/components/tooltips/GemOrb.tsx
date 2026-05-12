@@ -18,6 +18,7 @@ type GemOrbSource = {
   tags: readonly { id?: string; text: string }[];
   tooltip_view?: TooltipView;
   level?: number;
+  stack_count?: number;
   equipment_rarity?: string;
   equipment_affixes?: readonly { effect: string; tier: unknown }[];
 };
@@ -34,12 +35,14 @@ export function GemOrb({ gem }: { gem: GemOrbSource }) {
     ? `item-orb ${equipmentTone ? `item-orb-rarity-${equipmentTone}` : ""}`
     : `gem-orb-color-${String(gem.tooltip_view?.icon_color_key ?? gemColorKey(gem))}`;
   const level = isGem ? Math.max(1, Math.floor(Number(gem.level ?? 1))) : 0;
+  const stackCount = Math.max(0, Math.floor(Number(gem.stack_count ?? 0)));
   return (
     <GemOrbView
       className={className}
       sprite={sprite}
       iconText={gem.tooltip_view?.icon_text ?? gem.name_text.slice(0, 1)}
       levelText={level > 0 ? romanGemLevel(level) : ""}
+      stackText={stackCount > 1 ? String(stackCount) : ""}
     />
   );
 }
@@ -48,18 +51,21 @@ export function GemOrbView({
   className,
   sprite,
   iconText,
-  levelText
+  levelText,
+  stackText
 }: {
   className: string;
   sprite: string;
   iconText: string;
   levelText: string;
+  stackText: string;
 }) {
   const style = sprite ? ({ "--gem-icon-sprite": `url(${sprite})` } as CSSProperties) : undefined;
   return (
     <span className={`gem-orb ${className} ${sprite ? "gem-orb-sprite" : ""}`} style={style}>
       {sprite ? <span className="gem-orb-label">{iconText}</span> : iconText}
       {levelText ? <span className="gem-orb-roman-level">{levelText}</span> : null}
+      {stackText ? <span className="gem-orb-stack-count">{stackText}</span> : null}
     </span>
   );
 }

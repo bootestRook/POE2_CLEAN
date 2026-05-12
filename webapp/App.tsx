@@ -207,6 +207,7 @@ import {
   prefixSuffixCapacity,
 } from "./frontendEquipmentRuntime";
 import type { FrontendEquipmentAffixRoll, FrontendEquipmentStatModifier } from "./frontendEquipmentRuntime";
+import { frontendOrdinaryItemDefinitions } from "./frontendOrdinaryItemData";
 import type {
   SecondaryHitConfig,
   SkillEditorCameraSettings,
@@ -271,6 +272,7 @@ import { inventoryItemById, isDropBackToOrigin, moveItemToEquipmentSlot as moveI
 import { createStashStateHelpers } from "./components/inventory/stashState";
 import { isInventoryItemLockedByRarity, type InventoryLockRarity } from "./components/inventory/inventoryLocking";
 import { organizeInventorySlots } from "./components/inventory/inventorySorting";
+import { inventoryItemMatchesSalvageRarity, resolveInventorySalvageProducts } from "./components/inventory/inventorySalvage";
 import { GameViewportFrame } from "./components/layout/GameViewportFrame";
 import { EntryTitleScreen } from "./components/layout/EntryTitleScreen";
 import { AppTopHud } from "./components/layout/AppTopHud";
@@ -372,6 +374,7 @@ import { REST_AREA_INTERACTION_KINDS, restAreaInteractionOpensInventory, restAre
 import { restAreaApproachNotice, restAreaInteractionNotice } from "./components/rest-area/restAreaInteractionText";
 import { useForgePanelState } from "./components/rest-area/useForgePanelState";
 import { FORGE_CRAFT_SUCCESS_RATE, craftForgeEquipmentItem } from "./components/rest-area/forgeEquipmentCrafting";
+import { consumeForgeMaterialCost, forgeMaterialCostFor, type ForgeMaterialLibrary } from "./components/rest-area/forgeMaterialCosts";
 
 type Gem = {
   instance_id: string;
@@ -396,6 +399,8 @@ type Gem = {
     release_interval_ms?: number;
   };
   level?: number;
+  stack_count?: number;
+  max_stack_count?: number;
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   equipment_slot_id?: string;
@@ -542,6 +547,9 @@ type DropPrompt = {
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   base_gem_instance_id?: string;
+  ordinary_item_id?: string;
+  stack_count?: number;
+  max_stack_count?: number;
   target_stage_id?: string;
   dropped_item?: Gem;
 };
@@ -600,8 +608,15 @@ type GmEquipmentRarityOption = {
   affix_count: number;
 };
 
+type GmOrdinaryItemOption = {
+  id: string;
+  name_text: string;
+  max_stack_count: number;
+};
+
 type GmOptions = {
   gems: GmGemOption[];
+  ordinary_items: GmOrdinaryItemOption[];
   equipment_sources: GmEquipmentSourceOption[];
   equipment_rarities: GmEquipmentRarityOption[];
 };
@@ -667,6 +682,11 @@ type ItemDiscardPrompt = {
   item: Gem;
   origin: FloatingOrigin;
   position: { x: number; y: number };
+};
+
+type InventorySalvagePrompt = {
+  itemCount: number;
+  productCount: number;
 };
 
 const DEFAULT_BAKED_BATTLE_MAP = BAKED_BATTLE_MAPS[0];
@@ -848,6 +868,11 @@ async function requestGmOptions(): Promise<GmOptions> {
   }));
   return {
     gems,
+    ordinary_items: frontendOrdinaryItemDefinitions().map((item) => ({
+      id: item.id,
+      name_text: item.nameText,
+      max_stack_count: item.maxStackCount,
+    })),
     equipment_sources: frontendEquipmentSources(),
     equipment_rarities: frontendEquipmentRarities()
   };
@@ -991,12 +1016,16 @@ function GameApp() {
   const [floatingGem, setFloatingGem] = useState<FloatingGem | null>(null);
   const [placementPrompt, setPlacementPrompt] = useState<PlacementPrompt | null>(null);
   const [itemDiscardPrompt, setItemDiscardPrompt] = useState<ItemDiscardPrompt | null>(null);
+  const [inventorySalvagePrompt, setInventorySalvagePrompt] = useState<InventorySalvagePrompt | null>(null);
   const [skipItemDiscardConfirmToday, setSkipItemDiscardConfirmToday] = useState(loadItemDiscardSkipConfirmPreference);
   const [showPersistentSupportLines, setShowPersistentSupportLines] = useState(true);
   const [inventoryLockMode, setInventoryLockMode] = useState(false);
+  const [inventorySalvageMode, setInventorySalvageMode] = useState(false);
   const [manualLockedItemIds, setManualLockedItemIds] = useState<Set<string>>(() => new Set());
   const [manualUnlockedItemIds, setManualUnlockedItemIds] = useState<Set<string>>(() => new Set());
   const [activeLockRarities, setActiveLockRarities] = useState<Set<InventoryLockRarity>>(() => new Set());
+  const [activeSalvageRarities, setActiveSalvageRarities] = useState<Set<InventoryLockRarity>>(() => new Set());
+  const [selectedSalvageItemIds, setSelectedSalvageItemIds] = useState<Set<string>>(() => new Set());
   const [gmOpen, setGmOpen] = useState(false);
   const [gmOptions, setGmOptions] = useState<GmOptions | null>(null);
   const [gmAffixes, setGmAffixes] = useState<GmEquipmentAffixResponse | null>(null);
@@ -5706,7 +5735,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function beginPointerDrag(event: MouseEvent, gem: Gem, origin: FloatingOrigin) {
     if (event.button !== 0) return;
-    if (inventoryLockMode) {
+    if (inventoryLockMode || inventorySalvageMode) {
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -5749,27 +5778,45 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     onPlacementPrompt: showPlacementPrompt
   });
 
-  function craftForgeAffix(slotId: string, library: string) {
+  function craftForgeAffix(slotId: string, library: ForgeMaterialLibrary) {
     if (!forgeItem) {
       setNotice("请先放入要打造的装备。");
       return false;
     }
-    if (Math.random() > FORGE_CRAFT_SUCCESS_RATE) {
-      setNotice("打造失败，词缀未改变。");
+    const materialCost = forgeMaterialCostFor(forgeItem, library, state?.inventory ?? []);
+    if (!materialCost) {
+      setNotice("当前装备无法使用该档位材料。");
+      return false;
+    }
+    if (!materialCost.enough) {
+      const missingText = materialCost.entries
+        .filter((entry) => !entry.enough)
+        .map((entry) => `${entry.itemName} ${entry.owned}/${entry.required}`)
+        .join("、");
+      setNotice(`材料不足：${missingText}`);
       return false;
     }
     try {
       const seed = Date.now() + Math.floor(Math.random() * 1000000);
-      const nextItem = craftForgeEquipmentItem(forgeItem, slotId, library, seed);
+      const craftSucceeded = Math.random() <= FORGE_CRAFT_SUCCESS_RATE;
       applyFrontendState((current) => {
+        const currentForgeItem = current.inventory.find((item) => item.instance_id === forgeItem.instance_id) ?? forgeItem;
+        const currentMaterialCost = forgeMaterialCostFor(currentForgeItem, library, current.inventory);
+        if (!currentMaterialCost?.enough) return null;
+        const nextItem = craftSucceeded ? craftForgeEquipmentItem(currentForgeItem, slotId, library, seed) : currentForgeItem;
         let changed = false;
-        const inventory = current.inventory.map((item) => {
+        const craftedInventory = current.inventory.map((item) => {
           if (item.instance_id !== forgeItem.instance_id) return item;
           changed = true;
           return { ...item, ...nextItem };
         });
+        const inventory = consumeForgeMaterialCost(craftedInventory, currentMaterialCost);
         return changed ? { ...current, inventory } : null;
       });
+      if (!craftSucceeded) {
+        setNotice("打造失败，已消耗材料，词缀未改变。");
+        return false;
+      }
       setNotice("打造成功，词缀已更新。");
       return true;
     } catch (error) {
@@ -5788,6 +5835,11 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     }
     return result;
   }, [activeLockRarities, manualLockedItemIds, manualUnlockedItemIds, state]);
+  const salvageProducts = useMemo(
+    () => resolveInventorySalvageProducts(state?.inventory ?? [], selectedSalvageItemIds),
+    [selectedSalvageItemIds, state]
+  );
+  const inventoryInteractionLocked = inventoryLockMode || inventorySalvageMode;
   const isInventoryItemLocked = (instanceId: string) => lockedItemIds.has(instanceId);
   const hoveredBoardGemId = hoveredGemId && fullGemById.get(hoveredGemId)?.board_position ? hoveredGemId : null;
   const legalDropCells = useLegalDropCells(state, floatingGem && isGemItem(floatingGem.gem) ? floatingGem.gem : null);
@@ -5838,7 +5890,71 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   function toggleInventoryLockMode() {
     clearFloatingGem();
     clearDragHoverState();
+    setInventorySalvageMode(false);
+    setSelectedSalvageItemIds(new Set());
+    setActiveSalvageRarities(new Set());
     setInventoryLockMode((current) => !current);
+  }
+
+  function toggleInventorySalvageMode() {
+    clearFloatingGem();
+    clearDragHoverState();
+    setInventoryLockMode(false);
+    setInventorySalvagePrompt(null);
+    setInventorySalvageMode((current) => {
+      const next = !current;
+      if (!next) {
+        setSelectedSalvageItemIds(new Set());
+        setActiveSalvageRarities(new Set());
+      } else {
+        setActiveInventoryBagTab("equipment");
+      }
+      return next;
+    });
+  }
+
+  function requestInventorySalvage() {
+    const itemCount = selectedSalvageItemIds.size;
+    if (itemCount <= 0) {
+      setNotice("请先选择要回收的装备。");
+      return;
+    }
+    setInventorySalvagePrompt({
+      itemCount,
+      productCount: salvageProducts.reduce((total, product) => total + product.count, 0)
+    });
+  }
+
+  function confirmInventorySalvage() {
+    if (!state || !inventorySalvagePrompt) return;
+    const selectedIds = new Set(selectedSalvageItemIds);
+    const products = salvageProducts;
+    setInventorySalvagePrompt(null);
+    removeItemsFromBagSlots(Array.from(selectedIds));
+    setEquipmentSlots((slots) => removeItemsFromEquipmentSlots(slots, Array.from(selectedIds)));
+    applyFrontendState((current) => {
+      const salvagedInventory = current.inventory.filter((item) => !selectedIds.has(item.instance_id));
+      const productItems = products.map((product) => createFrontendInventoryItemFromDrop({
+        drop_id: `frontend_salvage_${frontendDropId.current++}`,
+        loot_kind: "ordinary",
+        name_text: product.nameText,
+        rarity_text: "材料",
+        picked_up: false,
+        status_text: "回收产物",
+        ordinary_item_id: product.id,
+        stack_count: product.count
+      }, { ...current, inventory: salvagedInventory }));
+      return {
+        ...current,
+        inventory: [...salvagedInventory, ...productItems],
+        stash_pages: removeItemsFromStashPages(current.stash_pages, Array.from(selectedIds)),
+        equipment_slots: removeItemsFromEquipmentSlots(normalizeEquipmentSlotsState(current.equipment_slots ?? [], EQUIPMENT_SLOT_COUNT), Array.from(selectedIds))
+      };
+    });
+    setSelectedSalvageItemIds(new Set());
+    setActiveSalvageRarities(new Set());
+    setInventorySalvageMode(false);
+    setNotice(`已回收 ${selectedIds.size} 件装备，获得 ${products.reduce((total, product) => total + product.count, 0)} 件材料。`);
   }
 
   function toggleInventoryItemLock(instanceId: string) {
@@ -5863,6 +5979,36 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
       if (next.has(rarity)) next.delete(rarity);
       else next.add(rarity);
       return next;
+    });
+  }
+
+  function toggleInventorySalvageItem(instanceId: string) {
+    setSelectedSalvageItemIds((current) => {
+      const next = new Set(current);
+      if (next.has(instanceId)) next.delete(instanceId);
+      else next.add(instanceId);
+      return next;
+    });
+  }
+
+  function toggleInventorySalvageRarity(rarity: InventoryLockRarity) {
+    const matchedIds = new Set((state?.inventory ?? [])
+      .filter((item) => inventoryItemMatchesSalvageRarity(item, rarity))
+      .map((item) => item.instance_id));
+    const wasActive = activeSalvageRarities.has(rarity);
+    setActiveSalvageRarities((current) => {
+      const next = new Set(current);
+      if (wasActive) next.delete(rarity);
+      else next.add(rarity);
+      return next;
+    });
+    setSelectedSalvageItemIds((selected) => {
+      const nextSelected = new Set(selected);
+      for (const instanceId of matchedIds) {
+        if (wasActive) nextSelected.delete(instanceId);
+        else nextSelected.add(instanceId);
+      }
+      return nextSelected;
     });
   }
 
@@ -5913,6 +6059,24 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           return createFrontendInventoryItemFromDrop(drop, current);
         });
         return { ...current, inventory: [...current.inventory, ...generatedItems] };
+      }
+      if (action === "gm-add-ordinary") {
+        const ordinaryItemId = String(payload.ordinary_item_id ?? gmOptions?.ordinary_items[0]?.id ?? "");
+        const stackCount = Math.max(1, Math.floor(Number(payload.stack_count ?? 1) || 1));
+        const ordinaryItem = gmOptions?.ordinary_items.find((item) => item.id === ordinaryItemId);
+        const drop: DropPrompt = {
+          drop_id: `frontend_gm_ordinary_${frontendDropId.current++}`,
+          loot_kind: "ordinary",
+          name_text: ordinaryItem?.name_text ?? ordinaryItemId,
+          rarity_text: "材料",
+          picked_up: false,
+          status_text: "GM 添加",
+          ordinary_item_id: ordinaryItemId,
+          stack_count: stackCount,
+          max_stack_count: ordinaryItem?.max_stack_count
+        };
+        const item = createFrontendInventoryItemFromDrop(drop, current);
+        return { ...current, inventory: [...current.inventory, item] };
       }
       if (action === "gm-add-equipment") {
         const source = String(payload.source ?? gmOptions?.equipment_sources[0]?.id ?? frontendEquipmentSources()[0]?.id ?? "装备");
@@ -6366,6 +6530,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
           {!monsterTestMode && !playing && !skillEditorMode && entryStep === "rest" && restAreaPanel === "forge" && (
             <ForgePanel
               item={forgeItem}
+              inventoryItems={state?.inventory ?? []}
               selectedAffixSlots={selectedForgeAffixSlots}
               renderItem={(item) => <GemOrb gem={item} />}
               onToggleAffixSlot={toggleForgeAffixSlot}
@@ -6407,7 +6572,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               hoveredEquipmentSlot={hoveredEquipmentSlot}
               hoveredGemId={hoveredGemId}
               floatingGem={floatingGem}
-              lockModeActive={inventoryLockMode}
+              lockModeActive={inventoryInteractionLocked}
               isTwoHandedWeapon={isTwoHandedWeapon}
               isFloatingOrigin={isFloatingOrigin}
               itemCellClassName={resolveEquipmentCellClass}
@@ -6442,7 +6607,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               activeTargetLines={activeTargetLines}
               showPersistentSupportLines={showPersistentSupportLines}
               placementPreview={placementPreview}
-              interactionDisabled={inventoryLockMode}
+              interactionDisabled={inventoryInteractionLocked}
               renderGem={(gem) => <GemOrb gem={gem} />}
               onHoverCell={setHoveredBoardCell}
               onDropGem={dropGemOnCell}
@@ -6464,8 +6629,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               hoveredBagSlot={hoveredBagSlot}
               hoveredGemId={hoveredGemId}
               lockModeActive={inventoryLockMode}
+              salvageModeActive={inventorySalvageMode}
               lockedItemIds={lockedItemIds}
+              selectedSalvageItemIds={selectedSalvageItemIds}
               activeLockRarities={activeLockRarities}
+              activeSalvageRarities={activeSalvageRarities}
+              salvageProducts={salvageProducts}
               cellClassName={resolveBagCellClass}
               emptyCellClassName={bagEmptyCellClass}
               isFloatingOrigin={isFloatingOrigin}
@@ -6475,8 +6644,12 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
               onBeginDrag={beginDrag}
               onPointerDrag={beginPointerDrag}
               onToggleLockMode={toggleInventoryLockMode}
+              onToggleSalvageMode={toggleInventorySalvageMode}
+              onRequestSalvage={requestInventorySalvage}
               onToggleItemLock={toggleInventoryItemLock}
+              onToggleSalvageItem={toggleInventorySalvageItem}
               onToggleLockRarity={toggleInventoryLockRarity}
+              onToggleSalvageRarity={toggleInventorySalvageRarity}
               onOrganize={organizeActiveInventoryTab}
               onHoverSlot={setHoveredBagSlot}
               onHoverGem={onGemHover}
@@ -6513,6 +6686,19 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
             <div className="placement-prompt" style={{ left: placementPrompt.x, top: placementPrompt.y }}>
               {placementPrompt.text}
             </div>
+          )}
+          {inventorySalvagePrompt && (
+            <section className="item-discard-overlay" role="dialog" aria-modal="true" aria-label="回收物品确认">
+              <div className="item-discard-dialog">
+                <span>回收物品</span>
+                <h2>{inventorySalvagePrompt.itemCount} 件装备</h2>
+                <p>确认回收已选择的装备吗？该操作会移除装备并获得 {inventorySalvagePrompt.productCount} 件材料。</p>
+                <div className="item-discard-actions">
+                  <button type="button" onClick={confirmInventorySalvage}>确认回收</button>
+                  <button type="button" onClick={() => setInventorySalvagePrompt(null)}>取消</button>
+                </div>
+              </div>
+            </section>
           )}
           {itemDiscardPrompt && (
             <section className="item-discard-overlay" role="dialog" aria-modal="true" aria-label="丢弃物品确认">

@@ -4,6 +4,7 @@ import { prefixSuffixCapacity } from "../../frontendEquipmentRuntime";
 
 type GmOptions = {
   gems: Array<{ id: string; name_text: string; kind: string; sudoku_digit: number | string }>;
+  ordinary_items: Array<{ id: string; name_text: string; max_stack_count: number }>;
   equipment_sources: Array<{ id: string; name_text: string }>;
   equipment_rarities: Array<{ id: string; name_text: string; affix_count: number }>;
 };
@@ -28,11 +29,13 @@ export function GmToolPanel({
   onSubmit: (path: string, body: unknown, successText: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<"gem" | "specific" | "random">("gem");
+  const [mode, setMode] = useState<"gem" | "ordinary" | "specific" | "random">("gem");
   const [selectedGemSudokuDigit, setSelectedGemSudokuDigit] = useState("all");
   const [selectedGemId, setSelectedGemId] = useState("");
   const [gemLevel, setGemLevel] = useState(1);
   const [gemQuantity, setGemQuantity] = useState(1);
+  const [selectedOrdinaryItemId, setSelectedOrdinaryItemId] = useState("");
+  const [ordinaryStackCount, setOrdinaryStackCount] = useState(1);
   const [source, setSource] = useState("");
   const [equipmentLevel, setEquipmentLevel] = useState(86);
   const [selectedBaseAffixId, setSelectedBaseAffixId] = useState("");
@@ -66,6 +69,13 @@ export function GmToolPanel({
   }, [filteredGems]);
 
   useEffect(() => {
+    const ordinaryItems = options?.ordinary_items ?? [];
+    setSelectedOrdinaryItemId((current) => (
+      ordinaryItems.some((item) => item.id === current) ? current : ordinaryItems[0]?.id ?? ""
+    ));
+  }, [options]);
+
+  useEffect(() => {
     if (!source) return;
     let cancelled = false;
     setSelectedBaseAffixId("");
@@ -87,6 +97,8 @@ export function GmToolPanel({
       try {
         if (mode === "gem") {
         await onSubmit("gm-add-gem", { base_gem_id: selectedGemId, level: gemLevel, quantity: gemQuantity }, "GM 已添加宝石。");
+        } else if (mode === "ordinary") {
+        await onSubmit("gm-add-ordinary", { ordinary_item_id: selectedOrdinaryItemId, stack_count: ordinaryStackCount }, "GM 已添加材料道具。");
         } else if (mode === "specific") {
         if (!affixResponseMatches) {
           setMessage("正在读取当前装备类型词缀。");
@@ -166,6 +178,7 @@ export function GmToolPanel({
       </header>
       <div className="gm-tool-tabs">
         <button type="button" className={mode === "gem" ? "active" : ""} onClick={() => setMode("gem")}>宝石</button>
+        <button type="button" className={mode === "ordinary" ? "active" : ""} onClick={() => setMode("ordinary")}>材料</button>
         <button type="button" className={mode === "specific" ? "active" : ""} onClick={() => setMode("specific")}>指定装备</button>
         <button type="button" className={mode === "random" ? "active" : ""} onClick={() => setMode("random")}>随机装备</button>
       </div>
@@ -204,7 +217,32 @@ export function GmToolPanel({
               </div>
             </>
           )}
-          {mode !== "gem" && (
+          {mode === "ordinary" && (
+            <>
+              <label>
+                <span>材料</span>
+                <select value={selectedOrdinaryItemId} onChange={(event) => setSelectedOrdinaryItemId(event.currentTarget.value)}>
+                  {(options.ordinary_items ?? []).map((item) => (
+                    <option key={item.id} value={item.id}>{item.name_text} · 堆叠上限 {item.max_stack_count}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>数量</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.max(1, Number(options.ordinary_items.find((item) => item.id === selectedOrdinaryItemId)?.max_stack_count ?? 999))}
+                  value={ordinaryStackCount}
+                  onChange={(event) => {
+                    const maxStackCount = Math.max(1, Number(options.ordinary_items.find((item) => item.id === selectedOrdinaryItemId)?.max_stack_count ?? 999));
+                    setOrdinaryStackCount(clampNumber(Number(event.currentTarget.value), 1, maxStackCount));
+                  }}
+                />
+              </label>
+            </>
+          )}
+          {mode !== "gem" && mode !== "ordinary" && (
             <>
               <div className="gm-tool-row">
                 <label>

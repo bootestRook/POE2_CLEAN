@@ -1,8 +1,8 @@
 {
   "format": "poe.tilemap.editor",
   "version": 1,
-  "name": "procedural_map_v1",
-  "savedAt": "2026-05-07T07:12:42.522Z",
+  "name": "map_002",
+  "savedAt": "2026-05-12T08:44:30.075Z",
   "tiles": [
     [
       "empty",

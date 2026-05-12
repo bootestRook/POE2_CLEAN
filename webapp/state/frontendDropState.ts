@@ -9,6 +9,7 @@ import {
   type FrontendEquipmentStatModifier
 } from "../frontendEquipmentRuntime";
 import { frontendEquipmentIconSprite } from "../frontendEquipmentIconSprites";
+import { createFrontendOrdinaryItem, frontendOrdinaryItemDefinitionById } from "../frontendOrdinaryItemData";
 import { equipmentTooltipAffixLine, equipmentRarityTone } from "../components/tooltips/tooltipFormatting";
 import { createFrontendItemTooltipView, type TooltipView } from "../components/tooltips/tooltipViewModel";
 import { frontendEquipmentSourceSlotIdFromText, isTwoHandedEquipmentSource } from "../components/inventory/equipmentRules";
@@ -32,6 +33,8 @@ type FrontendDropGem = {
   board_position: { row: number; column: number } | null;
   tooltip_view?: TooltipView;
   level?: number;
+  stack_count?: number;
+  max_stack_count?: number;
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   equipment_slot_id?: string;
@@ -62,6 +65,9 @@ export type FrontendDropPrompt<TGem extends FrontendDropGem = FrontendDropGem> =
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   base_gem_instance_id?: string;
+  ordinary_item_id?: string;
+  stack_count?: number;
+  max_stack_count?: number;
   target_stage_id?: string;
   dropped_item?: TGem;
 };
@@ -510,6 +516,18 @@ export function createFrontendInventoryItem<TState extends FrontendDropAppState<
         equipment_affixes: drop.equipment_affixes,
         equipment_stat_modifiers: drop.equipment_stat_modifiers ?? []
       };
+    }
+    if (drop.loot_kind === "ordinary") {
+      const definition = frontendOrdinaryItemDefinitionById(
+        String(drop.ordinary_item_id ?? drop.base_gem_instance_id ?? drop.name_text ?? "")
+      );
+      if (definition) {
+        return createFrontendOrdinaryItem(definition, {
+          instanceId: id,
+          stackCount: Number(drop.stack_count ?? 1),
+          maxStackCount: Number(drop.max_stack_count ?? definition.maxStackCount),
+        });
+      }
     }
     const rarityText = drop.rarity_text || "普通";
     const descriptionText = `${rarityText}掉落物。`;

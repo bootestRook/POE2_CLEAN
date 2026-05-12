@@ -7982,7 +7982,7 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "procedural_map_v1"
         ],
         "gem_level_min": 1,
         "gem_level_max": 3,
@@ -8021,7 +8021,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 1,
         "gem_level_max": 3,
@@ -8060,7 +8061,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "major_final",
         "boss_pack_pool": "supreme",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 1,
         "gem_level_max": 3,
@@ -8099,7 +8101,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 1,
         "gem_level_max": 3,
@@ -8138,7 +8141,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 1,
         "gem_level_max": 3,
@@ -8177,7 +8181,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "major_final",
         "boss_pack_pool": "supreme",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 1,
         "gem_level_max": 3,
@@ -8216,7 +8221,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 3,
         "gem_level_max": 7,
@@ -8255,7 +8261,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 3,
         "gem_level_max": 7,
@@ -8294,7 +8301,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "major_final",
         "boss_pack_pool": "supreme",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 3,
         "gem_level_max": 7,
@@ -8333,7 +8341,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 3,
         "gem_level_max": 7,
@@ -8372,7 +8381,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 3,
         "gem_level_max": 7,
@@ -8411,7 +8421,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "major_final",
         "boss_pack_pool": "supreme",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 3,
         "gem_level_max": 7,
@@ -8450,7 +8461,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 6,
         "gem_level_max": 10,
@@ -8489,7 +8501,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 6,
         "gem_level_max": 10,
@@ -8528,7 +8541,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "major_final",
         "boss_pack_pool": "supreme",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 6,
         "gem_level_max": 10,
@@ -8567,7 +8581,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 6,
         "gem_level_max": 10,
@@ -8606,7 +8621,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "minor",
         "boss_pack_pool": "legendary",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 6,
         "gem_level_max": 10,
@@ -8645,7 +8661,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "major_final",
         "boss_pack_pool": "supreme",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 6,
         "gem_level_max": 10,
@@ -8684,7 +8701,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 9,
         "gem_level_max": 12,
@@ -8723,7 +8741,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 9,
         "gem_level_max": 12,
@@ -8762,7 +8781,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 11,
         "gem_level_max": 14,
@@ -8801,7 +8821,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 11,
         "gem_level_max": 14,
@@ -8840,7 +8861,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 13,
         "gem_level_max": 15,
@@ -8879,7 +8901,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 13,
         "gem_level_max": 15,
@@ -8918,7 +8941,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 14,
         "gem_level_max": 16,
@@ -8957,7 +8981,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 14,
         "gem_level_max": 16,
@@ -8996,7 +9021,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 15,
         "gem_level_max": 17,
@@ -9035,7 +9061,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 15,
         "gem_level_max": 17,
@@ -9074,7 +9101,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 16,
         "gem_level_max": 18,
@@ -9113,7 +9141,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 16,
         "gem_level_max": 18,
@@ -9152,7 +9181,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 17,
         "gem_level_max": 19,
@@ -9191,7 +9221,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 17,
         "gem_level_max": 19,
@@ -9230,7 +9261,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 18,
         "gem_level_max": 20,
@@ -9269,7 +9301,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 18,
         "gem_level_max": 20,
@@ -9308,7 +9341,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 18,
         "gem_level_max": 20,
@@ -9347,7 +9381,8 @@ export const FRONTEND_INITIAL_APP_STATE = {
         "stage_scope": "timemark",
         "boss_pack_pool": "mixed",
         "map_template_ids": [
-          "map_001"
+          "map_001",
+          "procedural_map_v1"
         ],
         "gem_level_min": 18,
         "gem_level_max": 20,
@@ -14449,3 +14484,4 @@ export const FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG = {
     }
   }
 } as const;
+

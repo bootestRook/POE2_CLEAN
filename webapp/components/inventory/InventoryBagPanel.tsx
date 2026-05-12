@@ -1,6 +1,7 @@
-import type { DragEvent, MouseEvent, ReactNode } from "react";
+import type { CSSProperties, DragEvent, MouseEvent, ReactNode } from "react";
 import { BagGrid } from "./BagGrid";
 import { inventoryLockRarityOptions, type InventoryLockRarity } from "./inventoryLocking";
+import type { InventorySalvageProduct } from "./inventorySalvage";
 
 type BagPanelItem = {
   instance_id: string;
@@ -21,8 +22,12 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   hoveredBagSlot,
   hoveredGemId,
   lockModeActive,
+  salvageModeActive,
   lockedItemIds,
+  selectedSalvageItemIds,
   activeLockRarities,
+  activeSalvageRarities,
+  salvageProducts,
   cellClassName,
   emptyCellClassName,
   isFloatingOrigin,
@@ -32,8 +37,12 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   onBeginDrag,
   onPointerDrag,
   onToggleLockMode,
+  onToggleSalvageMode,
+  onRequestSalvage,
   onToggleItemLock,
+  onToggleSalvageItem,
   onToggleLockRarity,
+  onToggleSalvageRarity,
   onOrganize,
   onHoverSlot,
   onHoverGem,
@@ -46,8 +55,12 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   hoveredBagSlot: number | null;
   hoveredGemId: string | null;
   lockModeActive: boolean;
+  salvageModeActive: boolean;
   lockedItemIds: Set<string>;
+  selectedSalvageItemIds: Set<string>;
   activeLockRarities: Set<InventoryLockRarity>;
+  activeSalvageRarities: Set<InventoryLockRarity>;
+  salvageProducts: InventorySalvageProduct[];
   cellClassName: (
     slotIndex: number,
     hoveredBagSlot: number | null,
@@ -64,27 +77,35 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
   onBeginDrag: (event: DragEvent) => void;
   onPointerDrag: (event: MouseEvent, gem: TItem, origin: BagOrigin) => void;
   onToggleLockMode: () => void;
+  onToggleSalvageMode: () => void;
+  onRequestSalvage: () => void;
   onToggleItemLock: (instanceId: string) => void;
+  onToggleSalvageItem: (instanceId: string) => void;
   onToggleLockRarity: (rarity: InventoryLockRarity) => void;
+  onToggleSalvageRarity: (rarity: InventoryLockRarity) => void;
   onOrganize: () => void;
   onHoverSlot: (slotIndex: number) => void;
   onHoverGem: (event: MouseEvent, gem: TItem, source: "inventory", slotIndex?: number) => void;
   onLeaveSlot: () => void;
   onLeaveGem: () => void;
 }) {
+  const rarityModeActive = (lockModeActive || salvageModeActive) && activeTab === "equipment";
+  const activeRarities = salvageModeActive ? activeSalvageRarities : activeLockRarities;
+  const onToggleRarity = salvageModeActive ? onToggleSalvageRarity : onToggleLockRarity;
+
   return (
-    <section className="bag-panel">
-      {lockModeActive && activeTab === "equipment" && (
-        <div className="inventory-rarity-lock-column" aria-label="按稀有度锁定装备">
+    <section className={`bag-panel${salvageModeActive ? " inventory-salvage-mode-panel" : ""}`}>
+      {rarityModeActive && (
+        <div className="inventory-rarity-lock-column" aria-label={salvageModeActive ? "按稀有度选择回收装备" : "按稀有度锁定装备"}>
           {inventoryLockRarityOptions.map((option) => (
             <button
               key={option.id}
-              className={`inventory-rarity-lock-button rarity-${option.id}${activeLockRarities.has(option.id) ? " active" : ""}`}
+              className={`inventory-rarity-lock-button rarity-${option.id}${activeRarities.has(option.id) ? " active" : ""}`}
               type="button"
-              aria-label={`锁定${option.label}装备`}
-              aria-pressed={activeLockRarities.has(option.id)}
+              aria-label={`${salvageModeActive ? "选择回收" : "锁定"}${option.label}装备`}
+              aria-pressed={activeRarities.has(option.id)}
               title={option.label}
-              onClick={() => onToggleLockRarity(option.id)}
+              onClick={() => onToggleRarity(option.id)}
             />
           ))}
         </div>
@@ -113,7 +134,9 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
         slots={slots}
         floatingGem={floatingGem}
         lockModeActive={lockModeActive}
+        salvageModeActive={salvageModeActive}
         lockedItemIds={lockedItemIds}
+        selectedSalvageItemIds={selectedSalvageItemIds}
         cellClassName={(slotIndex, gem) => cellClassName(slotIndex, hoveredBagSlot, gem, hoveredGemId, floatingGem, isFloatingOrigin)}
         emptyCellClassName={(slotIndex) => emptyCellClassName(slotIndex, hoveredBagSlot)}
         isFloatingOrigin={isFloatingOrigin}
@@ -122,15 +145,71 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
         onBeginDrag={onBeginDrag}
         onPointerDrag={onPointerDrag}
         onToggleItemLock={onToggleItemLock}
+        onToggleSalvageItem={onToggleSalvageItem}
         onHoverSlot={onHoverSlot}
         onHoverGem={onHoverGem}
         onLeaveSlot={onLeaveSlot}
         onLeaveGem={onLeaveGem}
       />
-      <div className="bag-action-row" aria-label="物品栏操作">
-        <button className={`bag-action-button${lockModeActive ? " active" : ""}`} type="button" aria-pressed={lockModeActive} onClick={onToggleLockMode}>锁定</button>
-        <button className="bag-action-button" type="button">回收</button>
-        <button className="bag-action-button" type="button" onClick={onOrganize}>整理</button>
+      {salvageModeActive ? (
+        <>
+          <div className="bag-action-row bag-action-row-salvage" aria-label="回收操作">
+            {selectedSalvageItemIds.size > 0 && (
+              <button className="bag-action-button active" type="button" onClick={onRequestSalvage}>回收</button>
+            )}
+            <button className="bag-action-button active" type="button" onClick={onToggleSalvageMode}>取消</button>
+          </div>
+          <InventorySalvageOutputPanel products={salvageProducts} />
+        </>
+      ) : (
+        <div className="bag-action-row" aria-label="物品栏操作">
+          <button className={`bag-action-button${lockModeActive ? " active" : ""}`} type="button" aria-pressed={lockModeActive} onClick={onToggleLockMode}>锁定</button>
+          <button className="bag-action-button" type="button" onClick={onToggleSalvageMode}>回收</button>
+          <button className="bag-action-button" type="button" onClick={onOrganize}>整理</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function InventorySalvageOutputPanel({ products }: { products: InventorySalvageProduct[] }) {
+  const emptyCellCount = Math.max(0, 12 - products.length);
+  const cells = [...products, ...Array.from({ length: emptyCellCount }, (_, index) => ({
+    id: `empty-${index}`,
+    nameText: "",
+    count: 0,
+    iconText: "",
+    iconSprite: "",
+    tone: "white" as const
+  }))];
+
+  return (
+    <section className="inventory-salvage-output-panel" aria-label="回收产物">
+      <div className="inventory-salvage-output-header">
+        <span>回收产物</span>
+      </div>
+      <div className="inventory-salvage-output-scroll">
+        <div className="inventory-salvage-output-grid">
+          {cells.map((product) => (
+            <div
+              key={product.id}
+              className={`inventory-salvage-output-cell${product.count > 0 ? ` has-product product-${product.tone}` : ""}`}
+              title={product.nameText}
+            >
+              {product.count > 0 && (
+                <>
+                  <span
+                    className={`gem-orb item-orb item-orb-rarity-${product.tone} gem-orb-sprite inventory-salvage-product-orb`}
+                    style={{ "--gem-icon-sprite": `url(${product.iconSprite})` } as CSSProperties}
+                  >
+                    <span className="gem-orb-label">{product.iconText}</span>
+                    <span className="gem-orb-stack-count">{product.count}</span>
+                  </span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

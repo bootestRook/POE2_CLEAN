@@ -259,6 +259,13 @@ export function buildFrontendProjectileSkillEvents(
       x: spawn.x + direction.x * Number(params.max_distance ?? distance(spawn, hitPosition)),
       y: spawn.y + direction.y * Number(params.max_distance ?? distance(spawn, hitPosition))
     };
+    const sustainedTickIntervalMs = Math.max(1, Number(params.tick_interval_ms ?? 0));
+    const sustainedActiveDurationMs = Math.max(sustainedTickIntervalMs, Number(params.duration_ms ?? lifetimeMs));
+    const sustainedTickRadius = Math.max(1, Number(params.impact_radius ?? skill.hit?.hit_radius ?? 20));
+    const sustainedTickMaxTargets = Math.max(1, Math.round(Number(params.max_targets ?? 1)));
+    const sustainedDamageComponents = forcedElement
+      ? { [damageType]: amount }
+      : deps.damagePayloadComponents(skill, amount, damageType, skill.hit as Record<string, unknown>);
     events.push(deps.frontendSkillEvent(skill, "projectile_spawn", target, spawn, direction, null, damageType, {
       vfx_key: deps.frontendSkillVfxKey(skill, "projectile"),
       projectile_id: projectileId,
@@ -272,9 +279,19 @@ export function buildFrontendProjectileSkillEvents(
       direction_world: direction,
       velocity_world: { x: direction.x * Number(params.projectile_speed ?? 600), y: direction.y * Number(params.projectile_speed ?? 600) },
       projectile_speed: Number(params.projectile_speed ?? 600),
+      max_distance: Number(params.max_distance ?? distance(spawn, hitPosition)),
       projectile_width: Number(params.projectile_width ?? 38),
       projectile_height: Number(params.projectile_height ?? 24),
       impact_radius: Number(params.impact_radius ?? skill.hit?.hit_radius ?? 24) * skill.area_multiplier,
+      radius: sustainedTickRadius * skill.area_multiplier,
+      max_targets: sustainedTickMaxTargets,
+      damage_amount: amount,
+      damage_components: sustainedDamageComponents,
+      dynamic_tick_runtime: sustainedTicks,
+      projectile_tick_runtime: sustainedTicks,
+      dynamic_tick_hit_vfx: sustainedTicks,
+      tick_interval_ms: sustainedTickIntervalMs,
+      duration_ms: sustainedActiveDurationMs,
       area_scale: skill.area_multiplier,
       projectile_visual_mode: String(params.projectile_visual_mode ?? "standard"),
       trajectory: String(params.trajectory ?? "linear"),
@@ -284,52 +301,6 @@ export function buildFrontendProjectileSkillEvents(
       burst_interval_ms: burstIntervalMs
     }, lifetimeMs, projectileDelayMs));
     if (sustainedTicks) {
-      const tickIntervalMs = Math.max(1, Number(params.tick_interval_ms ?? 0));
-      const activeDurationMs = Math.max(tickIntervalMs, Number(params.duration_ms ?? lifetimeMs));
-      const tickCount = Math.max(1, Math.floor(activeDurationMs / tickIntervalMs));
-      const tickRadius = Math.max(1, Number(params.impact_radius ?? skill.hit?.hit_radius ?? 20));
-      const tickMaxTargets = Math.max(1, Math.round(Number(params.max_targets ?? 1)));
-      for (let tick = 0; tick < tickCount; tick += 1) {
-        const tickTimeMs = (tick + 1) * tickIntervalMs;
-        const progress = clamp(tickTimeMs / Math.max(1, lifetimeMs), 0, 1);
-        const tickPosition = {
-          x: spawn.x + (hitPosition.x - spawn.x) * progress,
-          y: spawn.y + (hitPosition.y - spawn.y) * progress
-        };
-        const tickDelayMs = projectileDelayMs + tickTimeMs;
-        const tickTargets = deps.frontendUniqueTargetsByDistance(current, tickPosition, tickRadius, tickMaxTargets);
-        for (const tickTarget of tickTargets) {
-          const tickTargetPosition = { x: tickTarget.x, y: tickTarget.y };
-          const tickDamageComponents = forcedElement
-            ? { [damageType]: amount }
-            : deps.damagePayloadComponents(skill, amount, damageType, skill.hit as Record<string, unknown>);
-          const tickPayload = {
-            projectile_id: projectileId,
-            projectile_index: index + 1,
-            projectile_count: projectileCount,
-            tick_index: tick + 1,
-            tick_time_ms: tickTimeMs,
-            tick_interval_ms: tickIntervalMs,
-            duration_ms: activeDurationMs,
-            hit_world_position: tickTargetPosition,
-            impact_world_position: tickPosition,
-            projectile_world_position: tickPosition,
-            target_world_position: tickTargetPosition,
-            damage_components: tickDamageComponents,
-            armor_reduction_penetration_percent: skill.runtime_params?.armor_reduction_penetration_percent,
-            resistance_penetration_percent: skill.runtime_params?.resistance_penetration_percent,
-            cull_threshold_percent: skill.runtime_params?.cull_threshold_percent,
-            double_damage_chance_percent: skill.runtime_params?.double_damage_chance_percent,
-            hit_vfx_key: deps.frontendSkillVfxKey(skill, "hit")
-          };
-          events.push(deps.frontendSkillEvent(skill, "damage", tickTarget, tickTargetPosition, direction, amount, damageType, tickPayload, 0, tickDelayMs));
-          events.push(deps.frontendSkillEvent(skill, "hit_vfx", tickTarget, tickTargetPosition, direction, null, damageType, {
-            ...tickPayload,
-            vfx_key: deps.frontendSkillVfxKey(skill, "hit")
-          }, 420, tickDelayMs));
-          events.push(deps.frontendSkillEvent(skill, "floating_text", tickTarget, { x: tickTargetPosition.x, y: tickTargetPosition.y - 28 }, direction, amount, damageType, tickPayload, 800, tickDelayMs));
-        }
-      }
       continue;
     }
     events.push(deps.frontendSkillEvent(skill, "projectile_hit", target, hitPosition, direction, amount, damageType, {

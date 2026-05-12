@@ -30,13 +30,16 @@ export function createActiveDamageZoneRuntime(
   shape: "circle" | "rectangle",
   enemyCount: number
 ) {
-  if (event.type !== "damage_zone") return null;
+  if (event.type !== "damage_zone" && event.type !== "projectile_spawn") return null;
   const payload = event.payload ?? {};
   if (payload.dynamic_tick_runtime !== true) return null;
   const tickIntervalMs = Math.max(0, Math.round(Number(payload.tick_interval_ms ?? 0)));
   const damageAmount = Math.max(0, Number(payload.damage_amount ?? event.amount ?? 0));
   if (tickIntervalMs <= 0 || event.duration_ms <= 0 || damageAmount <= 0) return null;
   const firstTickMs = Math.max(0, Math.round(Number(payload.hit_at_ms ?? tickIntervalMs)));
+  const projectileMotion = payload.projectile_tick_runtime === true
+    ? projectileMotionFromPayload(payload, origin)
+    : undefined;
   return {
     zoneId,
     event,
@@ -56,7 +59,8 @@ export function createActiveDamageZoneRuntime(
     maxHits: Math.max(1, Math.round(Number(payload.max_hits ?? Number.MAX_SAFE_INTEGER))),
     maxHitsPerTarget: Math.max(1, Math.round(Number(payload.max_hits_per_target ?? Number.MAX_SAFE_INTEGER))),
     totalHits: 0,
-    hitCounts: new Map()
+    hitCounts: new Map(),
+    projectileMotion
   } satisfies ActiveDamageZoneRuntime;
 }
 
@@ -107,7 +111,7 @@ export function buildActiveDamageZoneRuntimeTickEvents(
   deps: ActiveDamageZoneRuntimeTickDeps
 ): ActiveDamageZoneRuntimeTickResult {
   let nextZone = cloneActiveDamageZoneRuntime(zone);
-  const origin = nextZone.followPlayer ? { x: deps.player.x, y: deps.player.y } : nextZone.origin;
+  const origin = projectileTickOrigin(nextZone) ?? (nextZone.followPlayer ? { x: deps.player.x, y: deps.player.y } : nextZone.origin);
   const maxTargets = Math.max(1, nextZone.maxTargets);
   const targets = nextZone.shape === "circle"
     ? deps.frontendUniqueTargetsByDistance(deps.enemies, origin, nextZone.radius, maxTargets)
@@ -135,7 +139,7 @@ export function buildActiveDamageZoneRuntimeTickEvents(
       tick_time_ms: tickTimeMs,
       tick_interval_ms: nextZone.tickIntervalMs,
       hit_world_position: position,
-      impact_world_position: position,
+      impact_world_position: nextZone.payload.projectile_tick_runtime === true ? origin : position,
       target_world_position: position,
       origin_world_position: origin,
       damage_components: tickDamageComponents,
@@ -321,4 +325,34 @@ function cloneActiveDamageZoneRuntime(zone: ActiveDamageZoneRuntime): ActiveDama
 function normalizedWorldDirection(direction: WorldPoint) {
   const length = Math.hypot(direction.x, direction.y) || 1;
   return { x: direction.x / length, y: direction.y / length };
+}
+
+function projectileMotionFromPayload(payload: NonNullable<SkillEvent["payload"]>, fallbackOrigin: WorldPoint) {
+  const spawn = pointFromUnknown(payload.spawn_world_position) ?? fallbackOrigin;
+  const explicitEnd = pointFromUnknown(payload.expire_world_position) ?? pointFromUnknown(payload.target_world_position);
+  const direction = pointFromUnknown(payload.direction_world);
+  const maxDistance = Math.max(0, Number(payload.max_distance ?? 0));
+  const end = explicitEnd ?? (direction && maxDistance > 0
+    ? { x: spawn.x + direction.x * maxDistance, y: spawn.y + direction.y * maxDistance }
+    : spawn);
+  const lifetimeMs = Math.max(1, Number(payload.lifetime_ms ?? payload.duration_ms ?? 1));
+  return { spawn, end, lifetimeMs };
+}
+
+function projectileTickOrigin(zone: ActiveDamageZoneRuntime) {
+  if (!zone.projectileMotion) return null;
+  const tickTimeMs = zone.tickIndex * zone.tickIntervalMs;
+  const progress = clamp(tickTimeMs / zone.projectileMotion.lifetimeMs, 0, 1);
+  return {
+    x: zone.projectileMotion.spawn.x + (zone.projectileMotion.end.x - zone.projectileMotion.spawn.x) * progress,
+    y: zone.projectileMotion.spawn.y + (zone.projectileMotion.end.y - zone.projectileMotion.spawn.y) * progress
+  };
+}
+
+function pointFromUnknown(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const point = value as { x?: unknown; y?: unknown };
+  const x = Number(point.x);
+  const y = Number(point.y);
+  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }

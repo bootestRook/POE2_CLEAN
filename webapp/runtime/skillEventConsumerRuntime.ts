@@ -470,6 +470,16 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
           collisionRadius: Number(event.payload?.collision_radius ?? event.payload?.projectile_radius ?? event.payload?.impact_radius ?? 18),
           sourceSkillName: typeof event.payload?.skill_name === "string" ? event.payload.skill_name : undefined
         });
+        if (event.payload?.dynamic_tick_runtime === true) {
+          const projectileId = projectileIdFromEvent(event);
+          registerActiveDamageZone(
+            event,
+            projectileId || event.event_id,
+            pointFromUnknown(event.payload?.spawn_world_position) ?? spawnPosition,
+            directionWorld,
+            "circle"
+          );
+        }
         continue;
       }
       if (event.type === "projectile_hit") {

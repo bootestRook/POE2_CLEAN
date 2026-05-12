@@ -41,6 +41,8 @@ export type FrontendPreviewGem = {
     release_interval_ms?: number;
   };
   level?: number;
+  stack_count?: number;
+  max_stack_count?: number;
   equipment_affixes?: FrontendEquipmentAffixRoll[];
   equipment_stat_modifiers?: FrontendEquipmentStatModifier[];
   equipment_slot_id?: string;

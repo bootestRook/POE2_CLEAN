@@ -20,4 +20,9 @@ export type ActiveDamageZoneRuntime = {
   maxHitsPerTarget: number;
   totalHits: number;
   hitCounts: Map<number, number>;
+  projectileMotion?: {
+    spawn: { x: number; y: number };
+    end: { x: number; y: number };
+    lifetimeMs: number;
+  };
 };

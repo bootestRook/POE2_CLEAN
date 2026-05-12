@@ -754,9 +754,14 @@ if (!releaseFrontendPlayableSkillBody.includes("consumeSkillEventTimeline(events
   throw new Error("Playable skill release must consume frontend-owned event timelines.");
 }
 const buildFrontendProjectileSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendProjectileSkillEvents");
-for (const token of ["projectile_spawn", "projectile_hit", "frontendDamageEventsForTarget", "hit_vfx", "floating_text"]) {
+for (const token of ["projectile_spawn", "projectile_hit", "frontendDamageEventsForTarget", "hit_vfx", "dynamic_tick_runtime"]) {
   if (!buildFrontendProjectileSkillEventsBody.includes(token)) {
     throw new Error(`Projectile frontend runtime coverage missing ${token}.`);
+  }
+}
+for (const token of ["projectile_tick_runtime", "frontendUniqueTargetsByDistance", "floating_text"]) {
+  if (!damageZoneLifecycleRuntime.includes(token)) {
+    throw new Error(`Dynamic projectile tick runtime coverage missing ${token}.`);
   }
 }
 const buildFrontendChainSkillEventsBody = functionBody(frontendPlayableSkillEventBuilders, "buildFrontendChainSkillEvents");

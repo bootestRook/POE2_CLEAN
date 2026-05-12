@@ -5623,7 +5623,75 @@ button {
 }
 
 .forge-cost-empty {
-  height: 44px;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.forge-cost-list {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+}
+
+.forge-cost-item.insufficient .forge-cost-count b {
+  color: #ff6565;
+}
+
+.forge-cost-item {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  width: 64px;
+  height: 58px;
+}
+
+.forge-cost-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.36));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 5px 10px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+}
+
+.forge-cost-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+  pointer-events: none;
+}
+
+.forge-cost-count {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 1px 4px;
+  border-radius: 4px 0 4px 0;
+  background: rgba(0, 0, 0, 0.62);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.forge-cost-count b,
+.forge-cost-count strong {
+  color: inherit;
+}
+
+.forge-cost-warning {
+  color: #ff8d8d;
+  font-size: 14px;
+  font-weight: 900;
 }
 
 .forge-auto-toggle {
@@ -8304,6 +8372,10 @@ button {
   overflow: visible;
 }
 
+.bag-panel.inventory-salvage-mode-panel {
+  bottom: calc(clamp(5px, calc((calc(var(--game-viewport-height, 100vh) * 100 / 100) - 860px) * 0.6), 70px) + 180px);
+}
+
 .bag-tab-row {
   position: absolute;
   left: 8px;
@@ -8416,6 +8488,22 @@ button {
   grid-column: 4;
 }
 
+.bag-action-row-salvage {
+  grid-template-columns: 128px 140px minmax(0, 1fr) 128px;
+}
+
+.bag-action-row-salvage .bag-action-button {
+  grid-column: 2;
+}
+
+.bag-action-row-salvage .bag-action-button:first-child:not(:only-child) {
+  grid-column: 1;
+}
+
+.bag-action-row-salvage .bag-action-button:last-child:not(:only-child) {
+  grid-column: 2;
+}
+
 .bag-action-button:hover,
 .bag-action-button:focus-visible {
   border-color: rgba(255, 226, 126, 0.92);
@@ -8521,6 +8609,25 @@ button {
   cursor: pointer;
 }
 
+.inventory-salvage-edit-cell {
+  cursor: pointer;
+}
+
+.item-salvage-selected-cell {
+  filter: grayscale(0.78) brightness(0.72);
+}
+
+.item-salvage-selected-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(142, 210, 70, 0.2), transparent 48%),
+    rgba(8, 10, 12, 0.34);
+  pointer-events: none;
+}
+
 .inventory-lock-badge {
   position: absolute;
   top: 8px;
@@ -8558,6 +8665,145 @@ button {
   border-radius: 999px;
   background: rgba(6, 7, 8, 0.82);
   transform: translateX(-50%);
+}
+
+.inventory-salvage-badge {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  z-index: 32;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(7, 10, 7, 0.92);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(214, 255, 123, 0.96), rgba(94, 158, 37, 0.96) 58%, rgba(44, 82, 22, 0.98));
+  box-shadow:
+    0 0 0 2px rgba(175, 224, 78, 0.78),
+    0 2px 7px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  pointer-events: none;
+}
+
+.inventory-salvage-badge::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 5px;
+  width: 10px;
+  height: 6px;
+  border-left: 3px solid rgba(4, 8, 4, 0.96);
+  border-bottom: 3px solid rgba(4, 8, 4, 0.96);
+  transform: rotate(-45deg);
+}
+
+.inventory-salvage-output-panel {
+  position: absolute;
+  top: calc(100% + 58px);
+  left: 0;
+  width: calc(var(--bag-grid-width) + 16px);
+  padding: 10px 16px 16px;
+  border: 1px solid rgba(74, 163, 255, 0.46);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(255, 211, 92, 0.18), rgba(74, 163, 255, 0.1) 64%, rgba(11, 13, 16, 0.82)),
+    rgba(53, 42, 22, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 226, 126, 0.18),
+    0 0 18px rgba(74, 163, 255, 0.22);
+}
+
+.inventory-salvage-output-header {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(244, 247, 248, 0.18);
+  color: rgba(244, 247, 248, 0.76);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.inventory-salvage-output-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  scrollbar-color: rgba(255, 211, 92, 0.56) rgba(4, 5, 6, 0.64);
+  scrollbar-width: thin;
+}
+
+.inventory-salvage-output-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.inventory-salvage-output-scroll::-webkit-scrollbar-track {
+  background: rgba(4, 5, 6, 0.64);
+}
+
+.inventory-salvage-output-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 211, 92, 0.56);
+}
+
+.inventory-salvage-output-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--slot-size);
+  grid-template-rows: var(--slot-size);
+  gap: 8px;
+  width: max-content;
+  min-width: calc(var(--slot-size) * 12 + 88px);
+}
+
+.inventory-salvage-output-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--slot-size);
+  height: var(--slot-size);
+  border: 1px solid rgba(244, 247, 248, 0.12);
+  background:
+    linear-gradient(145deg, rgba(35, 28, 16, 0.72), rgba(9, 11, 13, 0.86));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.46);
+}
+
+.inventory-salvage-output-cell::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  opacity: 0.16;
+  background: currentColor;
+  clip-path: polygon(50% 0, 73% 30%, 100% 30%, 79% 55%, 86% 100%, 50% 78%, 14% 100%, 21% 55%, 0 30%, 27% 30%);
+}
+
+.inventory-salvage-output-cell.has-product::before {
+  display: none;
+}
+
+.inventory-salvage-output-cell.has-product {
+  border-color: color-mix(in srgb, var(--item-cell-rarity-color, rgba(255, 211, 92, 0.62)) 58%, rgba(244, 247, 248, 0.18));
+}
+
+.inventory-salvage-output-cell.product-white {
+  --item-cell-rarity-color: rgba(225, 226, 218, 0.72);
+}
+
+.inventory-salvage-output-cell.product-blue {
+  --item-cell-rarity-color: rgba(74, 163, 255, 0.82);
+}
+
+.inventory-salvage-output-cell.product-purple {
+  --item-cell-rarity-color: rgba(138, 110, 255, 0.84);
+}
+
+.inventory-salvage-output-cell.product-pink {
+  --item-cell-rarity-color: rgba(255, 95, 184, 0.86);
+}
+
+.inventory-salvage-product-orb {
+  width: calc(var(--slot-size) * 0.68);
+  height: calc(var(--slot-size) * 0.68);
 }
 
 h2,
@@ -8774,6 +9020,30 @@ h3 {
   color: #f4f7f8;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.gem-orb-stack-count {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 18px;
+  max-width: calc(100% - 6px);
+  height: 16px;
+  padding: 0 4px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(244, 247, 248, 0.58);
+  border-radius: 999px;
+  background: rgba(8, 10, 13, 0.82);
+  color: #f4f7f8;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
