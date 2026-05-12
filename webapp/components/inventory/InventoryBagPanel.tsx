@@ -173,7 +173,7 @@ export function InventoryBagPanel<TItem extends BagPanelItem, TFloatingGem>({
 }
 
 function InventorySalvageOutputPanel({ products }: { products: InventorySalvageProduct[] }) {
-  const emptyCellCount = Math.max(0, 12 - products.length);
+  const emptyCellCount = Math.max(0, 6 - products.length);
   const cells = [...products, ...Array.from({ length: emptyCellCount }, (_, index) => ({
     id: `empty-${index}`,
     nameText: "",

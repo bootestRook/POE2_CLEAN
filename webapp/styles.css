@@ -8372,10 +8372,6 @@ button {
   overflow: visible;
 }
 
-.bag-panel.inventory-salvage-mode-panel {
-  bottom: calc(clamp(5px, calc((calc(var(--game-viewport-height, 100vh) * 100 / 100) - 860px) * 0.6), 70px) + 180px);
-}
-
 .bag-tab-row {
   position: absolute;
   left: 8px;
@@ -8699,10 +8695,10 @@ button {
 
 .inventory-salvage-output-panel {
   position: absolute;
-  top: calc(100% + 58px);
-  left: 0;
-  width: calc(var(--bag-grid-width) + 16px);
-  padding: 10px 16px 16px;
+  right: calc(100% + 34px);
+  bottom: -67px;
+  width: calc(var(--slot-size) * 6 + 64px);
+  padding: 10px 14px 14px;
   border: 1px solid rgba(74, 163, 255, 0.46);
   border-radius: 6px;
   background:
@@ -8753,7 +8749,7 @@ button {
   grid-template-rows: var(--slot-size);
   gap: 8px;
   width: max-content;
-  min-width: calc(var(--slot-size) * 12 + 88px);
+  min-width: calc(var(--slot-size) * 6 + 40px);
 }
 
 .inventory-salvage-output-cell {

@@ -5983,6 +5983,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   }
 
   function toggleInventorySalvageItem(instanceId: string) {
+    if (isInventoryItemLocked(instanceId)) {
+      setNotice("道具已锁定，请先解锁");
+      return;
+    }
     setSelectedSalvageItemIds((current) => {
       const next = new Set(current);
       if (next.has(instanceId)) next.delete(instanceId);
@@ -5994,6 +5998,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   function toggleInventorySalvageRarity(rarity: InventoryLockRarity) {
     const matchedIds = new Set((state?.inventory ?? [])
       .filter((item) => inventoryItemMatchesSalvageRarity(item, rarity))
+      .filter((item) => !isInventoryItemLocked(item.instance_id))
       .map((item) => item.instance_id));
     const wasActive = activeSalvageRarities.has(rarity);
     setActiveSalvageRarities((current) => {
