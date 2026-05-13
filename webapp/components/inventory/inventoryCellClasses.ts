@@ -1,4 +1,4 @@
-import { canPlaceItemInEquipmentSlot, type EquipmentRuleSlot } from "./equipmentRules";
+import { canPlaceItemInEquipmentSlot, type EquipmentRuleItem, type EquipmentRuleSlot } from "./equipmentRules";
 
 type InventoryCellItem = {
   instance_id: string;
@@ -12,7 +12,8 @@ type FloatingItem<TItem> = {
   gem: TItem;
 } | null;
 
-type IsFloatingOrigin<TFloating> = (floatingItem: TFloating | null, origin: FloatingOrigin) => boolean;
+type BagFloatingOrigin = Extract<FloatingOrigin, { kind: "bag" }>;
+type EquipmentFloatingOrigin = Extract<FloatingOrigin, { kind: "equipment" }>;
 
 export function bagCellClass<TItem extends InventoryCellItem, TFloating>(
   slotIndex: number,
@@ -20,7 +21,7 @@ export function bagCellClass<TItem extends InventoryCellItem, TFloating>(
   gem: TItem,
   hoveredGemId: string | null,
   floatingGem: TFloating | null,
-  isFloatingOrigin: IsFloatingOrigin<TFloating>
+  isFloatingOrigin: (floatingItem: TFloating | null, origin: BagFloatingOrigin) => boolean
 ) {
   const classes = ["bag-cell"];
   if (hoveredBagSlot === slotIndex) classes.push("bag-slot-hover");
@@ -42,7 +43,7 @@ export function equipmentCellClass<TItem extends InventoryCellItem, TFloating>(
   hoveredGemId: string | null,
   floatingGem: TFloating | null,
   slot: EquipmentRuleSlot | undefined,
-  isFloatingOrigin: IsFloatingOrigin<TFloating>,
+  isFloatingOrigin: (floatingItem: TFloating | null, origin: EquipmentFloatingOrigin) => boolean,
   spansBothWeaponSlots = false
 ) {
   const classes = ["equipment-cell"];
@@ -53,7 +54,7 @@ export function equipmentCellClass<TItem extends InventoryCellItem, TFloating>(
   return classes.join(" ");
 }
 
-export function equipmentEmptyCellClass<TItem, TFloating extends FloatingItem<TItem>>(
+export function equipmentEmptyCellClass<TItem extends EquipmentRuleItem, TFloating extends FloatingItem<TItem>>(
   slotIndex: number,
   hoveredEquipmentSlot: number | null,
   floatingGem: TFloating | null,

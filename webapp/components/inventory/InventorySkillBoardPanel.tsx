@@ -73,7 +73,7 @@ export function InventorySkillBoardPanel<TGem extends BoardPanelGem>({
   onDropGem: (instanceId: string, row: number, column: number) => Promise<boolean>;
   onDragGem: (event: DragEvent) => void;
   onPointerDragGem: (event: MouseEvent, gem: TGem, origin: BoardOrigin) => void;
-  onHoverGem: (event: MouseEvent, gem: TGem, source: "board") => void;
+  onHoverGem: (event: MouseEvent, gem: TGem, source: "equipment" | "board" | "inventory", slotIndex?: number) => void;
   onLeaveGem: () => void;
   onUnmountGem: (instanceId: string) => void;
   onTogglePersistentSupportLines: (checked: boolean) => void;

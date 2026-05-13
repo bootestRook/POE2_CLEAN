@@ -69,7 +69,7 @@ export function createDamageApplicationRuntime(deps: DamageApplicationRuntimeDep
       remainingHp.set(targetId, after);
     }
     if (damageByTarget.size === 0) return;
-    setRuntimePlayer((current) => recoverFrontendPlayerOnHit(current));
+    setRuntimePlayer((current: any) => recoverFrontendPlayerOnHit(current));
     const liveEnemiesAfterDamage = enemiesStateRef.current
       .map((enemy) => {
         const hp = remainingHp.get(enemy.id) ?? enemy.hp;

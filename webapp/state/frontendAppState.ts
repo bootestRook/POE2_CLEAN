@@ -24,6 +24,7 @@ type FrontendState<TGem extends FrontendStateGem> = Record<string, any> & {
   player_name: string;
   inventory: TGem[];
   stash_pages?: (string | null)[][];
+  skill_preview: unknown[];
   drops: unknown[];
   equipment_slots?: (string | null)[];
   board: FrontendStateBoard<TGem> & Record<string, unknown>;

@@ -3,19 +3,19 @@ import type { TooltipView } from "../tooltips/tooltipViewModel";
 export type EquipmentRuleItem = {
   instance_id?: string;
   item_kind?: string;
-  name_text: string;
-  category_text: string;
-  rarity_text: string;
+  name_text?: string;
+  category_text?: string;
+  rarity_text?: string;
   gem_kind?: string;
-  gem_type?: { id?: string; display_text?: string; identity_text?: string };
-  tags: readonly { id?: string; text: string }[];
+  gem_type?: { id?: string; number?: number; display_text?: string; identity_text?: string };
+  tags?: readonly { id?: string; text: string }[];
   tooltip_view?: TooltipView;
   equipment_slot_id?: string;
 };
 
 export type EquipmentRuleSlot = {
   id: string;
-  accepts: readonly string[];
+  accepts?: readonly string[];
 };
 
 const EQUIPMENT_SLOT_IDS = new Set([
@@ -37,7 +37,7 @@ export function removeItemsFromInventorySlots(slots: (string | null)[], instance
 }
 
 export function isGemItem(item: EquipmentRuleItem) {
-  return item.item_kind === "gem" || item.tags.some((tag) => tag.id === "gem");
+  return item.item_kind === "gem" || (item.tags ?? []).some((tag) => tag.id === "gem");
 }
 
 export function canPlaceItemInEquipmentSlot(item: EquipmentRuleItem, slot: EquipmentRuleSlot) {
@@ -50,7 +50,7 @@ export function canPlaceItemInEquipmentSlot(item: EquipmentRuleItem, slot: Equip
   }
   if (isWeaponSlot(slot)) return isWeaponItem(item);
   const searchable = equipmentSearchText(item);
-  return slot.accepts.some((keyword) => searchable.includes(keyword.toLowerCase()));
+  return (slot.accepts ?? []).some((keyword) => searchable.includes(keyword.toLowerCase()));
 }
 
 export function comparisonGemForInventoryEquipment<T extends EquipmentRuleItem>(
@@ -299,18 +299,18 @@ export function equipmentSearchText(item: EquipmentRuleItem) {
     item.gem_type?.identity_text ?? "",
     item.tooltip_view?.subtitle_text ?? "",
     item.tooltip_view?.type_identity_text ?? "",
-    ...item.tags.flatMap((tag) => [tag.id ?? "", tag.text])
+    ...(item.tags ?? []).flatMap((tag) => [tag.id ?? "", tag.text])
   ].join(" ").toLowerCase();
 }
 
 export function isActiveGem(item: EquipmentRuleItem) {
-  return item.gem_kind === "active_skill" || item.tags.some((tag) => tag.id === "active_skill_gem");
+  return item.gem_kind === "active_skill" || (item.tags ?? []).some((tag) => tag.id === "active_skill_gem");
 }
 
 export function isPassiveGem(item: EquipmentRuleItem) {
-  return item.gem_kind === "passive_skill" || item.tags.some((tag) => tag.id === "passive_skill_gem");
+  return item.gem_kind === "passive_skill" || (item.tags ?? []).some((tag) => tag.id === "passive_skill_gem");
 }
 
 export function isSupportGem(item: EquipmentRuleItem) {
-  return item.gem_kind === "support" || item.tags.some((tag) => tag.id === "support_gem");
+  return item.gem_kind === "support" || (item.tags ?? []).some((tag) => tag.id === "support_gem");
 }

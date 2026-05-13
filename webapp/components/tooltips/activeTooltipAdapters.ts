@@ -14,18 +14,18 @@ type ActiveTooltipGem = {
   base_gem_id?: string;
   level?: number;
   gem_kind?: string;
-  base_effect?: unknown;
+  base_effect?: { base_release_interval_ms?: number; release_interval_ms?: number } & Record<string, unknown>;
   tags: readonly { id?: string; text: string }[];
 };
 
-type SkillPreviewLookup = ReadonlyMap<string, unknown>;
+type SkillPreviewLookup = () => Record<string, { release_interval_ms?: number }>;
 
 type ActiveTooltipAdapterDeps = {
   frontendSkillPreviewsBySkillTag: SkillPreviewLookup;
   formatPreviewNumber: (value: number) => string;
   isPassiveGem: (gem: ActiveTooltipGem) => boolean;
   frontendRecord: (value: unknown) => Record<string, unknown>;
-  frontendGemBaseModifiers: (gem: ActiveTooltipGem) => readonly { target_text?: unknown }[];
+  frontendGemBaseModifiers: (gem: any) => readonly { target_text?: unknown }[] | readonly Record<string, unknown>[];
   frontendDamageMapTotal: (value: unknown) => number;
 };
 

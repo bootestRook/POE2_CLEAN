@@ -10,11 +10,11 @@ import type { TooltipStatLine, TooltipView } from "./tooltipViewModel";
 
 type EquipmentTooltipGem = {
   item_kind?: string;
-  name_text: string;
-  category_text: string;
-  rarity_text: string;
+  name_text?: string;
+  category_text?: string;
+  rarity_text?: string;
   gem_type?: { id?: string; display_text?: string; identity_text?: string };
-  tags: readonly { id?: string; text: string }[];
+  tags?: readonly { id?: string; text: string }[];
   tooltip_view?: TooltipView;
   equipment_slot_id?: string;
   equipment_rarity?: string;

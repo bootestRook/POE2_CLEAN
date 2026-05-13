@@ -33,6 +33,7 @@ WEBAPP_SOURCE_BUNDLE_FILES = [
     "components/battle/projectileVfxPresentation.ts",
     "frontendPlayableSkillRuntime.ts",
     "frontendMonsterDropRules.ts",
+    "frontendDropPools.ts",
     "frontendEquipmentRuntime.ts",
     "frontendGemDropData.ts",
     "styles.css",
@@ -268,8 +269,10 @@ def test_frontend_drop_kind_weights_use_stage_config() -> None:
 
     assert "stage.equipment_weight" in drop_kind_body
     assert "stage.gem_weight" in drop_kind_body
+    assert "stage.material_weight" in drop_kind_body
     assert "stage.map_entry_weight" in drop_kind_body
     assert "allowedFrontendLootKindsForPool(dropPoolId)" in drop_kind_body
+    assert "frontendMaterialDropCandidates(stage.id)" in drop_kind_body
     assert "frontendDropKind(stage, kindRoll, Boolean(mapEntryStage), dropRule.drop_pool_id)" in create_drop_body
     assert '"equipment_weight": 50' in frontend_data
     assert '"gem_weight": 40' in frontend_data
@@ -294,7 +297,7 @@ def test_frontend_monster_drop_rules_use_rarity_type_pool_and_currency_fields() 
     assert "MONSTER_TYPE_DROP_RULES" in rules_source
     assert "RARITY_DROP_RULES" in rules_source
     assert 'default_drop_pool_id = "map_default"' in rules_config
-    assert '"equipment", "gem", "map_entry"' in rules_source
+    assert '"equipment", "gem", "ordinary", "map_entry"' in rules_source
     assert "[monster_type.minion]" in rules_config
     assert "[rarity.magic]" in rules_config
     assert "currency_drop_weight = 0" in rules_config
@@ -317,6 +320,8 @@ def test_frontend_equipment_source_rolls_category_then_internal_source() -> None
     source = (ROOT / "webapp" / "frontendEquipmentRuntime.ts").read_text(encoding="utf-8")
     choose_body = source.split("export function chooseFrontendEquipmentSource", 1)[1].split("export function generateFrontendEquipment", 1)[0]
 
+    assert "FRONTEND_EQUIPMENT_DROP_POOL" in choose_body
+    assert "frontendEquipmentDropPoolSourceCandidates" in choose_body
     assert "frontendEquipmentSourceDropBuckets()" in choose_body
     assert "buckets.length" in choose_body
     assert "bucket.length" in choose_body
@@ -329,11 +334,13 @@ def test_frontend_equipment_source_rolls_category_then_internal_source() -> None
     assert "WEAPON_EQUIPMENT_SOURCE_KEYWORDS" in source
 
 
-def test_frontend_map_entry_uses_original_current_or_next_rule_except_major_final() -> None:
+def test_frontend_map_entry_uses_configured_pool_with_current_or_next_fallback() -> None:
     source = _app_source()
     target_body = source.split("function frontendMapEntryTargetStage", 1)[1].split("function frontendMajorFinalBossNextStage", 1)[0]
     create_drop_body = source.split("function createFrontendDrop", 1)[1].split("function createGuaranteedNextMapEntryDrop", 1)[0]
 
+    assert "FRONTEND_MAP_ENTRY_DROP_POOL" in target_body
+    assert "chooseFrontendWeightedEntry(pooledEntries" in target_body
     assert 'stage.stage_scope === "major_final" && stage.phase !== "timemark"' in target_body
     assert "return stage" in target_body
     assert "...(stage.order > 1 ? [stage] : [])" in target_body
@@ -358,13 +365,14 @@ def test_major_final_non_timemark_boss_guarantees_next_stage_ticket() -> None:
     assert "const allDrops = [...guaranteedDrops, ...drops]" in spawn_body
 
 
-def test_frontend_gem_drop_penalizes_active_skill_and_sudoku_nine() -> None:
+def test_frontend_gem_drop_uses_sudoku_type_pool_weights() -> None:
     source = _app_source()
     gem_weight_body = source.split("function frontendGemDropWeight", 1)[1].split("function chooseFrontendGemDropOption", 1)[0]
+    choose_body = source.split("function chooseFrontendGemDropOption", 1)[1].split("function createFrontendDrop", 1)[0]
 
-    assert "if (Number(gem.sudoku_digit) === 9) return weight * 0.35" in gem_weight_body
-    assert 'if (gem.kind === "active_skill") return weight * 0.35' in gem_weight_body
-    assert 'if (gem.kind === "active_skill") weight *= 0.35' not in gem_weight_body
+    assert "FRONTEND_GEM_SUDOKU_TYPE_DROP_POOL" in gem_weight_body
+    assert "chooseFrontendWeightedEntry(FRONTEND_GEM_SUDOKU_TYPE_DROP_POOL" in choose_body
+    assert "typeGems.length > 0 ? typeGems : gems" in choose_body
     assert "chooseFrontendGemDropOption(gmGems, enemy, index + 41, elapsedSeconds)" in source
 
 

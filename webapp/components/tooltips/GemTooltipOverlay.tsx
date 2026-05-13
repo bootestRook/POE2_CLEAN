@@ -134,6 +134,7 @@ function GemTooltipPanel<TGem, TTooltip extends GemTooltipPosition<TGem>, TView 
     : equipmentTone ? `tooltip-rarity-title tooltip-rarity-${equipmentTone}` : undefined;
   const tooltipTags = isActiveTooltip ? view.tags : normalizedEquipmentTooltipTags(gem, view, equipmentTone);
   const sections = view.sections;
+  const descriptionLines = sections.description?.lines ?? [];
   const equipmentTooltip = isEquipmentTooltip(gem);
   const showDescriptionSection = isActiveTooltip || !equipmentTooltip;
   const showSubtitle = isActiveTooltip || !equipmentTooltip;
@@ -152,8 +153,8 @@ function GemTooltipPanel<TGem, TTooltip extends GemTooltipPosition<TGem>, TView 
       </div>
       {showIdentity && <p className="tooltip-identity">{view.type_identity_text}</p>}
       {!isActiveTooltip && <div className="tooltip-tag-list">{tooltipTags.map((tag) => <TooltipTag key={`${tag.id ?? tag.text}-${tag.text}`} tag={tag} />)}</div>}
-      {showDescriptionSection && <TooltipSection title={sections.description.title_text}>
-        {sections.description.lines.map((line) => isActiveTooltip ? <RichText key={line} line={highlightTooltipText(line)} /> : <p key={line}>{line}</p>)}
+      {showDescriptionSection && <TooltipSection title={sections.description?.title_text ?? ""}>
+        {descriptionLines.map((line) => isActiveTooltip ? <RichText key={line} line={highlightTooltipText(line)} /> : <p key={line}>{line}</p>)}
       </TooltipSection>}
       {statLines.length > 0 && <TooltipSection title={sections.stats.title_text}>
         <dl className="tooltip-stat-list">
@@ -241,7 +242,7 @@ function groupedEquipmentAffixSections<TGem>(gem: TGem, fallbackLines: string[])
   return [
     { key: "base", title: "基础词缀", lines: grouped.base },
     { key: "explicit", title: "随机词缀", lines: grouped.explicit },
-  ].filter((section) => section.lines.length > 0);
+  ].filter((section): section is EquipmentTooltipAffixSection => section.lines.length > 0);
 }
 
 function equipmentAffixTierTone(tier: unknown): "bluewhite" | "purple" | "orange" {

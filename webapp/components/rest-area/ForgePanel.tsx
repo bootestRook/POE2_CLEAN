@@ -48,7 +48,7 @@ export function ForgePanel<TItem extends ForgeItem>({
   const [selectedLibrary, setSelectedLibrary] = useState<ForgeMaterialLibrary>("initial");
   const [autoCrafting, setAutoCrafting] = useState(false);
   const [equipmentDataReady, setEquipmentDataReady] = useState(false);
-  const affixGroups = item ? forgeAffixGroups(item) : null;
+  const affixGroups = item ? forgeAffixGroups(item) : emptyForgeAffixGroups();
   const hasSelectedAffix = selectedAffixSlots.size > 0;
   const selectedSlotId = Array.from(selectedAffixSlots)[0] ?? "";
 
@@ -436,6 +436,13 @@ function forgeAffixGroups(item: ForgeItem) {
   return {
     prefix: { filled: prefixFilled, slots: forgeSlots("prefix", prefixFilled, FORGE_PREFIX_CAPACITY) },
     suffix: { filled: suffixFilled, slots: forgeSlots("suffix", suffixFilled, FORGE_SUFFIX_CAPACITY) }
+  };
+}
+
+function emptyForgeAffixGroups() {
+  return {
+    prefix: { filled: [] as ForgeAffix[], slots: forgeSlots("prefix", [], FORGE_PREFIX_CAPACITY) },
+    suffix: { filled: [] as ForgeAffix[], slots: forgeSlots("suffix", [], FORGE_SUFFIX_CAPACITY) }
   };
 }
 

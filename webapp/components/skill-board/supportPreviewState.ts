@@ -11,6 +11,7 @@ type SupportPreviewBoardPosition = {
 
 type SupportPreviewGem = EquipmentRuleItem & {
   instance_id: string;
+  tags: readonly { id?: string; text: string }[];
   board_position: SupportPreviewBoardPosition | null;
 };
 
@@ -25,8 +26,8 @@ type SupportPreviewState<TGem extends SupportPreviewGem> = {
     highlights: Record<string, { instance_ids: string[] }[]>;
     cells: SupportPreviewCell<TGem>[][];
   };
-  skill_preview: {
-    applied_modifiers: {
+  skill_preview: readonly {
+    applied_modifiers: readonly {
       applied?: boolean;
       source_instance_id?: string;
       target_instance_id?: string;

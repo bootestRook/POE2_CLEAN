@@ -2,7 +2,7 @@ import { isMapPointWalkable, resolveWalkableMove } from "../bakedMapLoader";
 import type { BakedBattleMapData } from "../bakedMapLoader";
 import { isNemesisRarity } from "../mapSpawnRuntime";
 import { MONSTER_GEOMETRY_VISUALS, resolveMonsterGeometryVisual } from "../monsterGeometryVisuals";
-import type { Enemy, EnemyRuntimeTier, RuntimeBoundaryScanSummary } from "../types/enemyTypes";
+import type { Enemy, EnemyRuntimeTier, RuntimeBoundaryScanSummary, RuntimeEncounterAggroSource } from "../types/enemyTypes";
 import { clamp, distance, guideDirection, normalizeMoveVector } from "../utils/math2d";
 
 export const ENEMY_SPATIAL_CHUNK_SIZE = 256;

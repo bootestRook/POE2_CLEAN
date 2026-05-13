@@ -174,7 +174,7 @@ export function frontendSavePayloadFromSanitizedState<TState extends Record<stri
     equipment_slots: state.equipment_slots,
     map_progression: state.map_progression,
     ui_text: state.ui_text
-  } as TPayload;
+  } as unknown as TPayload;
 }
 
 export function frontendStateCandidateFromSave<

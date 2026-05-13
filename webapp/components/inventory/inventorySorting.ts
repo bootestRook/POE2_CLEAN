@@ -78,9 +78,9 @@ function compareEquipmentItems<TItem extends InventorySortableItem>(left: TItem,
     equipmentSlotRank(left) - equipmentSlotRank(right)
     || equipmentRarityRank(right) - equipmentRarityRank(left)
     || itemLevel(right) - itemLevel(left)
-    || compareText(equipmentSourceText(left), equipmentSourceText(right))
-    || compareText(left.name_text, right.name_text)
-    || compareText(left.instance_id, right.instance_id)
+    || compareText(String(equipmentSourceText(left) ?? ""), String(equipmentSourceText(right) ?? ""))
+    || compareText(left.name_text ?? "", right.name_text ?? "")
+    || compareText(left.instance_id ?? "", right.instance_id ?? "")
   );
 }
 
@@ -89,7 +89,7 @@ function compareGemItems<TItem extends InventorySortableItem>(left: TItem, right
     gemKindRank(left) - gemKindRank(right)
     || gemDigit(left) - gemDigit(right)
     || itemLevel(right) - itemLevel(left)
-    || compareText(left.name_text, right.name_text)
+    || compareText(left.name_text ?? "", right.name_text ?? "")
     || compareText(left.base_gem_id ?? "", right.base_gem_id ?? "")
     || compareText(left.instance_id, right.instance_id)
   );

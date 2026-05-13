@@ -8,7 +8,7 @@ export type FrontendMonsterDropRule = {
 };
 
 const DEFAULT_DROP_POOL_ID = "map_default";
-const DEFAULT_LOOT_KINDS = ["equipment", "gem", "map_entry"] as const;
+const DEFAULT_LOOT_KINDS = ["equipment", "gem", "ordinary", "map_entry"] as const;
 
 const DROP_POOL_LOOT_KINDS: Record<string, readonly typeof DEFAULT_LOOT_KINDS[number][]> = {
   map_default: DEFAULT_LOOT_KINDS

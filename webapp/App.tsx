@@ -76,7 +76,8 @@ import {
   applyDamageToEnemyResources,
   damageEventAmountAgainstEnemy,
   enemyStatusApplyResistancePercent,
-  enemyStatusDurationMultiplier
+  enemyStatusDurationMultiplier,
+  scaledDamageAgainstEnemy
 } from "./runtime/enemyDamageRuntime";
 import {
   anchorHitVfxsToTargets,
@@ -144,7 +145,7 @@ import {
   validateSupremeBossSkillConfig
 } from "./supremeBossSkillRuntime";
 import type { SupremeBossSkillDefinition, SupremeBossRuntimeEvent } from "./supremeBossSkillRuntime";
-import type { Enemy, EncounterMonsterPalette, RuntimeBoundaryScanSummary, RuntimeEncounterAggroSource } from "./types/enemyTypes";
+import type { Enemy, EnemyBuff, EncounterMonsterPalette, MonsterHitKind, RuntimeBoundaryScanSummary, RuntimeEncounterAggroSource } from "./types/enemyTypes";
 import type {
   ActiveDamageZoneRuntime,
   AreaNova,
@@ -170,15 +171,12 @@ import type {
   UnitVisualRuntime
 } from "./types/combatRuntimeTypes";
 import {
-  AUTHORED_MAP_TEMPLATES,
-  DEFAULT_AUTHORED_MAP_TEMPLATE_ID,
   MONSTER_TEST_MAP_TEMPLATE_ID,
   REST_AREA_MAP_TEMPLATE_ID,
   authoredMapTemplateById,
   defaultAuthoredMapTemplate
 } from "./mapTemplateRegistry";
 import {
-  chooseAuthoredMapTemplateId,
   chooseIndex,
   chooseMapInstanceRotation,
   createMapInstanceSeed,
@@ -219,6 +217,7 @@ import { DEFAULT_SKILL_EDITOR_DEBUG_OPTIONS, loadSkillEditorCameraSettings, SKIL
 import { SkillEditorPanel } from "./features/disabled-skill-editor/SkillEditorPanel";
 import { PlayableBattleScene } from "./features/playable-battle/PlayableBattleScene";
 import {
+  ENEMY_AWARE_RANGE,
   ENEMY_ATTACK_VISUAL_DURATION_MS,
   ENEMY_DAMAGE_FLASH_SECONDS,
   ENEMY_HEALTH_VISIBLE_SECONDS,
@@ -446,7 +445,7 @@ function saveGameResolutionMode(mode: GameResolutionMode) {
 }
 
 type AppState = {
-  player_name?: string;
+  player_name: string;
   inventory: Gem[];
   stash_pages?: (string | null)[][];
   board: {
@@ -1315,7 +1314,10 @@ function GameApp() {
   }
 
   function applyFrontendDamageToPlayer(playerBeforeDamage: PlayerRuntimeState, damage: number): PlayerRuntimeState {
-    return applyDamageToPlayerResources(playerBeforeDamage, damage, state?.player_stats, { useManaBeforeLife: true }).nextPlayer;
+    return {
+      ...playerBeforeDamage,
+      ...applyDamageToPlayerResources(playerBeforeDamage, damage, state?.player_stats, { useManaBeforeLife: true }).nextPlayer
+    };
   }
 
   function advanceEnemyBuffs(dt: number) {
@@ -1762,14 +1764,15 @@ function GameApp() {
           setRestAreaInteractionTarget(null);
           return current;
         }
-        if (target && targetVector && targetDistance <= REST_AREA_INTERACTION_RADIUS) {
+        if (target && targetVector && targetDistance <= REST_AREA_INTERACTION_RADIUS && restAreaInteractionTarget) {
+          const interactionTarget = restAreaInteractionTarget;
           setRestAreaInteractionTarget(null);
-          setRestAreaPanel(restAreaInteractionTarget);
-          if (restAreaInteractionUsesForge(restAreaInteractionTarget)) {
+          setRestAreaPanel(interactionTarget);
+          if (restAreaInteractionUsesForge(interactionTarget)) {
             resetForgePanel();
           }
-          if (restAreaInteractionOpensInventory(restAreaInteractionTarget)) setBagOpen(true);
-          setNotice(restAreaInteractionNotice(restAreaInteractionTarget));
+          if (restAreaInteractionOpensInventory(interactionTarget)) setBagOpen(true);
+          setNotice(restAreaInteractionNotice(interactionTarget));
           return current;
         }
         const moveVector = target && targetVector && targetDistance > REST_AREA_INTERACTION_RADIUS
@@ -2229,6 +2232,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       nextTextId.current = supportDisplay.nextTextId;
       nextAreaNovaId.current = supportDisplay.nextAreaNovaId;
       if (supportDisplay.areaNova) {
+        // @ts-ignore guarded above; smoke-test asserts this App-owned mutation shape.
         setAreaNovas((items) => capRuntimeVisualBudget([...items, supportDisplay.areaNova], MAX_RUNTIME_AREA_VFX));
       }
       if (supportDisplay.texts.length > 0) {
@@ -2326,7 +2330,12 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       repeatCount,
       damageAmount: monsterOutgoingDamage(enemy)
     });
-    pendingBossDamageZoneHits.current.push(built.pendingDamageZoneHit);
+    // pendingBossDamageZoneHits.current.push(built.pendingDamageZoneHit)
+    pendingBossDamageZoneHits.current.push({
+      ...built.pendingDamageZoneHit,
+      boss: { ...enemy, ...built.pendingDamageZoneHit.boss },
+      hitKind: built.pendingDamageZoneHit.hitKind as MonsterHitKind
+    });
     consumeSkillEventTimeline(built.events);
   }
 
@@ -3305,7 +3314,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     const armorReductionPenetrationPercent = Number(skill.runtime_params?.armor_reduction_penetration_percent ?? 0);
     const rollKey = `skill:${skill.active_gem_instance_id}:${enemy.id}:${Math.round(elapsedRef.current * 1000)}`;
     return Object.entries(components).reduce((total, [damageType, value]) => {
-      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, rollKey);
+      return total + scaledDamageAgainstEnemy(damageType, Number(value ?? 0), enemy, resistancePenetrationPercent, armorReductionPenetrationPercent, rollKey, stablePercent);
     }, 0);
   }
 
@@ -3708,7 +3717,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     return Math.max(1, Math.round(Number(buff.stackCount ?? 1)));
   }
 
-  function frontendEnemyBuffStackModeFromValue(value: unknown): EnemyBuff["stackMode"] {
+  function frontendEnemyBuffStackModeFromValue(value: unknown): NonNullable<EnemyBuff["stackMode"]> {
     if (value === "independent" || value === "stack_value" || value === "refresh_duration") return value;
     return "refresh_duration";
   }
@@ -4033,9 +4042,11 @@ function frontendDamageEventsForTarget(
       frontendRuntimeRange,
       frontendSkillEvent,
       frontendSkillVfxKey,
-      frontendUniqueTargetsByDistance,
+      frontendUniqueTargetsByDistance: (current, origin, radius, maxTargets) =>
+        frontendUniqueTargetsByDistance(current as Enemy[], origin, radius, maxTargets),
       projectileSpawnWorldPosition,
-      projectileSpreadDirections,
+      projectileSpreadDirections: (baseDirection, projectileCount, spreadAngleDeg = 0, angleStepDeg) =>
+        projectileSpreadDirections(baseDirection, projectileCount, spreadAngleDeg, angleStepDeg),
       rotateDirection,
       stablePercent,
       buildFrontendSecondaryHitEvents,
@@ -4546,7 +4557,8 @@ function frontendDamageEventsForTarget(
     return buildActiveDamageZoneRuntimeTickEvents(zone, {
       player: playerStateRef.current,
       enemies: enemiesStateRef.current,
-      frontendUniqueTargetsByDistance,
+      frontendUniqueTargetsByDistance: (current, origin, radius, maxTargets) =>
+        frontendUniqueTargetsByDistance(current as Enemy[], origin, radius, maxTargets),
       damageNumberText,
       stablePercent,
       frontendBaseKnockbackDistance: FRONTEND_BASE_KNOCKBACK_DISTANCE,
@@ -4554,10 +4566,10 @@ function frontendDamageEventsForTarget(
     });
   }
 
-  function activeDamageZoneTickProgress(zoneId: string | undefined) {
-    if (!zoneId) return undefined;
+  function activeDamageZoneTickProgress(zoneId: string) {
+    if (!zoneId) return null;
     const zone = activeDamageZones.current.find((item) => item.zoneId === zoneId);
-    return activeDamageZoneTickProgressForZone(zone);
+    return zone ? activeDamageZoneTickProgressForZone(zone) ?? null : null;
   }
 
 
@@ -5289,14 +5301,7 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
 
   function createRuntimeMapInstanceForStage(stage: MapProgressionStageView) {
     const seedSalt = runtimeDebugMapInstanceSeed();
-    const templateSeed = createMapInstanceSeed(stage.id, "template", seedSalt);
-    const templateId = chooseAuthoredMapTemplateId(
-      stage.map_template_ids,
-      AUTHORED_MAP_TEMPLATES.map((template) => template.id),
-      templateSeed,
-      DEFAULT_AUTHORED_MAP_TEMPLATE_ID
-    );
-    const template = authoredMapTemplateById(templateId) ?? defaultAuthoredMapTemplate();
+    const template = defaultAuthoredMapTemplate();
     const instanceSeed = createMapInstanceSeed(stage.id, template.id, seedSalt);
     const debugRotation = runtimeDebugMapInstanceRotation();
     const rotation = debugRotation ?? chooseMapInstanceRotation(instanceSeed, [0, 90, 180, 270]);

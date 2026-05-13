@@ -1,6 +1,7 @@
 import { compareDimetricDepth, dimetricDepth } from "../../isoDepth";
 import { fallbackUnitVisualForMonster, resolveMonsterGeometryVisual } from "../../monsterGeometryVisuals";
 import { selectEnemyUnitType } from "../../unitAssets";
+import type { UnitDirection } from "../../unitAssets";
 import type { UnitAnimationContext } from "../../unitAnimation";
 import type { Enemy } from "../../types/enemyTypes";
 import { distance } from "../../utils/math2d";
@@ -15,7 +16,7 @@ type BattleRenderPlayer = {
 };
 
 export type BattleRenderProjectile = {
-  id: number;
+  id: string | number;
   x: number;
   y: number;
   targetX: number;
@@ -34,7 +35,7 @@ export type BattleRenderProjectile = {
 };
 
 export type BattleRenderHitVfx = {
-  id: number;
+  id?: number;
   x: number;
   y: number;
   vfxKey?: string;
@@ -42,7 +43,7 @@ export type BattleRenderHitVfx = {
 };
 
 export type BattleUnitVisualRuntime = {
-  direction: "up" | "down" | "left" | "right";
+  direction: UnitDirection;
   movementVector: { x: number; y: number };
   attackStartedAtMs?: number;
   attackUntilMs?: number;
@@ -70,8 +71,8 @@ export type BattleRenderItem<
   THitVfx extends BattleRenderHitVfx = BattleRenderHitVfx
 > =
   | BattleRenderEntity
-  | { kind: "fire-bolt"; id: number; x: number; y: number; bolt: TBolt }
-  | { kind: "hit-vfx"; id: number; x: number; y: number; vfx: THitVfx };
+  | { kind: "fire-bolt"; id: string | number; x: number; y: number; bolt: TBolt }
+  | { kind: "hit-vfx"; id: string | number; x: number; y: number; vfx: THitVfx };
 
 export type BattleAnimationContexts = {
   player: UnitAnimationContext;
@@ -111,7 +112,7 @@ export function createBattleRenderItems<
       }),
     ...hitVfxs
       .filter((vfx) => !usesCanvasHitVfx(vfx))
-      .map((vfx) => ({ kind: "hit-vfx" as const, id: vfx.id, x: vfx.x, y: vfx.y, vfx }))
+      .map((vfx, index) => ({ kind: "hit-vfx" as const, id: vfx.id ?? `hit-vfx-${index}`, x: vfx.x, y: vfx.y, vfx }))
   ].sort(compareBattleRenderItems);
 }
 

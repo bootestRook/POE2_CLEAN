@@ -8,6 +8,7 @@ type EquipmentPanelItem = {
 type EquipmentPanelSlot = {
   id: string;
   label: string;
+  accepts?: readonly string[];
 };
 
 type EquipmentOrigin = {
@@ -40,7 +41,7 @@ export function EquipmentPanel<TItem extends EquipmentPanelItem, TFloatingGem>({
   onLeaveEquipmentSlot,
   onLeaveGem
 }: {
-  slotSpecs: EquipmentPanelSlot[];
+  slotSpecs: readonly EquipmentPanelSlot[];
   equippedItems: (TItem | null)[];
   equipmentSlots: (string | null)[];
   mainWeaponSlotIndex: number;

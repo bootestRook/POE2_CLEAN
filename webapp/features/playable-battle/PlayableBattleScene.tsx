@@ -12,6 +12,7 @@ import { PlayableBattleMinimap } from "../../components/battle/PlayableBattleMin
 import { PlayerOverheadResourceBars } from "../../components/battle/PlayerOverheadResourceBars";
 import { FrontendSkillGuideLayer } from "../../components/battle/SkillGuideOverlay";
 import { RestAreaMapInteractableLayer } from "../../components/rest-area/RestAreaScene";
+import type { RestAreaInteractionKind } from "../../components/rest-area/RestAreaScene";
 
 type AnyBattleObject = any;
 
@@ -66,8 +67,8 @@ type PlayableBattleSceneProps = {
   bossPortal: AnyBattleObject | null;
   beginBossPortalUse: (portal: AnyBattleObject) => void;
   restAreaMapActive: boolean;
-  restAreaInteractionTarget: "stage" | "stash" | null;
-  interactWithRestArea: (kind: "stage" | "stash") => void;
+  restAreaInteractionTarget: RestAreaInteractionKind | null;
+  interactWithRestArea: (kind: RestAreaInteractionKind) => void;
   playableMinimapVisible: boolean;
   exploredMinimapCells: Set<string>;
   playableMinimapMode: "compact" | "expanded";

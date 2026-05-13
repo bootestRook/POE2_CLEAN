@@ -14,6 +14,13 @@ import { equipmentTooltipAffixLine, equipmentRarityTone } from "../components/to
 import { createFrontendItemTooltipView, type TooltipView } from "../components/tooltips/tooltipViewModel";
 import { frontendEquipmentSourceSlotIdFromText, isTwoHandedEquipmentSource } from "../components/inventory/equipmentRules";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "../frontendSkillLevelTables";
+import {
+  FRONTEND_GEM_SUDOKU_TYPE_DROP_POOL,
+  FRONTEND_MAP_ENTRY_DROP_POOL,
+  chooseFrontendWeightedEntry,
+  frontendLevelDropModifier,
+  frontendMaterialDropCandidates,
+} from "../frontendDropPools";
 import { localize, localizeTemplate } from "../localization";
 import { clamp } from "../utils/math2d";
 import type { Enemy } from "../types/enemyTypes";
@@ -85,6 +92,7 @@ export type FrontendMapProgressionStageView = {
   stage_scope?: "minor" | "major_final" | "timemark";
   equipment_weight?: number;
   gem_weight?: number;
+  material_weight?: number;
   map_entry_weight?: number;
   equipment_rarity_weights?: Record<string, number>;
   selected?: boolean;
@@ -128,7 +136,8 @@ export function frontendDropRoll(enemy: Pick<Enemy, "id">, salt: number, elapsed
 }
 
 export function frontendMonsterDropChance(stage: FrontendMapProgressionStageView, enemy: Enemy) {
-  const baseChance = clamp(stage.base_drop_chance, 0, 0.6);
+  const levelModifier = frontendLevelDropModifier(stage.id);
+  const baseChance = clamp(stage.base_drop_chance * (1 + levelModifier.quantityBonus), 0, 0.6);
   return clamp(baseChance, 0, enemy.boss ? 0.95 : 0.75);
 }
 
@@ -148,9 +157,10 @@ export function frontendRandomMapLevel(stage: FrontendMapProgressionStageView, e
 
 export function frontendEquipmentDropRarity(stage: FrontendMapProgressionStageView, enemy: Enemy, roll: number) {
   const dropRule = resolveFrontendMonsterDropRule(enemy.spawnRarity, enemy.monsterType, Boolean(enemy.boss));
+  const levelModifier = frontendLevelDropModifier(stage.id);
   const weights = scaleFrontendDropRarityWeights(
     stage.equipment_rarity_weights ?? { white: 700, blue: 250, purple: 50, pink: 0 },
-    dropRule.drop_rarity_multiplier,
+    dropRule.drop_rarity_multiplier * (1 + levelModifier.rarityBonus),
     ["blue", "purple", "pink"]
   );
   const white = Math.max(0, Number(weights.white ?? 0));
@@ -170,16 +180,25 @@ export function frontendDropKind(stage: FrontendMapProgressionStageView, roll: n
   const allowedKinds = new Set(allowedFrontendLootKindsForPool(dropPoolId));
   const equipment = allowedKinds.has("equipment") ? Math.max(0, Number(stage.equipment_weight ?? 0)) : 0;
   const gem = allowedKinds.has("gem") ? Math.max(0, Number(stage.gem_weight ?? 0)) : 0;
+  const material = allowedKinds.has("ordinary") && frontendMaterialDropCandidates(stage.id).length > 0
+    ? Math.max(0, Number(stage.material_weight ?? stage.map_entry_weight ?? 0))
+    : 0;
   const mapEntry = allowedKinds.has("map_entry") && canDropMapEntry ? Math.max(0, Number(stage.map_entry_weight ?? 0)) : 0;
-  const total = equipment + gem + mapEntry;
+  const total = equipment + gem + material + mapEntry;
   if (total <= 0) return "equipment";
   const cursor = roll * total;
   if (cursor < equipment) return "equipment";
   if (cursor < equipment + gem) return "gem";
+  if (cursor < equipment + gem + material) return "ordinary";
   return "map_entry";
 }
 
 export function frontendMapEntryTargetStage(stage: FrontendMapProgressionStageView, stages: FrontendMapProgressionStageView[], enemy: Enemy, salt: number, elapsedSeconds: number) {
+  const pooledEntries = FRONTEND_MAP_ENTRY_DROP_POOL
+    .map((entry) => ({ stage: stages.find((candidate) => candidate.id === entry.mapId) ?? null, weight: entry.weight }))
+    .filter((entry): entry is { stage: FrontendMapProgressionStageView; weight: number } => Boolean(entry.stage));
+  const pooledEntry = chooseFrontendWeightedEntry(pooledEntries, frontendDropRoll(enemy, salt + 307, elapsedSeconds));
+  if (pooledEntry) return pooledEntry.stage;
   if (stage.stage_scope === "major_final" && stage.phase !== "timemark") return stage;
   const candidates = [
     ...(stage.order > 1 ? [stage] : []),
@@ -196,18 +215,18 @@ export function frontendMajorFinalBossNextStage(stage: FrontendMapProgressionSta
 }
 
 export function frontendGemDropWeight(gem: FrontendDropGemOption) {
-  let weight = 1;
-  if (Number(gem.sudoku_digit) === 9) return weight * 0.35;
-  if (gem.kind === "active_skill") return weight * 0.35;
-  return weight;
+  return FRONTEND_GEM_SUDOKU_TYPE_DROP_POOL.find((entry) => entry.value === Number(gem.sudoku_digit))?.weight ?? 1;
 }
 
 export function chooseFrontendGemDropOption(gems: FrontendDropGemOption[], enemy: Enemy, salt: number, elapsedSeconds: number) {
   if (gems.length === 0) return null;
-  const weighted = gems.map((gem) => ({ gem, weight: frontendGemDropWeight(gem) }));
+  const typeEntry = chooseFrontendWeightedEntry(FRONTEND_GEM_SUDOKU_TYPE_DROP_POOL, frontendDropRoll(enemy, salt, elapsedSeconds));
+  const typeGems = typeEntry ? gems.filter((gem) => Number(gem.sudoku_digit) === typeEntry.value) : [];
+  const candidates = typeGems.length > 0 ? typeGems : gems;
+  const weighted = candidates.map((gem) => ({ gem, weight: frontendGemDropWeight(gem) }));
   const total = weighted.reduce((sum, item) => sum + item.weight, 0);
-  if (total <= 0) return gems[Math.floor(frontendDropRoll(enemy, salt, elapsedSeconds) * gems.length) % gems.length];
-  let cursor = frontendDropRoll(enemy, salt, elapsedSeconds) * total;
+  if (total <= 0) return candidates[Math.floor(frontendDropRoll(enemy, salt + 1, elapsedSeconds) * candidates.length) % candidates.length];
+  let cursor = frontendDropRoll(enemy, salt + 1, elapsedSeconds) * total;
   for (const item of weighted) {
     cursor -= item.weight;
     if (cursor <= 0) return item.gem;
@@ -245,6 +264,30 @@ export function createFrontendDrop(enemy: Enemy, index: number, options: CreateF
     baseGemInstanceId = gemOption?.id ?? fallbackBaseGemInstanceId;
     nameText = gemOption ? `Lv${level} ${gemOption.name_text}` : `Lv${level} ${localize("ui.drop.skill_gem")}`;
     rarityText = localize("ui.drop.gem");
+  } else if (lootKind === "ordinary") {
+    const materialEntry = chooseFrontendWeightedEntry(frontendMaterialDropCandidates(stage.id), frontendDropRoll(enemy, index + 61, elapsedSeconds));
+    const materialDefinition = frontendOrdinaryItemDefinitionById(materialEntry?.itemId);
+    if (!materialEntry || !materialDefinition) {
+      return null;
+    }
+    nameText = materialDefinition.nameText;
+    rarityText = materialDefinition.rarityText;
+    statusText = materialDefinition.descriptionText;
+    equipmentRarity = "";
+    equipmentSource = "";
+    return {
+      drop_id: `frontend_drop_${nextDropId()}`,
+      loot_kind: lootKind,
+      name_text: nameText,
+      rarity_text: rarityText,
+      picked_up: false,
+      status_text: statusText,
+      position: { x: enemy.x, y: enemy.y },
+      level,
+      ordinary_item_id: materialEntry.itemId,
+      stack_count: 1,
+      max_stack_count: materialDefinition.maxStackCount
+    };
   } else {
     const seed = enemy.id * 1000003 + index * 9176 + Math.floor(frontendDropRoll(enemy, index + 71, elapsedSeconds) * 1000000);
     const generated = generateFrontendEquipment(equipmentSource, equipmentLevel, equipmentRarity, seed);

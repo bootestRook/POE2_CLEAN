@@ -1,4 +1,9 @@
 import frontendEquipmentDataUrl from "./data/equipment/frontendEquipmentData.json?url";
+import {
+  FRONTEND_EQUIPMENT_DROP_POOL,
+  chooseFrontendWeightedEntry,
+  frontendEquipmentDropPoolSourceCandidates,
+} from "./frontendDropPools";
 
 export type FrontendEquipmentAffixDefinition = {
   affix_id: string;
@@ -206,6 +211,11 @@ export function chooseFrontendEquipmentSource(seed: number) {
   const sourceOptions = frontendEquipmentSourceOptions();
   if (sourceOptions.length === 0) return "装备";
   const rng = seedRandom(seed);
+  const poolEntry = chooseFrontendWeightedEntry(FRONTEND_EQUIPMENT_DROP_POOL, rng.nextFloat());
+  if (poolEntry) {
+    const candidates = frontendEquipmentDropPoolSourceCandidates(poolEntry.baseType, sourceOptions);
+    if (candidates.length > 0) return candidates[rng.nextInt(0, candidates.length - 1)];
+  }
   const buckets = frontendEquipmentSourceDropBuckets().filter((bucket) => bucket.length > 0);
   if (buckets.length === 0) return sourceOptions[Math.floor(rng.nextFloat() * sourceOptions.length) % sourceOptions.length];
   const bucket = buckets[Math.floor(rng.nextFloat() * buckets.length) % buckets.length];

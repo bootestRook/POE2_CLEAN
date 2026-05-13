@@ -599,8 +599,8 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
           });
           continue;
         }
-        const floatingComponents = floatingTextDamageComponents(event);
-        floatingComponents.forEach(([damageType, amount], index) => {
+        const floatingComponents = floatingTextDamageComponents(event) as [string, number][];
+        floatingComponents.forEach(([damageType, amount], index: number) => {
           nextTexts.push({
             id: nextTextId.current++,
             x: textPosition.x + (index - (floatingComponents.length - 1) / 2) * 18,
@@ -621,7 +621,7 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
       const uniqueNextDamageZones = uniqueDamageZonesByZoneId(nextDamageZones);
       setDamageZones((items) => capRuntimeVisualBudget(
         [
-          ...uniqueDamageZonesByZoneId(items).filter((zone) => !zone.zoneId || !replaceDamageZoneIds.has(zone.zoneId)),
+          ...uniqueDamageZonesByZoneId(items).filter((zone: any) => !zone.zoneId || !replaceDamageZoneIds.has(zone.zoneId)),
           ...uniqueNextDamageZones
         ],
         MAX_RUNTIME_AREA_VFX

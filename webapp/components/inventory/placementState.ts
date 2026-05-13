@@ -32,10 +32,12 @@ type InventoryPlacementDropTarget =
   | { kind: "equipment"; slotIndex: number }
   | { kind: "stash"; pageIndex: number; slotIndex: number }
   | { kind: "board"; row: number; column: number }
-  | { kind: string };
+  | { kind: "forge" }
+  | { kind: "map"; position?: { x: number; y: number } }
+  | { kind: "invalid" };
 
-export function inventoryItemById<TState extends { inventory: TItem[] }, TItem extends InventoryPlacementItem>(
-  state: TState,
+export function inventoryItemById<TItem extends InventoryPlacementItem>(
+  state: { inventory: TItem[] },
   instanceId: string | null | undefined
 ) {
   if (!instanceId) return null;
@@ -71,9 +73,9 @@ export function isDropBackToOrigin<TState extends InventoryPlacementState<TItem>
   );
 }
 
-export function reconcileInventorySlots<TState extends { inventory: TItem[] }, TItem extends InventoryPlacementItem>(
+export function reconcileInventorySlots<TItem extends InventoryPlacementItem>(
   current: (string | null)[],
-  state: TState,
+  state: { inventory: TItem[] },
   floatingItemId: string | null,
   reservedIds: Set<string> = new Set(),
   slotCount: number,
