@@ -1,6 +1,11 @@
 import { FRONTEND_INITIAL_APP_STATE, FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG } from "../frontendGameData";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "../frontendSkillLevelTables";
 import {
+  FRONTEND_PHASE_DASH_SKILL_PREVIEW,
+  FRONTEND_PHASE_DASH_SKILL_TAG,
+  frontendDisplacementSkillLevelTableForId
+} from "../data/playerDisplacementSkillData";
+import {
   applyFrontendEquipmentStatModifiers,
   frontendEquipmentStatModifiers,
 } from "../frontendEquipmentRuntime";
@@ -49,6 +54,7 @@ export type FrontendPreviewGem = {
   equipment_rarity?: string;
   passive_effects?: FrontendPassiveEffect[];
   locked?: boolean;
+  board_mount_sequence?: number;
 };
 
 type FrontendPreviewCell = {
@@ -86,7 +92,10 @@ function cloneFrontendData<T>(value: T): T {
 }
 
 export function frontendSkillPreviewsBySkillTag(): Record<string, SkillPreview> {
-  return FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG as unknown as Record<string, SkillPreview>;
+  return {
+    ...(FRONTEND_SKILL_PREVIEWS_BY_SKILL_TAG as unknown as Record<string, SkillPreview>),
+    [FRONTEND_PHASE_DASH_SKILL_TAG]: FRONTEND_PHASE_DASH_SKILL_PREVIEW
+  };
 }
 
 function statNumber(stat: FrontendPreviewPlayerStatView | undefined, fallback: number) {
@@ -198,10 +207,16 @@ export function recalculateFrontendSkillPreview<TState extends FrontendPreviewSt
       if (!template) continue;
       const fullGem = itemById.get(gem.instance_id) ?? gem;
       const supportModifiers = frontendSupportSkillModifiersForTarget(state, fullGem, template, equipmentSkillModifiers, itemById);
+      const leveledSkill = frontendSkillPreviewForGemLevel(cloneFrontendData(template), fullGem);
       nextSkills.push(applyFrontendEquipmentSkillModifiers({
-        ...frontendSkillPreviewForGemLevel(cloneFrontendData(template), fullGem),
+        ...leveledSkill,
         active_gem_instance_id: fullGem.instance_id,
         name_text: fullGem.name_text,
+        source_context: {
+          ...frontendRecord(leveledSkill.source_context),
+          board_position: fullGem.board_position,
+          board_mount_sequence: fullGem.board_mount_sequence,
+        },
       }, fullGem, [...supportModifiers.modifiers, ...equipmentSkillModifiers], supportModifiers.appliedModifiers));
     }
   }
@@ -364,14 +379,18 @@ function frontendSkillPreviewForGemLevel(skill: SkillPreview, gem: FrontendPrevi
 }
 
 function frontendSkillClampedLevel(skill: SkillPreview, level: number) {
-  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[String(skill.base_gem_id ?? skill.skill_package_id ?? "")];
+  const tableId = String(skill.base_gem_id ?? skill.skill_package_id ?? "");
+  const table = frontendDisplacementSkillLevelTableForId(tableId)
+    ?? (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
   const levels = table ? Object.keys(table).map(Number).filter(Number.isFinite).sort((a, b) => a - b) : [];
   if (levels.length === 0) return Math.max(1, Math.min(40, level));
   return clamp(level, levels[0], levels[levels.length - 1]);
 }
 
 function frontendSkillLevelTableValues(skill: SkillPreview, level: number): Record<string, number> {
-  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[String(skill.base_gem_id ?? skill.skill_package_id ?? "")];
+  const tableId = String(skill.base_gem_id ?? skill.skill_package_id ?? "");
+  const table = frontendDisplacementSkillLevelTableForId(tableId)
+    ?? (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
   return { ...(table?.[level] ?? {}) };
 }
 
@@ -758,6 +777,7 @@ function applyFrontendEquipmentSkillModifiers(
     "ailment_damage_deepen_percent",
     "numbed_effect_add_percent",
     "deterioration_chance_add_percent",
+    "deterioration_extra_stack_chance_percent",
     "deterioration_damage_add_percent",
     "deterioration_duration_add_percent",
     "added_base_ignite_damage_per_second",
@@ -1103,7 +1123,8 @@ function frontendSkillLevelTableValue(skill: SkillPreview, targetLevel: number, 
 }
 
 export function frontendSkillLevelTableValueById(tableId: string, targetLevel: number, key: string) {
-  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
+  const table = frontendDisplacementSkillLevelTableForId(tableId)
+    ?? (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
   if (!table) return null;
   const levels = Object.keys(table).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
   if (levels.length === 0) return null;

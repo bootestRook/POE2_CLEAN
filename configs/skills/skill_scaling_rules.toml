@@ -427,7 +427,7 @@ layer = "additive"
 [[support_base_modifiers]]
 support_id = "support_improved_corrosion"
 stat = "deterioration_chance_add_percent"
-value = 15
+value = 23
 layer = "additive"
 
 [[support_base_modifiers]]

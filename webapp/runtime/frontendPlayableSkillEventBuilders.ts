@@ -5,6 +5,10 @@ import { clamp, distance, guideDirection } from "../utils/math2d";
 import { frontendPlayableSkillRuntimeFamilyForBehavior } from "../frontendPlayableSkillRuntime";
 
 export type FrontendPlayableSkillPoint = { x: number; y: number };
+export type FrontendProjectileLineClip = {
+  blocked: boolean;
+  point: FrontendPlayableSkillPoint;
+};
 
 export type FrontendPlayableSkillEventBuilderContext = {
   elapsedMs: number;
@@ -102,6 +106,7 @@ export type FrontendProjectileSkillEventBuilderDeps = {
   frontendRuntimeRange: (skill: SkillPreview, fallback: number) => number;
   frontendSkillEvent: FrontendPlayableSkillEventFactory;
   frontendSkillVfxKey: (skill: SkillPreview, role: "cast" | "projectile" | "hit" | "zone" | "segment", fallback?: unknown) => string;
+  clipProjectileLine: (from: FrontendPlayableSkillPoint, to: FrontendPlayableSkillPoint) => FrontendProjectileLineClip;
   frontendUniqueTargetsByDistance: (
     current: Enemy[],
     origin: FrontendPlayableSkillPoint,
@@ -151,6 +156,7 @@ export type FrontendChainSkillEventBuilderDeps = Pick<
   | "frontendDamageEventsForTarget"
   | "frontendSkillEvent"
   | "frontendSkillVfxKey"
+  | "clipProjectileLine"
   | "frontendUniqueTargetsByDistance"
   | "projectileSpawnWorldPosition"
   | "stablePercent"
@@ -250,15 +256,20 @@ export function buildFrontendProjectileSkillEvents(
     const damageType = forcedElement ?? deps.convertedDamageType(skill, skill.hit as Record<string, unknown>);
     const amount = Math.max(0, Number(skill.final_damage ?? 0)) * damageScale;
     const hitPosition = { x: target.x, y: target.y };
+    const clippedHit = deps.clipProjectileLine(spawn, hitPosition);
     const sustainedTicks = Boolean(params.sustained_ticks);
-    const lifetimeMs = Math.max(
-      Number(params.min_duration_ms ?? 80),
-      Number(params.duration_ms ?? params.travel_time_ms ?? Math.min(Number(params.max_duration_ms ?? 2200), distance(spawn, hitPosition) / Math.max(1, Number(params.projectile_speed ?? 600)) * 1000))
-    );
-    const expirePosition = {
+    const unclippedExpirePosition = {
       x: spawn.x + direction.x * Number(params.max_distance ?? distance(spawn, hitPosition)),
       y: spawn.y + direction.y * Number(params.max_distance ?? distance(spawn, hitPosition))
     };
+    const clippedExpire = deps.clipProjectileLine(spawn, sustainedTicks ? unclippedExpirePosition : hitPosition);
+    const projectileEndPosition = sustainedTicks ? clippedExpire.point : clippedHit.point;
+    const projectileBlocked = sustainedTicks ? clippedExpire.blocked : clippedHit.blocked;
+    const projectileTravelDistance = Math.max(1, distance(spawn, projectileEndPosition));
+    const lifetimeMs = Math.max(
+      Number(params.min_duration_ms ?? 80),
+      Number(params.duration_ms ?? params.travel_time_ms ?? Math.min(Number(params.max_duration_ms ?? 2200), projectileTravelDistance / Math.max(1, Number(params.projectile_speed ?? 600)) * 1000))
+    );
     const sustainedTickIntervalMs = Math.max(1, Number(params.tick_interval_ms ?? 0));
     const sustainedActiveDurationMs = Math.max(sustainedTickIntervalMs, Number(params.duration_ms ?? lifetimeMs));
     const sustainedTickRadius = Math.max(1, Number(params.impact_radius ?? skill.hit?.hit_radius ?? 20));
@@ -271,15 +282,15 @@ export function buildFrontendProjectileSkillEvents(
       projectile_id: projectileId,
       projectile_index: index + 1,
       projectile_count: projectileCount,
-      target_world_position: sustainedTicks ? expirePosition : hitPosition,
-      expire_world_position: sustainedTicks ? expirePosition : hitPosition,
+      target_world_position: projectileEndPosition,
+      expire_world_position: projectileEndPosition,
       spawn_world_position: spawn,
       spawn_policy: "caster_current_position",
       vfx_spawn_policy: "caster_current_position",
       direction_world: direction,
       velocity_world: { x: direction.x * Number(params.projectile_speed ?? 600), y: direction.y * Number(params.projectile_speed ?? 600) },
       projectile_speed: Number(params.projectile_speed ?? 600),
-      max_distance: Number(params.max_distance ?? distance(spawn, hitPosition)),
+      max_distance: projectileTravelDistance,
       projectile_width: Number(params.projectile_width ?? 38),
       projectile_height: Number(params.projectile_height ?? 24),
       impact_radius: Number(params.impact_radius ?? skill.hit?.hit_radius ?? 24) * skill.area_multiplier,
@@ -297,10 +308,11 @@ export function buildFrontendProjectileSkillEvents(
       trajectory: String(params.trajectory ?? "linear"),
       arc_height: Number(params.arc_height ?? 0),
       lifetime_ms: lifetimeMs,
+      wall_blocked: projectileBlocked || undefined,
       local_spread_angle: index === 0 ? 0 : undefined,
       burst_interval_ms: burstIntervalMs
     }, lifetimeMs, projectileDelayMs));
-    if (sustainedTicks) {
+    if (sustainedTicks || clippedHit.blocked) {
       continue;
     }
     events.push(deps.frontendSkillEvent(skill, "projectile_hit", target, hitPosition, direction, amount, damageType, {
@@ -402,12 +414,16 @@ export function buildFrontendModuleChainSkillEvents(
   const spawn = deps.projectileSpawnWorldPosition(caster, projectileParams);
   const direction = guideDirection(spawn, target);
   const impact = { x: target.x, y: target.y };
+  const clippedImpact = deps.clipProjectileLine(spawn, impact);
+  const projectileEnd = clippedImpact.point;
   const projectileId = `${skill.active_gem_instance_id}.module_projectile.${Math.round(elapsedMs)}`;
+  const travelTimeMs = Number(projectileParams.travel_time_ms ?? 520);
   const events: SkillEvent[] = [
     deps.frontendSkillEvent(skill, "projectile_spawn", target, spawn, direction, null, skill.damage_type, {
       vfx_key: projectileParams.vfx_key ?? deps.frontendSkillVfxKey(skill, "projectile"),
       projectile_id: projectileId,
-      target_world_position: impact,
+      target_world_position: projectileEnd,
+      expire_world_position: projectileEnd,
       spawn_world_position: spawn,
       direction_world: direction,
       velocity_world: {
@@ -421,8 +437,12 @@ export function buildFrontendModuleChainSkillEvents(
       area_scale: skill.area_multiplier,
       trajectory: String(projectileParams.trajectory ?? "linear"),
       arc_height: Number(projectileParams.arc_height ?? 0),
-      lifetime_ms: Number(projectileParams.travel_time_ms ?? 520)
-    }, Number(projectileParams.travel_time_ms ?? 520)),
+      lifetime_ms: travelTimeMs,
+      wall_blocked: clippedImpact.blocked || undefined
+    }, travelTimeMs)
+  ];
+  if (clippedImpact.blocked) return events;
+  events.push(
     deps.frontendSkillEvent(skill, "projectile_hit", target, impact, direction, Number(skill.final_damage ?? 0), skill.damage_type, {
       vfx_key: projectileParams.vfx_key ?? deps.frontendSkillVfxKey(skill, "hit"),
       projectile_id: projectileId,
@@ -434,9 +454,9 @@ export function buildFrontendModuleChainSkillEvents(
       impact_radius: Number(projectileParams.impact_radius ?? params.impact_radius ?? skill.hit?.hit_radius ?? 24) * skill.area_multiplier,
       area_scale: skill.area_multiplier,
       impact_position: impact
-    }, 180, Number(projectileParams.travel_time_ms ?? 520))
-  ];
-  const impactDelayMs = Number(projectileParams.travel_time_ms ?? 520);
+    }, 180, travelTimeMs)
+  );
+  const impactDelayMs = travelTimeMs;
   events.push(...deps.frontendDamageEventsForTarget(skill, target, impact, direction, skill.final_damage, skill.hit as Record<string, unknown>, {
     projectile_id: projectileId,
     hit_vfx_key: deps.frontendSkillVfxKey(skill, "hit", projectileParams.vfx_key),

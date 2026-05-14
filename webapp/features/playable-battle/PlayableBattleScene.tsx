@@ -9,7 +9,7 @@ import { ChainSegmentLayer } from "../../components/battle/ChainSegmentLayer";
 import { GroundDropLayer } from "../../components/battle/GroundDropLayer";
 import { PlayerBuffLayer as BattlePlayerBuffLayer } from "../../components/battle/HitAndBuffViews";
 import { PlayableBattleMinimap } from "../../components/battle/PlayableBattleMinimap";
-import { PlayerOverheadResourceBars } from "../../components/battle/PlayerOverheadResourceBars";
+import { PlayerOverheadResourceBars, type PlayerDisplacementSkillCooldownView } from "../../components/battle/PlayerOverheadResourceBars";
 import { FrontendSkillGuideLayer } from "../../components/battle/SkillGuideOverlay";
 import { RestAreaMapInteractableLayer } from "../../components/rest-area/RestAreaScene";
 import type { RestAreaInteractionKind } from "../../components/rest-area/RestAreaScene";
@@ -72,6 +72,8 @@ type PlayableBattleSceneProps = {
   playableMinimapVisible: boolean;
   exploredMinimapCells: Set<string>;
   playableMinimapMode: "compact" | "expanded";
+  displacementSkillCooldown: PlayerDisplacementSkillCooldownView | null;
+  onBattlePointerMove: (clientX: number, clientY: number) => void;
 };
 
 export function PlayableBattleScene({
@@ -129,7 +131,9 @@ export function PlayableBattleScene({
   interactWithRestArea,
   playableMinimapVisible,
   exploredMinimapCells,
-  playableMinimapMode
+  playableMinimapMode,
+  displacementSkillCooldown,
+  onBattlePointerMove
 }: PlayableBattleSceneProps) {
   const battleGeometrySnapshot: BattleGeometrySnapshot = {
     width: terrainWidth,
@@ -278,7 +282,7 @@ export function PlayableBattleScene({
   return (
     <>
       {activeBossEnemy && <BossHealthBar enemy={activeBossEnemy} />}
-      {showBattleMapLayer && <section className="map-layer" aria-label="可玩地图">
+      {showBattleMapLayer && <section className="map-layer" aria-label="可玩地图" onPointerMove={(event) => onBattlePointerMove(event.clientX, event.clientY)}>
         <div
           className="terrain"
           data-map-template-id={battleMap?.id ?? ""}
@@ -369,7 +373,7 @@ export function PlayableBattleScene({
           </div>
         </div>
         <BattleGeometryCanvas snapshot={battleGeometrySnapshot} viewportWidth={gameViewport.width} viewportHeight={gameViewport.height} />
-        <PlayerOverheadResourceBars player={player} projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)} />
+        <PlayerOverheadResourceBars player={player} displacementSkillCooldown={displacementSkillCooldown} projectPosition={(worldPosition) => battleWorldToViewport(worldPosition, battleCamera)} />
         <GroundDropLayer
           drops={drops}
           displayPositions={dropDisplayPositions}

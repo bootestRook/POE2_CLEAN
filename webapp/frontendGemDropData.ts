@@ -8926,7 +8926,7 @@ export const FRONTEND_GEM_DROP_POOL = [
             "id": "deterioration_chance_add_percent",
             "text": "凋零几率提高"
           },
-          "value": 15,
+          "value": 23,
           "layer_text": "加算修正"
         }
       ]
@@ -8974,7 +8974,7 @@ export const FRONTEND_GEM_DROP_POOL = [
       },
       "level_values": {
         "deterioration_extra_stack_chance_percent": 23,
-        "deterioration_chance_add_percent": 15
+        "deterioration_chance_add_percent": 23
       },
       "auto_release": {}
     },
@@ -9092,7 +9092,7 @@ export const FRONTEND_GEM_DROP_POOL = [
           "rich_lines": [
             [
               {
-                "text": "deterioration_extra_stack_chance_percent=23, deterioration_chance_add_percent=15",
+                "text": "deterioration_extra_stack_chance_percent=23, deterioration_chance_add_percent=23",
                 "tone": "muted"
               }
             ]

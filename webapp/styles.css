@@ -6703,6 +6703,81 @@ button {
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.86));
 }
 
+.player-overhead-displacement-skill {
+  --displacement-cooldown-progress: 0;
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(8, 8, 7, 0.92);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, rgba(255, 255, 236, 0.24), transparent 34%),
+    rgba(8, 9, 10, 0.88);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 238, 158, 0.22),
+    0 0 0 1px rgba(0, 0, 0, 0.64),
+    0 2px 4px rgba(0, 0, 0, 0.78);
+  transform: translateY(-50%);
+}
+
+.player-overhead-displacement-skill img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-overhead-displacement-skill.ready {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 245, 185, 0.46),
+    0 0 0 1px rgba(39, 24, 0, 0.74),
+    0 0 8px rgba(255, 190, 55, 0.48),
+    0 2px 4px rgba(0, 0, 0, 0.78);
+}
+
+.player-overhead-displacement-skill.ready img {
+  filter: saturate(1.18) brightness(1.16);
+}
+
+.player-overhead-displacement-skill.cooldown {
+  border-color: rgba(21, 22, 23, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(215, 220, 226, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.72),
+    0 2px 4px rgba(0, 0, 0, 0.78);
+}
+
+.player-overhead-displacement-skill.cooldown img {
+  filter: grayscale(1) saturate(0.15) brightness(0.58);
+}
+
+.player-overhead-displacement-skill.cooldown::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    conic-gradient(
+      from -90deg,
+      rgba(235, 239, 243, 0.24) 0turn calc((1 - var(--displacement-cooldown-progress)) * 1turn),
+      rgba(4, 5, 6, 0.68) calc((1 - var(--displacement-cooldown-progress)) * 1turn) 1turn
+    );
+  mix-blend-mode: screen;
+}
+
+.player-overhead-displacement-skill.cooldown::before {
+  position: absolute;
+  inset: 3px;
+  z-index: 1;
+  content: "";
+  border-radius: 50%;
+  border: 1px solid rgba(230, 235, 238, 0.22);
+  border-top-color: rgba(255, 255, 255, 0.52);
+  pointer-events: none;
+}
+
 .player-overhead-bar {
   position: relative;
   display: block;
@@ -7894,6 +7969,28 @@ button {
 .gm-tool-body {
   min-height: 240px;
   padding: 14px;
+}
+
+.gm-tool-loading {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.gm-tool-loading button {
+  width: fit-content;
+  border: 1px solid rgba(226, 176, 76, 0.45);
+  border-radius: 6px;
+  background: rgba(122, 68, 20, 0.72);
+  color: #f6e4bb;
+  padding: 7px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gm-tool-loading button:hover {
+  border-color: rgba(246, 210, 127, 0.8);
+  background: rgba(149, 83, 24, 0.86);
 }
 
 .gm-tool-body {

@@ -428,6 +428,22 @@ def test_frontend_non_active_gem_tooltips_show_current_gem_level() -> None:
     assert 'return [{ label_text: "\\u7b49\\u7ea7", value_text: levelText }, ...nextLines]' in level_line_body
 
 
+def test_frontend_active_gem_tooltip_keeps_effective_level_preview_damage() -> None:
+    active_source = (ROOT / "webapp" / "components" / "tooltips" / "activeTooltipAdapters.ts").read_text(encoding="utf-8")
+    formatting_source = (ROOT / "webapp" / "components" / "tooltips" / "tooltipFormatting.ts").read_text(encoding="utf-8")
+    active_level_body = active_source.split("function normalizeActiveTooltipLevel", 1)[1].split("function activeTooltipGemLevel", 1)[0]
+    primary_damage_body = formatting_source.split("export function isPrimaryDamageTooltipLine", 1)[1].split("export function frontendProjectileCountTooltipLine", 1)[0]
+
+    assert "isEffectiveSkillLevelValue" in active_source
+    assert "isPrimaryDamageTooltipLine" in active_source
+    assert "const hasPreviewEffectiveLevel = view.sections.stats.lines.some" in active_level_body
+    assert "isSkillLevelTooltipLine(line.label_text) && isEffectiveSkillLevelValue(line.value_text)" in active_level_body
+    assert "const lines = hasPreviewEffectiveLevel ? view.sections.stats.lines : view.sections.stats.lines.map" in active_level_body
+    assert "PRIMARY_DAMAGE_TOOLTIP_LABELS.has(normalizedLabel)" in primary_damage_body
+    assert 'labelText.includes("\\u4f24\\u5bb3")' not in primary_damage_body
+    assert 'labelText.includes("\\u6d5c\\u3085")' not in primary_damage_body
+
+
 def test_frontend_gem_tooltip_tag_text_matches_gem_kind() -> None:
     source = _app_source()
     view_model_body = source.split("function buildGemTooltipViewModel", 1)[1].split("function gemWithFrontendSkillPreviewTooltip", 1)[0]

@@ -106,7 +106,7 @@ def test_sparkle_sustained_projectile_ticks_retarget_live_enemies_at_runtime() -
 
 def test_sparkle_builder_does_not_precompute_sustained_damage_targets() -> None:
     source = (ROOT / "webapp" / "runtime" / "frontendPlayableSkillEventBuilders.ts").read_text(encoding="utf-8")
-    sustained_body = source.split("if (sustainedTicks) {", 1)[1].split("continue;", 1)[0]
+    sustained_body = source.split("if (sustainedTicks || clippedHit.blocked) {", 1)[1].split("continue;", 1)[0]
     assert "frontendUniqueTargetsByDistance" not in sustained_body
     assert "dynamic_tick_runtime: sustainedTicks" in source
     assert "projectile_tick_runtime: sustainedTicks" in source

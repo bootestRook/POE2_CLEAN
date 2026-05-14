@@ -8,6 +8,7 @@ type FrontendStateGem = {
   level?: number;
   locked?: boolean;
   board_position?: { row: number; column: number } | null;
+  board_mount_sequence?: number;
 };
 
 type FrontendStateCell<TGem extends FrontendStateGem> = {
@@ -45,6 +46,8 @@ type FrontendAppStateHelperDeps<
   recalculateFrontendSkillPreview: (state: TState) => TState;
   recalculateFrontendEquipmentState: (state: TState) => TState;
   starterGemBoardPosition: { row: number; column: number };
+  starterBonusBaseGemId?: string;
+  starterBonusGemBoardPosition?: { row: number; column: number };
   excludedStarterBaseGemIds: Set<string>;
   monsterTestPlayerLife: number;
   equipmentSlotCount: number;
@@ -64,6 +67,8 @@ export function createFrontendAppStateHelpers<
   recalculateFrontendSkillPreview,
   recalculateFrontendEquipmentState,
   starterGemBoardPosition,
+  starterBonusBaseGemId,
+  starterBonusGemBoardPosition,
   excludedStarterBaseGemIds,
   monsterTestPlayerLife,
   equipmentSlotCount
@@ -106,10 +111,16 @@ export function createFrontendAppStateHelpers<
       cells: state.board.cells.map((row) => row.map((cell) => ({ ...cell, gem: null })))
     };
     const starterGem = createRandomNewSaveStarterGem(slotId);
+    const bonusStarterGem = createNewSaveBonusStarterGem(slotId);
+    const starterGems = [starterGem, bonusStarterGem].filter((gem): gem is TGem => Boolean(gem));
+    state.inventory = starterGems;
     if (starterGem) {
-      state.inventory = [starterGem];
       const cell = state.board.cells[starterGemBoardPosition.row]?.[starterGemBoardPosition.column];
       if (cell) cell.gem = starterGem;
+    }
+    if (bonusStarterGem && starterBonusGemBoardPosition) {
+      const cell = state.board.cells[starterBonusGemBoardPosition.row]?.[starterBonusGemBoardPosition.column];
+      if (cell) cell.gem = bonusStarterGem;
     }
     return sanitizeFrontendStorageState(recalculateFrontendEquipmentState(recalculateFrontendSkillPreview(state)));
   }
@@ -120,6 +131,7 @@ export function createFrontendAppStateHelpers<
         gem.gem_kind === "active_skill"
         && Number(gem.level ?? 1) === 1
         && !excludedStarterBaseGemIds.has(String(gem.base_gem_id ?? gem.instance_id))
+        && String(gem.base_gem_id ?? gem.instance_id) !== starterBonusBaseGemId
       ));
     if (activeGems.length === 0) return null;
     const seed = Date.now() + Math.floor(Math.random() * 1_000_000) + (slotId ?? 0) * 9973;
@@ -130,7 +142,23 @@ export function createFrontendAppStateHelpers<
       instance_id: `new_save_starter_${seed}_${baseId}`,
       level: 1,
       locked: false,
-      board_position: { ...starterGemBoardPosition }
+      board_position: { ...starterGemBoardPosition },
+      board_mount_sequence: 1
+    };
+  }
+
+  function createNewSaveBonusStarterGem(slotId?: number): TGem | null {
+    if (!starterBonusBaseGemId || !starterBonusGemBoardPosition) return null;
+    const template = frontendGemDropPool().find((gem) => String(gem.base_gem_id ?? gem.instance_id) === starterBonusBaseGemId);
+    if (!template) return null;
+    const seed = Date.now() + Math.floor(Math.random() * 1_000_000) + (slotId ?? 0) * 9973;
+    return {
+      ...cloneFrontendData(template),
+      instance_id: `new_save_bonus_${seed}_${starterBonusBaseGemId}`,
+      level: 1,
+      locked: false,
+      board_position: { ...starterBonusGemBoardPosition },
+      board_mount_sequence: 2
     };
   }
 

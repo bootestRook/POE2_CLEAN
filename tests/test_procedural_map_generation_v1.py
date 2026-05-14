@@ -236,6 +236,53 @@ console.log(JSON.stringify(summaries));
         assert summary["corridorZoneCount"] <= 20, (preset, summary)
 
 
+def test_dead_end_rooms_have_one_narrow_exterior_doorway() -> None:
+    result = _node_eval(
+        r"""
+const { generateProceduralEditorMap } = require("./.vite/procedural-map-tests/proceduralMapGeneration.js");
+const presets = ["hub_spoke", "main_path_branches", "loop_with_branches"];
+const summaries = {};
+function contactsFor(tiles, room) {
+  const contacts = { top: 0, bottom: 0, left: 0, right: 0 };
+  for (let x = room.x; x < room.x + room.width; x += 1) {
+    if (tiles[room.y - 1]?.[x] === "ground") contacts.top += 1;
+    if (tiles[room.y + room.height]?.[x] === "ground") contacts.bottom += 1;
+  }
+  for (let y = room.y; y < room.y + room.height; y += 1) {
+    if (tiles[y]?.[room.x - 1] === "ground") contacts.left += 1;
+    if (tiles[y]?.[room.x + room.width] === "ground") contacts.right += 1;
+  }
+  return contacts;
+}
+for (const preset of presets) {
+  const generated = generateProceduralEditorMap({ seed: `dead-end-door-${preset}`, topologyPreset: preset });
+  summaries[preset] = {
+    ok: generated.validation.ok,
+    errors: generated.validation.errors,
+    deadEnds: generated.graph.rooms
+      .filter((room) => room.roomType === "dead_end")
+      .map((room) => {
+        const contacts = contactsFor(generated.map.tiles, room);
+        return {
+          id: room.id,
+          contacts,
+          openSideCount: Object.values(contacts).filter((count) => count > 0).length,
+          widestOpening: Math.max(...Object.values(contacts))
+        };
+      })
+  };
+}
+console.log(JSON.stringify(summaries));
+"""
+    )
+
+    for preset, summary in result.items():
+        assert summary["ok"] is True, (preset, summary["errors"])
+        for dead_end in summary["deadEnds"]:
+            assert dead_end["openSideCount"] == 1, (preset, dead_end)
+            assert dead_end["widestOpening"] <= 4, (preset, dead_end)
+
+
 def test_debug_text_is_chinese_and_contains_required_labels() -> None:
     result = _node_eval(
         r"""

@@ -6949,285 +6949,325 @@ export const FRONTEND_SKILL_LEVEL_TABLES = {
   },
   "support_elemental_fusion": {
     "1": {
-      "elemental_damage_add_percent": 25.5
+      "elemental_damage_add_percent": 25.5,
+      "prevent_elemental_ailments": 1
     },
     "2": {
-      "elemental_damage_add_percent": 26
+      "elemental_damage_add_percent": 26,
+      "prevent_elemental_ailments": 1
     },
     "3": {
-      "elemental_damage_add_percent": 26.5
+      "elemental_damage_add_percent": 26.5,
+      "prevent_elemental_ailments": 1
     },
     "4": {
-      "elemental_damage_add_percent": 27
+      "elemental_damage_add_percent": 27,
+      "prevent_elemental_ailments": 1
     },
     "5": {
-      "elemental_damage_add_percent": 27.5
+      "elemental_damage_add_percent": 27.5,
+      "prevent_elemental_ailments": 1
     },
     "6": {
-      "elemental_damage_add_percent": 28
+      "elemental_damage_add_percent": 28,
+      "prevent_elemental_ailments": 1
     },
     "7": {
-      "elemental_damage_add_percent": 28.5
+      "elemental_damage_add_percent": 28.5,
+      "prevent_elemental_ailments": 1
     },
     "8": {
-      "elemental_damage_add_percent": 29
+      "elemental_damage_add_percent": 29,
+      "prevent_elemental_ailments": 1
     },
     "9": {
-      "elemental_damage_add_percent": 29.5
+      "elemental_damage_add_percent": 29.5,
+      "prevent_elemental_ailments": 1
     },
     "10": {
-      "elemental_damage_add_percent": 30
+      "elemental_damage_add_percent": 30,
+      "prevent_elemental_ailments": 1
     },
     "11": {
-      "elemental_damage_add_percent": 30.5
+      "elemental_damage_add_percent": 30.5,
+      "prevent_elemental_ailments": 1
     },
     "12": {
-      "elemental_damage_add_percent": 31
+      "elemental_damage_add_percent": 31,
+      "prevent_elemental_ailments": 1
     },
     "13": {
-      "elemental_damage_add_percent": 31.5
+      "elemental_damage_add_percent": 31.5,
+      "prevent_elemental_ailments": 1
     },
     "14": {
-      "elemental_damage_add_percent": 32
+      "elemental_damage_add_percent": 32,
+      "prevent_elemental_ailments": 1
     },
     "15": {
-      "elemental_damage_add_percent": 32.5
+      "elemental_damage_add_percent": 32.5,
+      "prevent_elemental_ailments": 1
     },
     "16": {
-      "elemental_damage_add_percent": 33
+      "elemental_damage_add_percent": 33,
+      "prevent_elemental_ailments": 1
     },
     "17": {
-      "elemental_damage_add_percent": 33.5
+      "elemental_damage_add_percent": 33.5,
+      "prevent_elemental_ailments": 1
     },
     "18": {
-      "elemental_damage_add_percent": 34
+      "elemental_damage_add_percent": 34,
+      "prevent_elemental_ailments": 1
     },
     "19": {
-      "elemental_damage_add_percent": 34.5
+      "elemental_damage_add_percent": 34.5,
+      "prevent_elemental_ailments": 1
     },
     "20": {
-      "elemental_damage_add_percent": 35
+      "elemental_damage_add_percent": 35,
+      "prevent_elemental_ailments": 1
     },
     "21": {
-      "elemental_damage_add_percent": 35.5
+      "elemental_damage_add_percent": 35.5,
+      "prevent_elemental_ailments": 1
     },
     "22": {
-      "elemental_damage_add_percent": 36
+      "elemental_damage_add_percent": 36,
+      "prevent_elemental_ailments": 1
     },
     "23": {
-      "elemental_damage_add_percent": 36.5
+      "elemental_damage_add_percent": 36.5,
+      "prevent_elemental_ailments": 1
     },
     "24": {
-      "elemental_damage_add_percent": 37
+      "elemental_damage_add_percent": 37,
+      "prevent_elemental_ailments": 1
     },
     "25": {
-      "elemental_damage_add_percent": 37.5
+      "elemental_damage_add_percent": 37.5,
+      "prevent_elemental_ailments": 1
     },
     "26": {
-      "elemental_damage_add_percent": 38
+      "elemental_damage_add_percent": 38,
+      "prevent_elemental_ailments": 1
     },
     "27": {
-      "elemental_damage_add_percent": 38.5
+      "elemental_damage_add_percent": 38.5,
+      "prevent_elemental_ailments": 1
     },
     "28": {
-      "elemental_damage_add_percent": 39
+      "elemental_damage_add_percent": 39,
+      "prevent_elemental_ailments": 1
     },
     "29": {
-      "elemental_damage_add_percent": 39.5
+      "elemental_damage_add_percent": 39.5,
+      "prevent_elemental_ailments": 1
     },
     "30": {
-      "elemental_damage_add_percent": 40
+      "elemental_damage_add_percent": 40,
+      "prevent_elemental_ailments": 1
     },
     "31": {
-      "elemental_damage_add_percent": 40.5
+      "elemental_damage_add_percent": 40.5,
+      "prevent_elemental_ailments": 1
     },
     "32": {
-      "elemental_damage_add_percent": 41
+      "elemental_damage_add_percent": 41,
+      "prevent_elemental_ailments": 1
     },
     "33": {
-      "elemental_damage_add_percent": 41.5
+      "elemental_damage_add_percent": 41.5,
+      "prevent_elemental_ailments": 1
     },
     "34": {
-      "elemental_damage_add_percent": 42
+      "elemental_damage_add_percent": 42,
+      "prevent_elemental_ailments": 1
     },
     "35": {
-      "elemental_damage_add_percent": 42.5
+      "elemental_damage_add_percent": 42.5,
+      "prevent_elemental_ailments": 1
     },
     "36": {
-      "elemental_damage_add_percent": 43
+      "elemental_damage_add_percent": 43,
+      "prevent_elemental_ailments": 1
     },
     "37": {
-      "elemental_damage_add_percent": 43.5
+      "elemental_damage_add_percent": 43.5,
+      "prevent_elemental_ailments": 1
     },
     "38": {
-      "elemental_damage_add_percent": 44
+      "elemental_damage_add_percent": 44,
+      "prevent_elemental_ailments": 1
     },
     "39": {
-      "elemental_damage_add_percent": 44.5
+      "elemental_damage_add_percent": 44.5,
+      "prevent_elemental_ailments": 1
     },
     "40": {
-      "elemental_damage_add_percent": 45
+      "elemental_damage_add_percent": 45,
+      "prevent_elemental_ailments": 1
     }
   },
   "support_enhanced_ailment": {
     "1": {
-      "status_chance_add_percent": 0.3,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 0.3
     },
     "2": {
-      "status_chance_add_percent": 0.6,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 0.6
     },
     "3": {
-      "status_chance_add_percent": 0.9,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 0.9
     },
     "4": {
-      "status_chance_add_percent": 1.2,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 1.2
     },
     "5": {
-      "status_chance_add_percent": 1.5,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 1.5
     },
     "6": {
-      "status_chance_add_percent": 1.8,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 1.8
     },
     "7": {
-      "status_chance_add_percent": 2.1,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 2.1
     },
     "8": {
-      "status_chance_add_percent": 2.4,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 2.4
     },
     "9": {
-      "status_chance_add_percent": 2.7,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 2.7
     },
     "10": {
-      "status_chance_add_percent": 3,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 3
     },
     "11": {
-      "status_chance_add_percent": 3.3,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 3.3
     },
     "12": {
-      "status_chance_add_percent": 3.6,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 3.6
     },
     "13": {
-      "status_chance_add_percent": 3.9,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 3.9
     },
     "14": {
-      "status_chance_add_percent": 4.2,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 4.2
     },
     "15": {
-      "status_chance_add_percent": 4.5,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 4.5
     },
     "16": {
-      "status_chance_add_percent": 4.8,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 4.8
     },
     "17": {
-      "status_chance_add_percent": 5.1,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 5.1
     },
     "18": {
-      "status_chance_add_percent": 5.4,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 5.4
     },
     "19": {
-      "status_chance_add_percent": 5.7,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 5.7
     },
     "20": {
-      "status_chance_add_percent": 6,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6
     },
     "21": {
-      "status_chance_add_percent": 6.3,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.3
     },
     "22": {
-      "status_chance_add_percent": 6.4,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.4
     },
     "23": {
-      "status_chance_add_percent": 6.5,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.5
     },
     "24": {
-      "status_chance_add_percent": 6.6,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.6
     },
     "25": {
-      "status_chance_add_percent": 6.7,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.7
     },
     "26": {
-      "status_chance_add_percent": 6.8,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.8
     },
     "27": {
-      "status_chance_add_percent": 6.9,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 6.9
     },
     "28": {
-      "status_chance_add_percent": 7,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7
     },
     "29": {
-      "status_chance_add_percent": 7.1,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.1
     },
     "30": {
-      "status_chance_add_percent": 7.2,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.2
     },
     "31": {
-      "status_chance_add_percent": 7.3,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.3
     },
     "32": {
-      "status_chance_add_percent": 7.4,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.4
     },
     "33": {
-      "status_chance_add_percent": 7.5,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.5
     },
     "34": {
-      "status_chance_add_percent": 7.6,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.6
     },
     "35": {
-      "status_chance_add_percent": 7.7,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.7
     },
     "36": {
-      "status_chance_add_percent": 7.8,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.8
     },
     "37": {
-      "status_chance_add_percent": 7.9,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 7.9
     },
     "38": {
-      "status_chance_add_percent": 8,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 8
     },
     "39": {
-      "status_chance_add_percent": 8.1,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 8.1
     },
     "40": {
-      "status_chance_add_percent": 8.2,
+      "status_chance_add_percent": 40,
       "ailment_damage_add_percent": 8.2
     }
   },
@@ -10108,203 +10148,203 @@ export const FRONTEND_SKILL_LEVEL_TABLES = {
   "support_quick_mobility": {
     "1": {
       "attack_speed_add_percent": 10.5,
-      "cast_speed_add_percent": 20.5,
-      "cooldown_recovery_add_percent": 1.025
+      "cast_speed_add_percent": 10.5,
+      "cooldown_recovery_add_percent": 20.5
     },
     "2": {
       "attack_speed_add_percent": 11,
-      "cast_speed_add_percent": 21,
-      "cooldown_recovery_add_percent": 2.05
+      "cast_speed_add_percent": 11,
+      "cooldown_recovery_add_percent": 21
     },
     "3": {
       "attack_speed_add_percent": 11.5,
-      "cast_speed_add_percent": 21.5,
-      "cooldown_recovery_add_percent": 3.075
+      "cast_speed_add_percent": 11.5,
+      "cooldown_recovery_add_percent": 21.5
     },
     "4": {
       "attack_speed_add_percent": 12,
-      "cast_speed_add_percent": 22,
-      "cooldown_recovery_add_percent": 4.1
+      "cast_speed_add_percent": 12,
+      "cooldown_recovery_add_percent": 22
     },
     "5": {
       "attack_speed_add_percent": 12.5,
-      "cast_speed_add_percent": 22.5,
-      "cooldown_recovery_add_percent": 5.125
+      "cast_speed_add_percent": 12.5,
+      "cooldown_recovery_add_percent": 22.5
     },
     "6": {
       "attack_speed_add_percent": 13,
-      "cast_speed_add_percent": 23,
-      "cooldown_recovery_add_percent": 6.15
+      "cast_speed_add_percent": 13,
+      "cooldown_recovery_add_percent": 23
     },
     "7": {
       "attack_speed_add_percent": 13.5,
-      "cast_speed_add_percent": 23.5,
-      "cooldown_recovery_add_percent": 7.175
+      "cast_speed_add_percent": 13.5,
+      "cooldown_recovery_add_percent": 23.5
     },
     "8": {
       "attack_speed_add_percent": 14,
-      "cast_speed_add_percent": 24,
-      "cooldown_recovery_add_percent": 8.2
+      "cast_speed_add_percent": 14,
+      "cooldown_recovery_add_percent": 24
     },
     "9": {
       "attack_speed_add_percent": 14.5,
-      "cast_speed_add_percent": 24.5,
-      "cooldown_recovery_add_percent": 9.225
+      "cast_speed_add_percent": 14.5,
+      "cooldown_recovery_add_percent": 24.5
     },
     "10": {
       "attack_speed_add_percent": 15,
-      "cast_speed_add_percent": 25,
-      "cooldown_recovery_add_percent": 10.25
+      "cast_speed_add_percent": 15,
+      "cooldown_recovery_add_percent": 25
     },
     "11": {
       "attack_speed_add_percent": 15.5,
-      "cast_speed_add_percent": 25.5,
-      "cooldown_recovery_add_percent": 11.275
+      "cast_speed_add_percent": 15.5,
+      "cooldown_recovery_add_percent": 25.5
     },
     "12": {
       "attack_speed_add_percent": 16,
-      "cast_speed_add_percent": 26,
-      "cooldown_recovery_add_percent": 12.3
+      "cast_speed_add_percent": 16,
+      "cooldown_recovery_add_percent": 26
     },
     "13": {
       "attack_speed_add_percent": 16.5,
-      "cast_speed_add_percent": 26.5,
-      "cooldown_recovery_add_percent": 13.325
+      "cast_speed_add_percent": 16.5,
+      "cooldown_recovery_add_percent": 26.5
     },
     "14": {
       "attack_speed_add_percent": 17,
-      "cast_speed_add_percent": 27,
-      "cooldown_recovery_add_percent": 14.35
+      "cast_speed_add_percent": 17,
+      "cooldown_recovery_add_percent": 27
     },
     "15": {
       "attack_speed_add_percent": 17.5,
-      "cast_speed_add_percent": 27.5,
-      "cooldown_recovery_add_percent": 15.375
+      "cast_speed_add_percent": 17.5,
+      "cooldown_recovery_add_percent": 27.5
     },
     "16": {
       "attack_speed_add_percent": 18,
-      "cast_speed_add_percent": 28,
-      "cooldown_recovery_add_percent": 16.4
+      "cast_speed_add_percent": 18,
+      "cooldown_recovery_add_percent": 28
     },
     "17": {
       "attack_speed_add_percent": 18.5,
-      "cast_speed_add_percent": 28.5,
-      "cooldown_recovery_add_percent": 17.425
+      "cast_speed_add_percent": 18.5,
+      "cooldown_recovery_add_percent": 28.5
     },
     "18": {
       "attack_speed_add_percent": 19,
-      "cast_speed_add_percent": 29,
-      "cooldown_recovery_add_percent": 18.45
+      "cast_speed_add_percent": 19,
+      "cooldown_recovery_add_percent": 29
     },
     "19": {
       "attack_speed_add_percent": 19.5,
-      "cast_speed_add_percent": 29.5,
-      "cooldown_recovery_add_percent": 19.475
+      "cast_speed_add_percent": 19.5,
+      "cooldown_recovery_add_percent": 29.5
     },
     "20": {
       "attack_speed_add_percent": 20,
-      "cast_speed_add_percent": 30,
-      "cooldown_recovery_add_percent": 20.5
+      "cast_speed_add_percent": 20,
+      "cooldown_recovery_add_percent": 30
     },
     "21": {
       "attack_speed_add_percent": 20.5,
-      "cast_speed_add_percent": 30.5,
-      "cooldown_recovery_add_percent": 21.525
+      "cast_speed_add_percent": 20.5,
+      "cooldown_recovery_add_percent": 30.5
     },
     "22": {
       "attack_speed_add_percent": 21,
-      "cast_speed_add_percent": 31,
-      "cooldown_recovery_add_percent": 22.55
+      "cast_speed_add_percent": 21,
+      "cooldown_recovery_add_percent": 31
     },
     "23": {
       "attack_speed_add_percent": 21.5,
-      "cast_speed_add_percent": 31.5,
-      "cooldown_recovery_add_percent": 23.575
+      "cast_speed_add_percent": 21.5,
+      "cooldown_recovery_add_percent": 31.5
     },
     "24": {
       "attack_speed_add_percent": 22,
-      "cast_speed_add_percent": 32,
-      "cooldown_recovery_add_percent": 24.6
+      "cast_speed_add_percent": 22,
+      "cooldown_recovery_add_percent": 32
     },
     "25": {
       "attack_speed_add_percent": 22.5,
-      "cast_speed_add_percent": 32.5,
-      "cooldown_recovery_add_percent": 25.625
+      "cast_speed_add_percent": 22.5,
+      "cooldown_recovery_add_percent": 32.5
     },
     "26": {
       "attack_speed_add_percent": 23,
-      "cast_speed_add_percent": 33,
-      "cooldown_recovery_add_percent": 26.65
+      "cast_speed_add_percent": 23,
+      "cooldown_recovery_add_percent": 33
     },
     "27": {
       "attack_speed_add_percent": 23.5,
-      "cast_speed_add_percent": 33.5,
-      "cooldown_recovery_add_percent": 27.675
+      "cast_speed_add_percent": 23.5,
+      "cooldown_recovery_add_percent": 33.5
     },
     "28": {
       "attack_speed_add_percent": 24,
-      "cast_speed_add_percent": 34,
-      "cooldown_recovery_add_percent": 28.7
+      "cast_speed_add_percent": 24,
+      "cooldown_recovery_add_percent": 34
     },
     "29": {
       "attack_speed_add_percent": 24.5,
-      "cast_speed_add_percent": 34.5,
-      "cooldown_recovery_add_percent": 29.725
+      "cast_speed_add_percent": 24.5,
+      "cooldown_recovery_add_percent": 34.5
     },
     "30": {
       "attack_speed_add_percent": 25,
-      "cast_speed_add_percent": 35,
-      "cooldown_recovery_add_percent": 30.75
+      "cast_speed_add_percent": 25,
+      "cooldown_recovery_add_percent": 35
     },
     "31": {
       "attack_speed_add_percent": 25.5,
-      "cast_speed_add_percent": 35.5,
-      "cooldown_recovery_add_percent": 31.775
+      "cast_speed_add_percent": 25.5,
+      "cooldown_recovery_add_percent": 35.5
     },
     "32": {
       "attack_speed_add_percent": 26,
-      "cast_speed_add_percent": 36,
-      "cooldown_recovery_add_percent": 32.8
+      "cast_speed_add_percent": 26,
+      "cooldown_recovery_add_percent": 36
     },
     "33": {
       "attack_speed_add_percent": 26.5,
-      "cast_speed_add_percent": 36.5,
-      "cooldown_recovery_add_percent": 33.825
+      "cast_speed_add_percent": 26.5,
+      "cooldown_recovery_add_percent": 36.5
     },
     "34": {
       "attack_speed_add_percent": 27,
-      "cast_speed_add_percent": 37,
-      "cooldown_recovery_add_percent": 34.85
+      "cast_speed_add_percent": 27,
+      "cooldown_recovery_add_percent": 37
     },
     "35": {
       "attack_speed_add_percent": 27.5,
-      "cast_speed_add_percent": 37.5,
-      "cooldown_recovery_add_percent": 35.875
+      "cast_speed_add_percent": 27.5,
+      "cooldown_recovery_add_percent": 37.5
     },
     "36": {
       "attack_speed_add_percent": 28,
-      "cast_speed_add_percent": 38,
-      "cooldown_recovery_add_percent": 36.9
+      "cast_speed_add_percent": 28,
+      "cooldown_recovery_add_percent": 38
     },
     "37": {
       "attack_speed_add_percent": 28.5,
-      "cast_speed_add_percent": 38.5,
-      "cooldown_recovery_add_percent": 37.925
+      "cast_speed_add_percent": 28.5,
+      "cooldown_recovery_add_percent": 38.5
     },
     "38": {
       "attack_speed_add_percent": 29,
-      "cast_speed_add_percent": 39,
-      "cooldown_recovery_add_percent": 38.95
+      "cast_speed_add_percent": 29,
+      "cooldown_recovery_add_percent": 39
     },
     "39": {
       "attack_speed_add_percent": 29.5,
-      "cast_speed_add_percent": 39.5,
-      "cooldown_recovery_add_percent": 39.975
+      "cast_speed_add_percent": 29.5,
+      "cooldown_recovery_add_percent": 39.5
     },
     "40": {
       "attack_speed_add_percent": 30,
-      "cast_speed_add_percent": 40,
-      "cooldown_recovery_add_percent": 41
+      "cast_speed_add_percent": 30,
+      "cooldown_recovery_add_percent": 40
     }
   },
   "support_raging_slash": {

@@ -90,6 +90,10 @@ export function preloadFrontendEquipmentData(): Promise<FrontendEquipmentDataSta
       };
       equipmentDataState = state;
       return state;
+    })
+    .catch((error) => {
+      equipmentDataPromise = null;
+      throw error;
     });
   return equipmentDataPromise;
 }

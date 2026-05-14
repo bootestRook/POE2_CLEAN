@@ -19,14 +19,18 @@ type GmEquipmentAffixResponse = {
 export function GmToolPanel({
   options,
   affixes,
+  loadErrorText,
   onLoadAffixes,
   onSubmit,
+  onRetryLoad,
   onClose
 }: {
   options: GmOptions | null;
   affixes: GmEquipmentAffixResponse | null;
+  loadErrorText?: string;
   onLoadAffixes: (source: string, level: number) => Promise<GmEquipmentAffixResponse>;
   onSubmit: (path: string, body: unknown, successText: string) => Promise<void>;
+  onRetryLoad: () => void;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"gem" | "ordinary" | "specific" | "random">("gem");
@@ -183,7 +187,14 @@ export function GmToolPanel({
         <button type="button" className={mode === "random" ? "active" : ""} onClick={() => setMode("random")}>随机装备</button>
       </div>
       {!options ? (
-        <div className="gm-tool-loading">正在读取合法物品...</div>
+        <div className="gm-tool-loading">
+          {loadErrorText ? (
+            <>
+              <span>{loadErrorText}</span>
+              <button type="button" onClick={onRetryLoad}>重新读取</button>
+            </>
+          ) : "正在读取合法物品..."}
+        </div>
       ) : (
         <div className="gm-tool-body">
           {mode === "gem" && (

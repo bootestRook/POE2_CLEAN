@@ -249,7 +249,7 @@ export function mergeFrontendSkillPreviewBonusLines(lines: string[], bonusLines:
 
 export function mergeFrontendSkillPreviewTooltipLines(
   lines: TooltipStatLine[],
-  skill: { final_damage?: number },
+  skill: { final_damage?: number; final_cooldown_ms?: number },
   componentLines: TooltipStatLine[],
   formatPreviewNumber: (value: number) => string,
   levelText = ""
@@ -257,6 +257,9 @@ export function mergeFrontendSkillPreviewTooltipLines(
   const nextLines = lines.map((line) => {
     if (isPrimaryDamageTooltipLine(line.label_text)) {
       return { ...line, value_text: formatPreviewNumber(skill.final_damage ?? Number(line.value_text)) };
+    }
+    if (isCooldownTooltipLine(line.label_text) && typeof skill.final_cooldown_ms === "number") {
+      return { ...line, value_text: formatCooldownTooltipValue(skill.final_cooldown_ms, formatPreviewNumber) };
     }
     if (levelText && isSkillLevelTooltipLine(line.label_text)) {
       return { ...line, value_text: levelText };
@@ -269,6 +272,44 @@ export function mergeFrontendSkillPreviewTooltipLines(
   if (missingComponentLines.length === 0) return nextLines;
   if (insertAfter < 0) return [...nextLines, ...missingComponentLines];
   return [...nextLines.slice(0, insertAfter + 1), ...missingComponentLines, ...nextLines.slice(insertAfter + 1)];
+}
+
+const PRIMARY_DAMAGE_TOOLTIP_LABELS = new Set([
+  "伤害",
+  "物理伤害",
+  "火焰伤害",
+  "冰霜伤害",
+  "闪电伤害",
+  "混沌伤害",
+  "元素伤害",
+  "攻击伤害",
+  "法术伤害",
+  "技能伤害",
+  "基础伤害",
+  "最终伤害",
+]);
+
+export function isPrimaryDamageTooltipLine(labelText: string) {
+  const normalizedLabel = labelText.trim().replace(/[\s\uff1a:]/g, "");
+  return PRIMARY_DAMAGE_TOOLTIP_LABELS.has(normalizedLabel);
+}
+
+const COOLDOWN_TOOLTIP_LABELS = new Set([
+  "冷却",
+  "冷却时间",
+  "最终冷却",
+]);
+
+function isCooldownTooltipLine(labelText: string) {
+  const normalizedLabel = labelText.trim().replace(/[\s\uff1a:]/g, "");
+  return COOLDOWN_TOOLTIP_LABELS.has(normalizedLabel);
+}
+
+function formatCooldownTooltipValue(cooldownMs: number, formatPreviewNumber: (value: number) => string) {
+  if (!Number.isFinite(cooldownMs) || cooldownMs <= 0) return "0秒";
+  return cooldownMs >= 1000
+    ? `${formatPreviewNumber(cooldownMs / 1000)}秒`
+    : `${formatPreviewNumber(cooldownMs)}毫秒`;
 }
 
 export function frontendProjectileCountTooltipLine(
@@ -316,10 +357,6 @@ export function frontendChannelStackTooltipLines(
       value_text: formatPreviewNumber(Math.max(1, Math.round(maxStacks))),
     },
   ];
-}
-
-function isPrimaryDamageTooltipLine(labelText: string) {
-  return labelText.includes("\u4f24\u5bb3") || labelText.includes("\u6d5c\u3085");
 }
 
 export function isSkillLevelTooltipLine(labelText: string) {
@@ -385,7 +422,7 @@ export function ensureGemLevelStatLine(gem: { level?: number }, lines: TooltipSt
 
 const RELEASE_INTERVAL_LABELS = new Set(["攻击间隔", "施法时间", "实际释放间隔", "释放间隔", "基础释放间隔"]);
 
-function isEffectiveSkillLevelValue(valueText: string) {
+export function isEffectiveSkillLevelValue(valueText: string) {
   return /\(\d+\+\d+\)/.test(valueText);
 }
 

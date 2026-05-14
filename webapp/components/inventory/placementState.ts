@@ -1,6 +1,7 @@
 export type InventoryPlacementItem = {
   instance_id: string;
   board_position?: { row: number; column: number } | null;
+  board_mount_sequence?: number;
 };
 
 type InventoryPlacementCell<TItem extends InventoryPlacementItem> = {
@@ -177,16 +178,21 @@ export function optimisticPlaceItemOnBoard<
   instanceId: string,
   row: number,
   column: number,
-  displacedInstanceId?: string
+  displacedInstanceId?: string,
+  boardMountSequence?: number
 ): TState {
   const dragged = state.inventory.find((item) => item.instance_id === instanceId);
   if (!dragged) return state;
-  const placedGem = { ...dragged, board_position: { row, column } };
+  const placedGem = {
+    ...dragged,
+    board_position: { row, column },
+    board_mount_sequence: dragged.board_position ? dragged.board_mount_sequence : boardMountSequence ?? dragged.board_mount_sequence
+  };
   return {
     ...state,
     inventory: state.inventory.map((item) => {
       if (item.instance_id === instanceId) return placedGem;
-      if (item.instance_id === displacedInstanceId) return { ...item, board_position: null };
+      if (item.instance_id === displacedInstanceId) return { ...item, board_position: null, board_mount_sequence: undefined };
       return item;
     }),
     board: {

@@ -1,5 +1,6 @@
 import { CSSProperties } from "react";
 import { clampNumber } from "../../utils/number";
+import phaseDashCooldownIconUrl from "../../assets/gems/phase-dash-cooldown-icon.png";
 
 type PlayerResourceView = {
   x: number;
@@ -15,9 +16,15 @@ type PlayerResourceView = {
 type PlayerOverheadResourceBarsProps = {
   player: PlayerResourceView;
   projectPosition: (worldPosition: { x: number; y: number }) => { x: number; y: number };
+  displacementSkillCooldown?: PlayerDisplacementSkillCooldownView | null;
 };
 
-export function PlayerOverheadResourceBars({ player, projectPosition }: PlayerOverheadResourceBarsProps) {
+export type PlayerDisplacementSkillCooldownView = {
+  ready: boolean;
+  cooldownProgress: number;
+};
+
+export function PlayerOverheadResourceBars({ player, projectPosition, displacementSkillCooldown }: PlayerOverheadResourceBarsProps) {
   const maxLife = Math.max(0, player.maxHp);
   const currentLife = clampNumber(player.hp, 0, maxLife);
   const maxMana = Math.max(0, player.maxMana);
@@ -37,6 +44,15 @@ export function PlayerOverheadResourceBars({ player, projectPosition }: PlayerOv
       <span className="player-overhead-bar player-overhead-bar-mana">
         <span style={{ width: `${resourcePercent(currentMana, maxMana)}%` }} />
       </span>
+      {displacementSkillCooldown ? (
+        <span
+          className={`player-overhead-displacement-skill${displacementSkillCooldown.ready ? " ready" : " cooldown"}`}
+          style={{ "--displacement-cooldown-progress": clampNumber(displacementSkillCooldown.cooldownProgress, 0, 1) } as CSSProperties}
+          aria-label={displacementSkillCooldown.ready ? "位移技能可用" : "位移技能冷却中"}
+        >
+          <img src={phaseDashCooldownIconUrl} alt="" draggable={false} />
+        </span>
+      ) : null}
     </aside>
   );
 }

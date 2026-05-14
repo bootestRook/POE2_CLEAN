@@ -1,8 +1,11 @@
 import type { TooltipTagView } from "./TooltipPrimitives";
+import { frontendDisplacementSkillLevelTableForId } from "../../data/playerDisplacementSkillData";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "../../frontendSkillLevelTables";
 import {
   ensureGemLevelStatLine,
   ensureReleaseIntervalStatLine,
+  isEffectiveSkillLevelValue,
+  isPrimaryDamageTooltipLine,
   isSkillLevelTooltipLine,
   normalizedTooltipSubtitle
 } from "./tooltipFormatting";
@@ -86,7 +89,10 @@ function normalizeActiveTooltipLevel(gem: ActiveTooltipGem, view: TooltipView, d
     "base_damage",
     Number(baseEffect.base_damage ?? baseEffect.final_damage ?? baseEffect.damage ?? NaN)
   );
-  const lines = view.sections.stats.lines.map((line) => (
+  const hasPreviewEffectiveLevel = view.sections.stats.lines.some((line) => (
+    isSkillLevelTooltipLine(line.label_text) && isEffectiveSkillLevelValue(line.value_text)
+  ));
+  const lines = hasPreviewEffectiveLevel ? view.sections.stats.lines : view.sections.stats.lines.map((line) => (
     Number.isFinite(damage) && isPrimaryDamageTooltipLine(line.label_text)
       ? { ...line, value_text: deps.formatPreviewNumber(damage) }
       : line
@@ -113,7 +119,8 @@ function activeTooltipGemLevel(gem: ActiveTooltipGem) {
 
 function activeTooltipLevelValues(gem: ActiveTooltipGem, level: number) {
   const tableId = String(gem.base_gem_id ?? gem.instance_id ?? "");
-  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
+  const table = frontendDisplacementSkillLevelTableForId(tableId)
+    ?? (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, Record<string, number>>>)[tableId];
   if (!table) return {};
   const levels = Object.keys(table).map(Number).filter(Number.isFinite).sort((left, right) => left - right);
   if (levels.length === 0) return {};
@@ -124,10 +131,6 @@ function activeTooltipLevelValues(gem: ActiveTooltipGem, level: number) {
 function activeTooltipLevelNumber(levelValues: Record<string, number>, key: string, fallback: number) {
   const value = levelValues[key];
   return Number.isFinite(value) ? value : fallback;
-}
-
-function isPrimaryDamageTooltipLine(labelText: string) {
-  return labelText.includes("\u4f24\u5bb3") || labelText.includes("\u6d5c\u3085");
 }
 
 function shouldShowTooltipTagForGem(gem: ActiveTooltipGem, tag: TooltipTagView, deps: ActiveTooltipAdapterDeps) {

@@ -417,15 +417,39 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
         const payloadEndPosition = event.payload?.expire_world_position ?? event.payload?.end_position;
         const endPosition = liveMonsterTrajectory?.target ?? targetPosition ?? pointFromUnknown(payloadEndPosition) ?? event.position;
         const lifetimeMs = Number(event.payload?.lifetime_ms ?? event.duration_ms);
-        const aliveDuration = Math.max(0.001, lifetimeMs / 1000);
+        const clippedProjectileLine = deps.clipProjectileLine
+          ? deps.clipProjectileLine(spawnPosition, endPosition)
+          : { blocked: false, point: endPosition };
+        const clippedEndPosition = clippedProjectileLine.point ?? endPosition;
+        const clippedTravelDistance = Math.max(1, Math.hypot(clippedEndPosition.x - spawnPosition.x, clippedEndPosition.y - spawnPosition.y));
+        const aliveDuration = Math.max(
+          0.001,
+          clippedProjectileLine.blocked && projectileSpeed > 0
+            ? clippedTravelDistance / projectileSpeed
+            : lifetimeMs / 1000
+        );
+        const runtimeProjectileEvent = clippedProjectileLine.blocked
+          ? {
+              ...event,
+              duration_ms: Math.round(aliveDuration * 1000),
+              payload: {
+                ...event.payload,
+                target_world_position: clippedEndPosition,
+                expire_world_position: clippedEndPosition,
+                max_distance: clippedTravelDistance,
+                lifetime_ms: Math.round(aliveDuration * 1000),
+                wall_blocked: true
+              }
+            }
+          : event;
         const runtimeProjectileVfxKind = projectileVfxKind(event.vfx_key) ?? projectileVfxKind(event.skill_instance_id);
         const projectileExitFadeDuration = runtimeProjectileVfxKind === "burning_shot" ? 0 : PROJECTILE_BODY_EXIT_FADE_DURATION;
         nextBolts.push({
           id: nextBoltId.current++,
           x: spawnPosition.x,
           y: spawnPosition.y,
-          targetX: endPosition.x,
-          targetY: endPosition.y,
+          targetX: clippedEndPosition.x,
+          targetY: clippedEndPosition.y,
           directionX: directionWorld.x,
           directionY: directionWorld.y,
           velocityX: velocityWorld?.x,
@@ -473,7 +497,7 @@ function consumeSkillEventBatch(events: SkillEvent[]) {
         if (event.payload?.dynamic_tick_runtime === true) {
           const projectileId = projectileIdFromEvent(event);
           registerActiveDamageZone(
-            event,
+            runtimeProjectileEvent,
             projectileId || event.event_id,
             pointFromUnknown(event.payload?.spawn_world_position) ?? spawnPosition,
             directionWorld,

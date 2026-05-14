@@ -4,6 +4,7 @@ import { isNemesisRarity } from "../mapSpawnRuntime";
 import { MONSTER_GEOMETRY_VISUALS, resolveMonsterGeometryVisual } from "../monsterGeometryVisuals";
 import type { Enemy, EnemyRuntimeTier, RuntimeBoundaryScanSummary, RuntimeEncounterAggroSource } from "../types/enemyTypes";
 import { clamp, distance, guideDirection, normalizeMoveVector } from "../utils/math2d";
+import { hasUnblockedBattleLine } from "./battleMapLineBlockerRuntime";
 
 export const ENEMY_SPATIAL_CHUNK_SIZE = 256;
 export const ENEMY_AWARE_RANGE = 900;
@@ -349,10 +350,11 @@ export function updateRuntimeEnemies(
   const spatialIndex = createEnemySpatialIndex(movingCurrent);
   const nearbyEnemyAggroSourceIds = new Set(
     queryEnemySpatialIndex(spatialIndex, player, ENEMY_INDIVIDUAL_AGGRO_RADIUS)
-      .flatMap((enemy) => enemy.spawnPlanSourceId ? [enemy.spawnPlanSourceId] : [])
+      .flatMap((enemy) => enemy.spawnPlanSourceId && hasUnblockedBattleLine(map, enemy, player) ? [enemy.spawnPlanSourceId] : [])
   );
   for (const source of aggroSources) {
-    if (!triggeredSourceIds.has(source.id) && (distance(source, player) <= source.aggroRadius || nearbyEnemyAggroSourceIds.has(source.id))) {
+    const sourceCanSeePlayer = distance(source, player) <= source.aggroRadius && hasUnblockedBattleLine(map, source, player);
+    if (!triggeredSourceIds.has(source.id) && (sourceCanSeePlayer || nearbyEnemyAggroSourceIds.has(source.id))) {
       triggeredSourceIds.add(source.id);
     }
   }
@@ -715,17 +717,7 @@ export function enemyUnreachableApproachTarget(
 }
 
 export function enemyHasWalkableLine(map: BakedBattleMapData, from: { x: number; y: number }, to: { x: number; y: number }) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const length = Math.hypot(dx, dy);
-  if (length <= 0.001) return isMapPointWalkable(map, from.x, from.y);
-  const step = Math.max(4, map.meta.grid_size * 0.35);
-  const samples = Math.max(1, Math.ceil(length / step));
-  for (let index = 1; index <= samples; index += 1) {
-    const ratio = index / samples;
-    if (!isMapPointWalkable(map, from.x + dx * ratio, from.y + dy * ratio)) return false;
-  }
-  return true;
+  return hasUnblockedBattleLine(map, from, to);
 }
 
 export function enemyLineReachablePlayerContactTarget(

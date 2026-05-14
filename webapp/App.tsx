@@ -107,6 +107,13 @@ import {
 } from "./runtime/damageZoneLifecycleRuntime";
 import { createDamageApplicationRuntime } from "./runtime/damageApplicationRuntime";
 import { createSkillEventConsumerRuntime } from "./runtime/skillEventConsumerRuntime";
+import { clipBattleLineToBlocker, hasUnblockedBattleLine } from "./runtime/battleMapLineBlockerRuntime";
+import {
+  isPlayerDisplacementSkill,
+  releasePlayerDisplacementSkill,
+  selectPlayerDisplacementSkill,
+  type PlayerDisplacementCooldowns
+} from "./runtime/playerDisplacementSkillRuntime";
 import {
   buildFrontendChainSkillEvents as buildFrontendChainSkillEventsFromRuntime,
   buildFrontendDamageZoneSkillEvents as buildFrontendDamageZoneSkillEventsFromRuntime,
@@ -191,6 +198,10 @@ import {
 } from "./unitAssets";
 import { FRONTEND_GEM_DROP_POOL } from "./frontendGemDropData";
 import { FRONTEND_INITIAL_APP_STATE } from "./frontendGameData";
+import {
+  FRONTEND_PHASE_DASH_BASE_GEM_ID,
+  FRONTEND_PHASE_DASH_GEM
+} from "./data/playerDisplacementSkillData";
 import {
   chooseFrontendEquipmentSource,
   createSpecifiedFrontendEquipment,
@@ -288,6 +299,7 @@ import { runtimeDebugMapInstanceRotation, runtimeDebugMapInstanceSeed, runtimeDe
 import { clamp, distance, guideDirection } from "./utils/math2d";
 import { cssToken, visualTone } from "./utils/vfxTone";
 import { playerInputVector, projectMovementVectorForAnimation, resolveAnimationDirection } from "./utils/runtimeMotion";
+import { frontendAilmentStackCount, frontendAilmentStackMode } from "./runtime/frontendAilmentRuntime";
 import { createBattleAnimationContexts, createBattleRenderItems, shouldRenderLegacyBattleItem as shouldRenderLegacyBattleItemState, type BattleAnimationContexts, type BattleRenderItem } from "./components/battle/battleRenderState";
 import { renderBattleRenderItem as renderBattlePresentationItem, type BattlePresentationRenderItem, type BattleRenderPresentationHelpers } from "./components/battle/BattleRenderLayer";
 import {
@@ -389,6 +401,7 @@ type Gem = {
   tags: readonly { id?: string; text: string }[];
   current_effective_targets: readonly { name_text: string }[];
   board_position: { row: number; column: number } | null;
+  board_mount_sequence?: number;
   visual_effect?: string;
   shape_effect?: string;
   shape_effect_text?: string;
@@ -753,6 +766,7 @@ const TOOLTIP_COMPARISON_GAP = 0;
 const TOOLTIP_SCREEN_PADDING = 8;
 const ITEM_DISCARD_SKIP_CONFIRM_STORAGE_KEY = "poe2.v1.item_discard.skip_confirm";
 const STARTER_GEM_BOARD_POSITION = { row: 4, column: 4 } as const;
+const PHASE_DASH_STARTER_GEM_BOARD_POSITION = { row: 8, column: 8 } as const;
 const EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS = new Set(["active_stoneskin"]);
 const MONSTER_TEST_PLAYER_LIFE = 9_999_999;
 const MONSTER_TEST_LEVEL = 86;
@@ -769,7 +783,10 @@ function cloneFrontendInitialAppStateSeed(): AppState {
 }
 
 function frontendGemDropPool(): readonly Gem[] {
-  return FRONTEND_GEM_DROP_POOL as unknown as readonly Gem[];
+  const pool = FRONTEND_GEM_DROP_POOL as unknown as readonly Gem[];
+  return pool.some((gem) => String(gem.base_gem_id ?? gem.instance_id) === FRONTEND_PHASE_DASH_BASE_GEM_ID)
+    ? pool
+    : [...pool, FRONTEND_PHASE_DASH_GEM as unknown as Gem];
 }
 
 function localDateKey(date = new Date()) {
@@ -851,6 +868,8 @@ const {
   recalculateFrontendSkillPreview,
   recalculateFrontendEquipmentState,
   starterGemBoardPosition: STARTER_GEM_BOARD_POSITION,
+  starterBonusBaseGemId: FRONTEND_PHASE_DASH_BASE_GEM_ID,
+  starterBonusGemBoardPosition: PHASE_DASH_STARTER_GEM_BOARD_POSITION,
   excludedStarterBaseGemIds: EXCLUDED_NEW_SAVE_STARTER_BASE_GEM_IDS,
   monsterTestPlayerLife: MONSTER_TEST_PLAYER_LIFE,
   equipmentSlotCount: EQUIPMENT_SLOT_COUNT
@@ -1028,6 +1047,8 @@ function GameApp() {
   const [gmOpen, setGmOpen] = useState(false);
   const [gmOptions, setGmOptions] = useState<GmOptions | null>(null);
   const [gmAffixes, setGmAffixes] = useState<GmEquipmentAffixResponse | null>(null);
+  const [gmLoadError, setGmLoadError] = useState("");
+  const [gmLoadRetryId, setGmLoadRetryId] = useState(0);
   const monsterTestOptions = useMemo(() => monsterTestMonsterOptions(), []);
   const [selectedMonsterTestMonsterId, setSelectedMonsterTestMonsterId] = useState(() => monsterTestOptions[0]?.id ?? "");
   const [activeInventoryBagTab, setActiveInventoryBagTab] = useState<InventoryBagTab>("equipment");
@@ -1102,6 +1123,9 @@ function GameApp() {
   const elapsedLastUiSync = useRef(0);
   const pendingDropPickup = useRef<{ dropId: string; x: number; y: number } | null>(null);
   const pendingBossPortalUse = useRef<{ portalId: string; x: number; y: number } | null>(null);
+  const pendingPlayerDisplacement = useRef(false);
+  const playerDisplacementCooldowns = useRef<PlayerDisplacementCooldowns>({});
+  const battleMouseWorld = useRef<{ x: number; y: number } | null>(null);
   const pickupRequestInFlight = useRef(false);
   const dropDisplayPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
   const knownDropIds = useRef<Set<string>>(new Set());
@@ -1428,6 +1452,7 @@ function GameApp() {
 
   useEffect(() => {
     if (!RELEASE_DEBUG_TOOLS_ENABLED || !bagOpen || !gmOpen) return;
+    setGmLoadError("");
     const optionsPromise = gmOptions ? Promise.resolve(gmOptions) : requestGmOptions().then((options) => {
       setGmOptions(options);
       return options;
@@ -1441,8 +1466,13 @@ function GameApp() {
       .then((affixes) => {
         if (affixes) setGmAffixes(affixes);
       })
-      .catch((error: Error) => setNotice(error.message));
-  }, [bagOpen, gmOpen, gmOptions, gmAffixes]);
+      .catch((error: Error) => {
+        const detail = error.message || String(error) || "未知错误";
+        const message = `GM 工具读取合法物品失败：${detail}`;
+        setGmLoadError(message);
+        setNotice(message);
+      });
+  }, [bagOpen, gmOpen, gmOptions, gmAffixes, gmLoadRetryId]);
 
   useEffect(() => {
     if (!state) return;
@@ -1705,6 +1735,11 @@ function GameApp() {
         setPlayableMinimapMode((current) => current === "expanded" ? "compact" : "expanded");
         return;
       }
+      if (key === " " && playableBattleActive && !event.repeat && !isPlayableBattleTypingTarget(event.target)) {
+        event.preventDefault();
+        pendingPlayerDisplacement.current = true;
+        return;
+      }
       if (key === "f" && !event.repeat) {
         event.preventDefault();
         handleKeyboardInteract();
@@ -1873,6 +1908,7 @@ function GameApp() {
       elapsedLastUiSync.current = elapsedRef.current;
       setElapsed(elapsedRef.current);
     }
+    const nowMs = elapsedRef.current * 1000;
     const playerSpeed = statNumber(state?.player_stats?.move_speed, PLAYER_SPEED) * playerMovementSpeedMultiplier();
     const currentPlayer = playerStateRef.current;
     const pickupTarget = pendingDropPickup.current;
@@ -1917,6 +1953,23 @@ function GameApp() {
       x: nextPlayerPosition.x,
       y: nextPlayerPosition.y
     };
+    if (pendingPlayerDisplacement.current) {
+      pendingPlayerDisplacement.current = false;
+      const displacementSkill = selectPlayerDisplacementSkill(activeSkills);
+      const displacement = releasePlayerDisplacementSkill({
+        skill: displacementSkill,
+        player: nextPlayer,
+        aimWorld: battleMouseWorld.current,
+        map: battleMap,
+        enemies: enemiesStateRef.current,
+        nowMs,
+        cooldowns: playerDisplacementCooldowns.current
+      });
+      if (displacement.released) {
+        nextPlayer = displacement.player;
+        consumeSkillEventTimeline(displacement.events);
+      }
+    }
     nextPlayer = applyFrontendMovementEquipmentEffects(currentPlayer, nextPlayer, dt);
     nextPlayer = applyFrontendPlayerSelfDamage(nextPlayer, dt);
     setRuntimePlayer(() => nextPlayer);
@@ -1931,7 +1984,6 @@ function GameApp() {
         spawnEnemy = true;
       }
 
-      const nowMs = elapsedRef.current * 1000;
       const attackLockedEnemyIds = currentEnemyAttackLockedIds(nowMs, enemiesStateRef.current, nextPlayer, battleMap);
       const movingEnemies = updateRuntimeEnemies(enemiesStateRef.current, nextPlayer, battleMap, dt, elapsedRef.current, authoredSpawnPlanActive, authoredAggroSources, triggeredEncounterSourceIds.current, attackLockedEnemyIds);
       const spawnedEnemies = spawnEnemy ? [...movingEnemies, createEnemy(nextEnemyId.current++, nextPlayer.x, nextPlayer.y, battleMap, "normal", encounterMonsterPalette.current)] : movingEnemies;
@@ -1958,6 +2010,7 @@ function GameApp() {
         if (!activeIds.has(timerId)) delete damageZoneChannels.current[timerId];
       }
       for (const skill of activeSkills) {
+        if (isPlayerDisplacementSkill(skill)) continue;
         if (isThundercloudSkill(skill)) {
           processThundercloudChannel(skill, dt, enemiesStateRef.current);
           continue;
@@ -2154,6 +2207,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         aggroLocked
       );
       if (!candidate) continue;
+      if (candidate.skill.module === "monster_projectile" && !hasUnblockedBattleLine(battleMap, enemy, playerNow)) continue;
       nextEnemies[index] = releaseMonsterSkill(nextEnemies, index, candidate.skill, candidate.sequence, nowMs);
       markMonsterSkillReleased(timer, candidate.skill, nowMs);
     }
@@ -2503,7 +2557,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
   }
 
   function bossCanTargetPlayer(boss: Enemy, range: number) {
-    return distance(boss, playerStateRef.current) <= range;
+    return distance(boss, playerStateRef.current) <= range && hasUnblockedBattleLine(battleMap, boss, playerStateRef.current);
   }
 
   function createInitialBossSkillTimers(boss: Enemy, nowMs: number): BossSkillTimers {
@@ -3276,14 +3330,14 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
 
   function frontendNearestSkillTargets(current: Enemy[], source: { x: number; y: number }, range: number, maxTargets: number) {
     return [...current]
-      .filter((enemy) => enemy.hp > 0 && distance(enemy, source) <= range)
+      .filter((enemy) => enemy.hp > 0 && distance(enemy, source) <= range && hasUnblockedBattleLine(battleMap, source, enemy))
       .sort((a, b) => distance(a, source) - distance(b, source))
       .slice(0, maxTargets);
   }
 
   function frontendCircleSkillTargets(current: Enemy[], center: { x: number; y: number }, radius: number, maxTargets: number) {
     return [...current]
-      .filter((enemy) => enemy.hp > 0 && distance(enemy, center) <= radius)
+      .filter((enemy) => enemy.hp > 0 && distance(enemy, center) <= radius && hasUnblockedBattleLine(battleMap, center, enemy))
       .sort((a, b) => distance(a, center) - distance(b, center))
       .slice(0, maxTargets);
   }
@@ -3300,6 +3354,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
     return [...current]
       .filter((enemy) => {
         if (enemy.hp <= 0 || distance(enemy, origin) > radius) return false;
+        if (!hasUnblockedBattleLine(battleMap, origin, enemy)) return false;
         const toEnemy = normalizedWorldDirection({ x: enemy.x - origin.x, y: enemy.y - origin.y });
         const angle = Math.acos(clamp(facing.x * toEnemy.x + facing.y * toEnemy.y, -1, 1)) * 180 / Math.PI;
         return angle <= arcAngle / 2;
@@ -3334,6 +3389,7 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
       const statusType = String(ailment.type ?? "");
       if (!statusType) return;
       const duration = Math.max(0.1, Number(ailment.duration_ms ?? 0) / 1000);
+      const stackMode = frontendAilmentStackMode(statusType, frontendEnemyBuffStackModeFromValue(ailment.stack_mode));
       statusBuffs.push({
         buffType: statusType,
         statusType,
@@ -3343,8 +3399,8 @@ function syncPlayerVisual(moveVector: { x: number; y: number }) {
         valuePercent: Math.max(0, Number(ailment.effect_per_stack ?? ailment.base_value ?? 0)),
         baseValue: Math.max(0, Number(ailment.base_value ?? 0)),
         baseDamagePerSecond: Math.max(0, Number(ailment.base_damage_per_second ?? 0) * frontendSkillAilmentDamageMultiplier(skill)),
-        stackMode: frontendEnemyBuffStackModeFromValue(ailment.stack_mode),
-        stackCount: 1,
+        stackMode,
+        stackCount: frontendAilmentStackCount(skill, statusType, frontendRuntimeRoll(skill, enemy, index + 301)),
         maxStacks: Math.max(1, Math.round(Number(ailment.max_stacks ?? 1))),
         damageType: String(ailment.source_damage_type ?? skill.damage_type),
         nextFloatingTextIn: DOT_FLOATING_TEXT_INTERVAL_SECONDS,
@@ -3968,7 +4024,7 @@ function frontendDamageEventsForTarget(
     excludeIds = new Set<number>()
   ) {
     return candidateEnemiesNear(current, origin, radius)
-      .filter((enemy) => enemy.hp > 0 && !excludeIds.has(enemy.id) && distance(enemy, origin) <= radius)
+      .filter((enemy) => enemy.hp > 0 && !excludeIds.has(enemy.id) && distance(enemy, origin) <= radius && hasUnblockedBattleLine(battleMap, origin, enemy))
       .sort((a, b) => distance(a, origin) - distance(b, origin))
       .slice(0, Math.max(1, maxTargets));
   }
@@ -4042,6 +4098,7 @@ function frontendDamageEventsForTarget(
       frontendRuntimeRange,
       frontendSkillEvent,
       frontendSkillVfxKey,
+      clipProjectileLine: (from, to) => clipBattleLineToBlocker(battleMap, from, to),
       frontendUniqueTargetsByDistance: (current, origin, radius, maxTargets) =>
         frontendUniqueTargetsByDistance(current as Enemy[], origin, radius, maxTargets),
       projectileSpawnWorldPosition,
@@ -4118,7 +4175,13 @@ function frontendDamageEventsForTarget(
       const splitDirection = rotateDirection(direction, angle);
       const maxDistance = Number(params.split_projectile_max_distance ?? 240);
       const candidates = current
-        .filter((enemy) => enemy.hp > 0 && enemy.id !== triggerTarget.id && !claimedTargetIds.has(enemy.id) && distance(enemy, triggerPosition) <= maxDistance)
+        .filter((enemy) => (
+          enemy.hp > 0
+          && enemy.id !== triggerTarget.id
+          && !claimedTargetIds.has(enemy.id)
+          && distance(enemy, triggerPosition) <= maxDistance
+          && hasUnblockedBattleLine(battleMap, triggerPosition, enemy)
+        ))
         .map((enemy) => ({ enemy, angle: angleBetweenDegrees(splitDirection, guideDirection(triggerPosition, enemy)), dist: distance(enemy, triggerPosition) }))
         .sort((a, b) => a.angle - b.angle || a.dist - b.dist);
       const target = candidates[0]?.enemy;
@@ -4130,7 +4193,8 @@ function frontendDamageEventsForTarget(
         x: triggerPosition.x + splitDirection.x * maxDistance,
         y: triggerPosition.y + splitDirection.y * maxDistance
       };
-      const targetPosition = target ? { x: target.x, y: target.y } : expirePosition;
+      const clippedExpire = clipBattleLineToBlocker(battleMap, triggerPosition, expirePosition);
+      const targetPosition = target ? { x: target.x, y: target.y } : clippedExpire.point;
       const projectileDirection = target ? guideDirection(triggerPosition, targetPosition) : splitDirection;
       const projectileSpeed = Number(params.split_projectile_speed ?? params.projectile_speed ?? 600);
       const splitLifetimeMs = Math.max(
@@ -4147,7 +4211,7 @@ function frontendDamageEventsForTarget(
         projectile_count: splitCount,
         local_spread_angle: angle,
         target_world_position: targetPosition,
-        expire_world_position: expirePosition,
+        expire_world_position: target ? expirePosition : clippedExpire.point,
         spawn_world_position: triggerPosition,
         direction_world: projectileDirection,
         velocity_world: { x: projectileDirection.x * projectileSpeed, y: projectileDirection.y * projectileSpeed },
@@ -4156,7 +4220,8 @@ function frontendDamageEventsForTarget(
         projectile_width: Number(params.split_projectile_width ?? params.projectile_width ?? 38),
         projectile_height: Number(params.split_projectile_height ?? params.projectile_height ?? 24),
         pierce_count: Number(params.split_projectile_pierce_count ?? 0),
-        lifetime_ms: splitLifetimeMs
+        lifetime_ms: splitLifetimeMs,
+        wall_blocked: clippedExpire.blocked || undefined
       }, splitLifetimeMs, triggerDelayMs));
       if (!target) continue;
       events.push(frontendSkillEvent(skill, "projectile_hit", target, { x: target.x, y: target.y }, projectileDirection, amount, damageType, {
@@ -4219,6 +4284,7 @@ function frontendDamageEventsForTarget(
       frontendDamageEventsForTarget,
       frontendSkillEvent,
       frontendSkillVfxKey,
+      clipProjectileLine: (from, to) => clipBattleLineToBlocker(battleMap, from, to),
       frontendUniqueTargetsByDistance,
       projectileSpawnWorldPosition,
       stablePercent,
@@ -4233,6 +4299,7 @@ function frontendDamageEventsForTarget(
       frontendDamageEventsForTarget,
       frontendSkillEvent,
       frontendSkillVfxKey,
+      clipProjectileLine: (from, to) => clipBattleLineToBlocker(battleMap, from, to),
       frontendUniqueTargetsByDistance,
       projectileSpawnWorldPosition,
       stablePercent,
@@ -4725,6 +4792,7 @@ function frontendDamageEventsForTarget(
       projectileSpawnPositionForEvent,
       projectileTargetFollowupKey,
       projectileVfxKind,
+      clipProjectileLine: (from, to) => clipBattleLineToBlocker(battleMap, from, to),
       registerActiveDamageZone,
       shapeEffectsFromUnknown,
       shouldSuppressProjectileFollowup,
@@ -5150,8 +5218,9 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     const previousState = state;
     const previousInventorySlots = activeInventorySlots;
     const previousEquipmentSlots = equipmentSlots;
+    const boardMountSequence = dragged.board_position ? dragged.board_mount_sequence : nextBoardMountSequence(state);
     applyFrontendState((currentState) => ({
-      ...optimisticPlaceItemOnBoard(currentState, instanceId, row, column, targetItem?.instance_id),
+      ...optimisticPlaceItemOnBoard(currentState, instanceId, row, column, targetItem?.instance_id, boardMountSequence),
       stash_pages: removeItemsFromStashPages(currentState.stash_pages, [instanceId, targetItem?.instance_id ?? ""])
     }));
     removeItemsFromBagSlots([instanceId, targetItem?.instance_id ?? ""]);
@@ -5568,6 +5637,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
     damageZoneChannels.current = {};
     scheduledSkillEvents.current = [];
     activeDamageZones.current = [];
+    pendingPlayerDisplacement.current = false;
+    playerDisplacementCooldowns.current = {};
     bossSkillTimers.current = new Map();
     supremeBossSkillTimers.current = new Map();
     monsterSkillTimers.current = new Map();
@@ -6307,6 +6378,21 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
   const terrainHeight = battleMap?.meta.world_height ?? MAP_VISUAL_HEIGHT;
   const showBattleMapLayer = playing || restAreaMapActive || skillEditorMode || monsterTestMode;
   const editorBattleMap = runtimeUsesEditorMap && battleMap && isEditorRuntimeBattleMap(battleMap) ? battleMap : null;
+  function updateBattlePointerWorld(clientX: number, clientY: number) {
+    battleMouseWorld.current = viewportToBattleWorld(clientX, clientY, battleCamera);
+  }
+  function playerDisplacementSkillCooldownView(skills: readonly SkillPreview[], nowMs: number) {
+    const skill = selectPlayerDisplacementSkill(skills);
+    if (!skill) return null;
+    const cooldownMs = Math.max(100, Number(skill.final_cooldown_ms ?? skill.base_cooldown_ms ?? 3000));
+    const readyAtMs = playerDisplacementCooldowns.current[skill.active_gem_instance_id] ?? 0;
+    const remainingMs = Math.max(0, readyAtMs - nowMs);
+    return {
+      ready: remainingMs <= 0,
+      cooldownProgress: cooldownMs > 0 ? clamp(remainingMs / cooldownMs, 0, 1) : 0
+    };
+  }
+  const displacementSkillCooldown = playerDisplacementSkillCooldownView(activeSkills, animationNowMs);
   return (
     <GameViewportFrame viewport={gameViewport} mode={gameResolutionMode}>
     <main className="game-screen">
@@ -6378,6 +6464,8 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
         playableMinimapVisible={playableMinimapVisible}
         exploredMinimapCells={exploredMinimapCells}
         playableMinimapMode={playableMinimapMode}
+        displacementSkillCooldown={displacementSkillCooldown}
+        onBattlePointerMove={updateBattlePointerWorld}
       />
 
       {monsterTestMode && (
@@ -6524,8 +6612,10 @@ async function placeFloatingItem(current: FloatingGem, target: DropTarget, event
                 <GmToolPanel
                   options={gmOptions}
                   affixes={gmAffixes}
+                  loadErrorText={gmLoadError}
                   onLoadAffixes={loadGmEquipmentAffixes}
                   onSubmit={submitGmRequest}
+                  onRetryLoad={() => setGmLoadRetryId((value) => value + 1)}
                   onClose={() => setGmOpen(false)}
                 />
               )}
@@ -6800,6 +6890,10 @@ function removeInventoryItemFromState(state: AppState, instanceId: string): AppS
       )
     }
   };
+}
+
+function nextBoardMountSequence(state: AppState) {
+  return state.inventory.reduce((max, item) => Math.max(max, Number(item.board_mount_sequence ?? 0)), 0) + 1;
 }
 
 function sanitizeEquipmentSlotsForState(state: AppState): AppState {

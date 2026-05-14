@@ -14,6 +14,7 @@ import { equipmentTooltipAffixLine, equipmentRarityTone } from "../components/to
 import { createFrontendItemTooltipView, type TooltipView } from "../components/tooltips/tooltipViewModel";
 import { frontendEquipmentSourceSlotIdFromText, isTwoHandedEquipmentSource } from "../components/inventory/equipmentRules";
 import { FRONTEND_SKILL_LEVEL_TABLES } from "../frontendSkillLevelTables";
+import { frontendDisplacementSkillLevelTableForId } from "../data/playerDisplacementSkillData";
 import {
   FRONTEND_GEM_SUDOKU_TYPE_DROP_POOL,
   FRONTEND_MAP_ENTRY_DROP_POOL,
@@ -345,7 +346,8 @@ export function nextFrontendInventoryItemId<TState extends FrontendDropAppState<
 
 function frontendGemLevelTableValues(gem: FrontendDropGem, level: number): FrontendSkillLevelValues {
   const tableId = String(gem.base_gem_id ?? gem.instance_id ?? "");
-  const table = (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, FrontendSkillLevelValues>>)[tableId];
+  const table = frontendDisplacementSkillLevelTableForId(tableId)
+    ?? (FRONTEND_SKILL_LEVEL_TABLES as Record<string, Record<number, FrontendSkillLevelValues>>)[tableId];
   if (!table) return {};
   const levels = Object.keys(table).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
   if (levels.length === 0) return {};

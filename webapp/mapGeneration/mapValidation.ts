@@ -20,7 +20,10 @@ export function validateGeneratedMap(map: Partial<GeneratedEditorMap>, graph?: G
   validateZoneCenters(tiles, zones, errors);
   validateSpawn(map.spawn, tiles, zones, errors);
   validateGroundConnectivity(tiles, stats.groundTileCount, errors);
-  if (graph) validateGraph(graph, errors, warnings);
+  if (graph) {
+    validateGraph(graph, errors, warnings);
+    validateDeadEndDoorways(tiles, graph, errors);
+  }
 
   return { ok: errors.length === 0, errors, warnings, stats };
 }
@@ -167,6 +170,31 @@ function validateGraph(graph: GeneratedMapGraph, errors: string[], warnings: str
     errors.push("环路分支型必须包含至少一个局部环路。");
   }
   if (graph.mainPathRoomIds.length < 2) warnings.push("主路径节点数量偏少。");
+}
+
+function validateDeadEndDoorways(tiles: GeneratedTileKind[][], graph: GeneratedMapGraph, errors: string[]) {
+  for (const room of graph.rooms) {
+    if (room.roomType !== "dead_end") continue;
+    const contacts = countExteriorGroundContacts(tiles, room);
+    const openSides = Object.entries(contacts).filter(([, count]) => count > 0);
+    const widestOpening = Math.max(...Object.values(contacts));
+    if (openSides.length !== 1 || widestOpening > 4) {
+      errors.push(`${room.id} dead_end must expose exactly one narrow exterior doorway.`);
+    }
+  }
+}
+
+function countExteriorGroundContacts(tiles: GeneratedTileKind[][], room: GeneratedMapGraph["rooms"][number]) {
+  const contacts = { top: 0, bottom: 0, left: 0, right: 0 };
+  for (let x = room.x; x < room.x + room.width; x += 1) {
+    if (tiles[room.y - 1]?.[x] === "ground") contacts.top += 1;
+    if (tiles[room.y + room.height]?.[x] === "ground") contacts.bottom += 1;
+  }
+  for (let y = room.y; y < room.y + room.height; y += 1) {
+    if (tiles[y]?.[room.x - 1] === "ground") contacts.left += 1;
+    if (tiles[y]?.[room.x + room.width] === "ground") contacts.right += 1;
+  }
+  return contacts;
 }
 
 function graphReachable(adjacency: Map<string, string[]>, start: string) {
